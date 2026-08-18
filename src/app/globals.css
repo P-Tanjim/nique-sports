@@ -1,26 +1,37 @@
 @import "tailwindcss";
+@import "@heroui/styles";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  /* ================================
+     UNIQUE SPORTS — BRAND COLORS
+     ================================ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-primary: #308898;
+  --color-primary-dark: #236b79;
+  --color-primary-light: #5cb3c1;
+  --color-primary-soft: #e5f2f4;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+  --color-accent: #7bc6d0;
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Dark / Typography */
+  --color-ink: #202426;
+  --color-dark: #303030;
+  --color-dark-soft: #464b4d;
+
+  /* Backgrounds */
+  --color-white: #ffffff;
+  --color-surface: #f8f9f9;
+  --color-surface-blue: #eef6f7;
+
+  /* Borders */
+  --color-border: #d9e4e6;
+
+  /* Text */
+  --color-text: #252a2c;
+  --color-text-muted: #687477;
+
+  /* Status */
+  --color-success: #24966a;
+  --color-warning: #d69a2d;
+  --color-danger: #d94b4b;
 }
