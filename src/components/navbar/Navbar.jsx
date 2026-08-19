@@ -7,13 +7,14 @@ import { Tabs } from '@heroui/react';
 import NavSearchbar from '@/components/navbar/clientComponent/NavSearchbar'
 import Link from 'next/link'
 import MobileSideNav from './clientComponent/MobileSideNav'
+import { ChartBarStacked, CircleUser, House, ShoppingCart } from 'lucide-react'
 
 const Navbar = () => {
   return (
     <>
       <nav className='px-4 md:px-20 py-3 w-full flex flex-col'>
         <div className='desktop-navbar flex justify-between items-center'>
-          <MobileSideNav />
+          <MobileSideNav where={'navbar'} />
           <Image src={logo} width={50} height={50} alt='nique sports logo' />
           <ul className='hidden min-[1003px]:flex md:gap-4 lg:gap-6 xl:gap-10 items-center text-ink ml-10'>
             <Link href={'/'}><li className='hover:text-primary transition duration-300'>Home</li></Link>
@@ -40,6 +41,20 @@ const Navbar = () => {
               </Tabs.ListContainer>
             </Tabs>
           </div>
+        </div>
+
+        <div className='mobile-nav flex min-[1003px]:hidden'>
+          <ul>
+            <Link href={'/'}>
+              <li><House color="#ffffff" /></li>
+            </Link>
+            <li><ChartBarStacked color="#ffffff" /></li>
+            <li><ShoppingCart color="#ffffff" /></li>
+            <Link href={'/account'}>
+              <li><CircleUser color="#ffffff" /></li>
+            </Link>
+          </ul>
+
         </div>
       </nav>
     </>

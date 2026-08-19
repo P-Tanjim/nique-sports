@@ -1,8 +1,11 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-
+import bdFlag from '../../../../public/bd-flag.webp'
+import usFlag from '../../../../public/en-flag.webp'
 import { motion, useMotionValue, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { Tabs } from "@heroui/react";
+import Image from "next/image";
 
 const MENU_SLIDE_ANIMATION = {
 	initial: { x: "calc(100% + 100px)" },
@@ -166,7 +169,7 @@ const CurvedNavbar = ({ setIsActive, navItems }) => {
 			className="h-dvh w-screen max-w-screen-sm fixed right-0 top-0 z-40 bg-white"
 		>
 			<div className="h-full pt-11 flex flex-col justify-between">
-				<div className="flex flex-col text-5xl gap-3 mt-0 px-10 md:px-24">
+				<div className="flex flex-col gap-3 mt-0 px-10 md:px-24">
 					<div className="text-black border-b border-black/30 uppercase text-sm mb-0">
 						<p>apanique</p>
 					</div>
@@ -184,6 +187,21 @@ const CurvedNavbar = ({ setIsActive, navItems }) => {
 							})}
 						</div>
 					</section>
+				
+					<Tabs className="w-full mt-2 h-fit">
+						<Tabs.ListContainer>
+							<Tabs.List aria-label="Options">
+								<Tabs.Tab id="overview">
+									<Image src={bdFlag} width={18} height={18} alt="Home Icon" />
+									<Tabs.Indicator className='px-2 py-2' />
+								</Tabs.Tab>
+								<Tabs.Tab id="analytics">
+									<Image src={usFlag} width={18} height={18} alt="Home Icon" />
+									<Tabs.Indicator />
+								</Tabs.Tab>
+							</Tabs.List>
+						</Tabs.ListContainer>
+					</Tabs>
 				</div>
 			</div>
 			<Curve />
