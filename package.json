@@ -11,6 +11,8 @@
   "dependencies": {
     "@heroui/react": "^3.2.4",
     "@heroui/styles": "^3.2.4",
+    "framer-motion": "^13.1.0",
+    "lucide-react": "^1.32.0",
     "next": "16.3.1",
     "react": "19.2.8",
     "react-dom": "19.2.8"
