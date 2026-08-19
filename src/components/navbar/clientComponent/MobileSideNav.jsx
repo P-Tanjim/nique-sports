@@ -80,7 +80,7 @@ const NavLink = ({ heading, href, setIsActive, index }) => {
 		>
 			<Link ref={ref} onMouseMove={handleMouseMove} href={href}>
 				<div className="relative flex items-start">
-					<span className="text-black transition-colors duration-500  text-xl font-thin mr-2">
+					<span className="text-black transition-colors duration-500 text-xl font-thin mr-2">
 						{index}.
 					</span>
 					<div className="flex flex-row gap-2">
@@ -94,7 +94,7 @@ const NavLink = ({ heading, href, setIsActive, index }) => {
 								staggerChildren: 0.075,
 								delayChildren: 0.25,
 							}}
-							className="relative z-10 block text-2xl font-extralight text-black transition-colors duration-500"
+							className="relative z-10 block text-2xl font-light text-black transition-colors duration-500"
 						>
 							{heading.split(" ").map((word, wordIndex) => (
 								<span key={wordIndex} className="inline-flex mr-2">
@@ -168,11 +168,11 @@ const CurvedNavbar = ({ setIsActive, navItems }) => {
 			initial="initial"
 			animate="enter"
 			exit="exit"
-			className="h-dvh w-screen max-w-screen-sm fixed right-0 top-0 z-40 bg-white"
+			className="h-dvh w-screen max-w-screen-sm absolute right-0 top-0 z-90 bg-white"
 		>
 			<div className="h-full pt-11 flex flex-col justify-between">
 				<div className="flex flex-col gap-3 mt-0 px-10 md:px-24">
-					<div className="text-black border-b border-black/30 uppercase text-sm mb-0">
+					<div className="text-primary border-b border-primary-dark/30 uppercase text-sm mb-0">
 						<p>apanique</p>
 					</div>
 					<section className="bg-transparent mt-0">
@@ -226,9 +226,9 @@ const MobileNav = ({ navItems = defaultNavItems, where="sidebar"}) => {
 	};
 
 	return (
-		<>
+		<div>
 			{where === "sidebar" ? (
-				<div className={`relative z-50 min-[1003px]:hidden transition-transform duration-1000 ease-in-out ${isActive ? "-translate-y-2.5" : ""}`}>
+				<div className={`relative z-100 min-[1003px]:hidden transition-transform duration-1000 ease-in-out ${isActive ? "-translate-y-2.5" : ""}`}>
 					<div
 						onClick={handleClick}
 						className="w-12 h-4 rounded-none flex items-center justify-center cursor-pointer bg-white"
@@ -262,7 +262,7 @@ const MobileNav = ({ navItems = defaultNavItems, where="sidebar"}) => {
 					/>
 				)}
 			</AnimatePresence>
-		</>
+		</div>
 	);
 };
 
