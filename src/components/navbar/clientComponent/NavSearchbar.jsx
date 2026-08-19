@@ -47,6 +47,7 @@ const NavSearchbar = () => {
                 }`}
             >
                 <div
+                    onClick={(e) => e.stopPropagation()}
                     className={`absolute left-1/2 -translate-x-1/2 transition-all duration-300 flex flex-col items-center justify-center ${
                         isActive ? 'top-10 scale-100 opacity-100' : '-top-20 scale-50 opacity-0'
                     }`}
