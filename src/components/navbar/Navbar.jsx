@@ -43,15 +43,15 @@ const Navbar = () => {
           </div>
         </div>
 
-        <div className='mobile-nav flex min-[1003px]:hidden'>
-          <ul>
+        <div className='absolute bottom-5 mobile-nav w-[90%] mx-auto py-4 px-6 rounded-full drackdrop-blur-sm bg-primary/80 min-[1003px]:hidden'>
+          <ul className='flex flex-row justify-between items-center'>
             <Link href={'/'}>
-              <li><House color="#ffffff" /></li>
+              <li><House size={28} color="#ffffff" /></li>
             </Link>
-            <li><ChartBarStacked color="#ffffff" /></li>
-            <li><ShoppingCart color="#ffffff" /></li>
+            <li><ChartBarStacked size={28} color="#ffffff" /></li>
+            <li><ShoppingCart size={28} color="#ffffff" /></li>
             <Link href={'/account'}>
-              <li><CircleUser color="#ffffff" /></li>
+              <li><CircleUser size={28} color="#ffffff" /></li>
             </Link>
           </ul>
 
