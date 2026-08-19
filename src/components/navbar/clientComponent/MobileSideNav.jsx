@@ -6,6 +6,8 @@ import { motion, useMotionValue, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { Tabs } from "@heroui/react";
 import Image from "next/image";
+import { ChartBarStacked } from "lucide-react";
+import { useNav } from "./NavStateContext";
 
 const MENU_SLIDE_ANIMATION = {
 	initial: { x: "calc(100% + 100px)" },
@@ -209,10 +211,8 @@ const CurvedNavbar = ({ setIsActive, navItems }) => {
 	);
 };
 
-const MobileNav = ({
-	navItems = defaultNavItems,
-}) => {
-	const [isActive, setIsActive] = useState(false);
+const MobileNav = ({ navItems = defaultNavItems, where="sidebar"}) => {
+	const {isActive, setIsActive} = useNav();
 	const openAudioRef = useRef(null);
 	const closeAudioRef = useRef(null);
 
@@ -227,24 +227,32 @@ const MobileNav = ({
 
 	return (
 		<>
-			<div className={`relative z-50 min-[1003px]:hidden transition-transform duration-1000 ease-in-out ${isActive && "-translate-y-2.5"}`}>
-				<div
-					onClick={handleClick}
-					className="w-12 h-4 rounded-none flex items-center justify-center cursor-pointer bg-white"
-				>
-					<div className="relative w-8 h-4.5 gap-0 flex flex-col justify-between items-center">
-						<span
-							className={`block h-0.5 w-8 bg-black transition-transform duration-300 ${isActive ? "rotate-45 translate-y-2" : ""}`}
-						></span>
-						<span
-							className={`block h-0.5 w-8 bg-black transition-opacity duration-300 ${isActive ? "opacity-0" : ""}`}
-						></span>
-						<span
-							className={`block h-0.5 w-8 bg-black transition-transform duration-300 ${isActive ? "-rotate-45 -translate-y-3" : ""}`}
-						></span>
+			{where === "sidebar" ? (
+				<div className={`relative z-50 min-[1003px]:hidden transition-transform duration-1000 ease-in-out ${isActive ? "-translate-y-2.5" : ""}`}>
+					<div
+						onClick={handleClick}
+						className="w-12 h-4 rounded-none flex items-center justify-center cursor-pointer bg-white"
+					>
+						<div className="relative w-8 h-4.5 gap-0 flex flex-col justify-between items-center">
+							<span
+								className={`block h-0.5 w-8 bg-black transition-transform duration-300 ${isActive ? "rotate-45 translate-y-2" : ""}`}
+							></span>
+							<span
+								className={`block h-0.5 w-8 bg-black transition-opacity duration-300 ${isActive ? "opacity-0" : ""}`}
+							></span>
+							<span
+								className={`block h-0.5 w-8 bg-black transition-transform duration-300 ${isActive ? "-rotate-45 -translate-y-3" : ""}`}
+							></span>
+						</div>
 					</div>
 				</div>
-			</div>
+			) : 
+			(
+				<div onClick={handleClick} className='cursor-pointer'>
+					<ChartBarStacked size={28} color="#ffffff" />
+				</div>
+			)
+			}
 
 			<AnimatePresence mode="wait">
 				{isActive && (

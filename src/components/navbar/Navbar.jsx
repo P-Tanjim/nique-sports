@@ -7,14 +7,15 @@ import { Tabs } from '@heroui/react';
 import NavSearchbar from '@/components/navbar/clientComponent/NavSearchbar'
 import Link from 'next/link'
 import MobileSideNav from './clientComponent/MobileSideNav'
-import { ChartBarStacked, CircleUser, House, ShoppingCart } from 'lucide-react'
+import { CircleUser, House, ShoppingCart } from 'lucide-react'
+import { NavProvider } from './clientComponent/NavStateContext'
 
 const Navbar = () => {
   return (
-    <>
+    <NavProvider>
       <nav className='px-4 md:px-20 py-3 w-full flex flex-col'>
         <div className='desktop-navbar flex justify-between items-center'>
-          <MobileSideNav where={'navbar'} />
+          <MobileSideNav />
           <Image src={logo} width={50} height={50} alt='nique sports logo' />
           <ul className='hidden min-[1003px]:flex md:gap-4 lg:gap-6 xl:gap-10 items-center text-ink ml-10'>
             <Link href={'/'}><li className='hover:text-primary transition duration-300'>Home</li></Link>
@@ -43,21 +44,21 @@ const Navbar = () => {
           </div>
         </div>
 
-        <div className='absolute bottom-5 mobile-nav w-[90%] mx-auto py-4 px-6 rounded-full drackdrop-blur-sm bg-primary/80 min-[1003px]:hidden'>
+        <div className='absolute bottom-5 mobile-nav w-[90%] mx-auto py-2 px-6 rounded-full drackdrop-blur-sm bg-primary/80 min-[1003px]:hidden'>
           <ul className='flex flex-row justify-between items-center'>
             <Link href={'/'}>
-              <li><House size={28} color="#ffffff" /></li>
+              <li className='px-2 py-2'><House size={28} color="#ffffff" /></li>
             </Link>
-            <li><ChartBarStacked size={28} color="#ffffff" /></li>
-            <li><ShoppingCart size={28} color="#ffffff" /></li>
+            <li className='px-2 py-2'><MobileSideNav where='bottom-bar' /></li>
+            <li className='px-2 py-2 cursor-pointer'><ShoppingCart size={28} color="#ffffff" /></li>
             <Link href={'/account'}>
-              <li><CircleUser size={28} color="#ffffff" /></li>
+              <li className='px-2 py-2'><CircleUser size={28} color="#ffffff" /></li>
             </Link>
           </ul>
 
         </div>
       </nav>
-    </>
+    </NavProvider>
   )
 }
 
