@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from "react";
 
 import { motion, useMotionValue, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Info, Sigma, MessageCircleCode, MessageCircle } from "lucide-react";
 
 const MENU_SLIDE_ANIMATION = {
 	initial: { x: "calc(100% + 100px)" },
@@ -19,49 +18,29 @@ const defaultNavItems = [
 		heading: "Home",
 		href: "/",
 		subheading: "Welcome to our website",
-		imgSrc: "/images/home.jpg",
 	},
 	{
-		heading: "Components",
-		href: "/components",
-		subheading: "View our components",
-		imgSrc: "/images/about.jpg",
+		heading: "BD Premium",
+		href: "/bd-premium",
+		subheading: "Bangladesh Premium Jersey",
 	},
 	{
-		heading: "Services",
-		href: "/services",
-		subheading: "What we offer",
-		imgSrc: "/images/services.jpg",
+		heading: "Manufactured Retro",
+		href: "/manufactured-retro",
+		subheading: "Retro Manufactured Jersey",
 	},
 	{
-		heading: "Contact",
-		href: "/contact",
-		subheading: "Get in touch with us",
-		imgSrc: "/images/contact.jpg",
+		heading: "Player Edition Replica",
+		href: "/player-edition-replica",
+		subheading: "Player Edition Replica Jersey",
+	},
+	{
+		heading: "Player Edition",
+		href: "/player-edition",
+		subheading: "Player Edition Jersey",
 	},
 ];
 
-const CustomFooter = () => {
-	return (
-		<div className="flex w-full text-sm justify-between text-black px-10 md:px-24 py-5">
-			<a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">
-				<MessageCircleCode color="#ffffff" size={24} />
-			</a>
-			<a href="https://github.com" target="_blank" rel="noopener noreferrer">
-				<MessageCircle color="#ffffff" size={24} />
-			</a>
-			<a href="https://dribbble.com" target="_blank" rel="noopener noreferrer">
-                <Info size={24} color="#ffffff" />
-			</a>
-			<a href="https://www.figma.com" target="_blank" rel="noopener noreferrer">
-				<Sigma color="#ffffff"size={24} />
-			</a>
-			<a href="https://www.figma.com" target="_blank" rel="noopener noreferrer">
-				<Sigma color="#ffffff" size={24} />
-			</a>
-		</div>
-	);
-};
 
 const NavLink = ({ heading, href, setIsActive, index }) => {
 	const ref = useRef(null);
@@ -91,12 +70,12 @@ const NavLink = ({ heading, href, setIsActive, index }) => {
 			onClick={handleClick}
 			initial="initial"
 			whileHover="whileHover"
-			className="group relative flex items-center justify-between border-b border-black/30 py-4 transition-colors duration-500 md:py-8 uppercase"
+			className="group relative flex items-center justify-between border-b border-black/30 py-4 transition-colors duration-500 md:py-8"
 			{...linkProps}
 		>
 			<Link ref={ref} onMouseMove={handleMouseMove} href={href}>
 				<div className="relative flex items-start">
-					<span className="text-black transition-colors duration-500  text-4xl font-thin mr-2">
+					<span className="text-black transition-colors duration-500  text-xl font-thin mr-2">
 						{index}.
 					</span>
 					<div className="flex flex-row gap-2">
@@ -110,23 +89,25 @@ const NavLink = ({ heading, href, setIsActive, index }) => {
 								staggerChildren: 0.075,
 								delayChildren: 0.25,
 							}}
-							className="relative z-10 block text-4xl font-extralight text-black transition-colors duration-500  md:text-4xl"
+							className="relative z-10 block text-2xl font-extralight text-black transition-colors duration-500"
 						>
-							{heading.split("").map((letter, i) => {
-								return (
-									<motion.span
-										key={i}
-										variants={{
-											initial: { x: 0 },
-											whileHover: { x: 16 },
-										}}
-										transition={{ type: "spring" }}
-										className="inline-block"
-									>
-										{letter}
-									</motion.span>
-								);
-							})}
+							{heading.split(" ").map((word, wordIndex) => (
+								<span key={wordIndex} className="inline-flex mr-2">
+									{word.split("").map((letter, i) => (
+										<motion.span
+											key={i}
+											variants={{
+												initial: { x: 0 },
+												whileHover: { x: 16 },
+											}}
+											transition={{ type: "spring" }}
+											className="inline-block"
+										>
+											{letter}
+										</motion.span>
+									))}
+								</span>
+							))}
 						</motion.span>
 					</div>
 				</div>
@@ -175,7 +156,7 @@ const Curve = () => {
 	);
 };
 
-const CurvedNavbar = ({ setIsActive, navItems, footer }) => {
+const CurvedNavbar = ({ setIsActive, navItems }) => {
 	return (
 		<motion.div
 			variants={MENU_SLIDE_ANIMATION}
@@ -187,7 +168,7 @@ const CurvedNavbar = ({ setIsActive, navItems, footer }) => {
 			<div className="h-full pt-11 flex flex-col justify-between">
 				<div className="flex flex-col text-5xl gap-3 mt-0 px-10 md:px-24">
 					<div className="text-black border-b border-black/30 uppercase text-sm mb-0">
-						<p>Navigation</p>
+						<p>apanique</p>
 					</div>
 					<section className="bg-transparent mt-0">
 						<div className="mx-auto max-w-7xl">
@@ -204,7 +185,6 @@ const CurvedNavbar = ({ setIsActive, navItems, footer }) => {
 						</div>
 					</section>
 				</div>
-				{footer}
 			</div>
 			<Curve />
 		</motion.div>
@@ -213,7 +193,6 @@ const CurvedNavbar = ({ setIsActive, navItems, footer }) => {
 
 const MobileNav = ({
 	navItems = defaultNavItems,
-	footer = <CustomFooter />,
 }) => {
 	const [isActive, setIsActive] = useState(false);
 	const openAudioRef = useRef(null);
@@ -254,7 +233,6 @@ const MobileNav = ({
 					<CurvedNavbar
 						setIsActive={setIsActive}
 						navItems={navItems}
-						footer={footer}
 					/>
 				)}
 			</AnimatePresence>
