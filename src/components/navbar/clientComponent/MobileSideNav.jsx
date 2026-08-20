@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef } from "react";
+import React from "react";
 import bdFlag from '../../../../public/bd-flag.webp';
 import usFlag from '../../../../public/en-flag.webp';
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,7 +8,6 @@ import { Tabs } from "@heroui/react";
 import Image from "next/image";
 import { ChartBarStacked } from "lucide-react";
 import { useNav } from "./NavStateContext";
-import { useAdaptiveShadow } from "@/reuseable/useAdaptiveShadow";
 
 const MENU_SLIDE_ANIMATION = {
 	initial: { x: "100%" },
@@ -124,16 +123,12 @@ const SideNavbar = ({ setIsActive, navItems }) => (
 
 const MobileNav = ({ navItems = defaultNavItems, where = "sidebar" }) => {
 	const { isActive, setIsActive } = useNav();
-	const btnRef = useRef(null);
-	const isDarkBg = useAdaptiveShadow(btnRef);
 
 	return (
 		<div>
 			{where === "sidebar" ? (
 				<div
-					ref={btnRef}
-					className={`relative z-80 rounded-full backdrop-blur-sm h-12 w-12 flex items-center justify-center min-[1003px]:hidden transition-all duration-300 ease-in-out ${isDarkBg ? "shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,0.8),inset_0_-8px_8px_-8px_rgba(255,255,255,0.8)]" : "shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.3),inset_0_-8px_8px_-8px_rgba(0,0,0,0.3)]"
-						} ${isActive ? "-translate-y-2.5" : ""}`}
+					className={`relative z-80 rounded-full backdrop-blur-sm h-12 w-12 flex items-center justify-center min-[1003px]:hidden transition-all duration-300 ease-in-out shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.3),inset_0_-8px_8px_-8px_rgba(0,0,0,0.3)] ${isActive ? "-translate-y-2.5" : ""}`}
 				>
 					<div
 						onClick={() => setIsActive(!isActive)}

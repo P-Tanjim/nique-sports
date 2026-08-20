@@ -1,10 +1,7 @@
 'use client'
-import { useAdaptiveShadow } from '@/reuseable/useAdaptiveShadow';
 import React, { useState, useEffect, useRef } from 'react'
 
 const NavSearchbar = () => {
-    const btnRef = useRef(null);
-    const isDarkBg = useAdaptiveShadow(btnRef);
     const [isActive, setIsActive] = useState(false);
     const inputRef = useRef(null);
 
@@ -31,10 +28,9 @@ const NavSearchbar = () => {
     return (
         <>
             <button
-            ref={btnRef}
                 onClick={(e) => { e.stopPropagation(); setIsActive(!isActive); }}
                 aria-label="Search"
-                className={`relative backdrop-blur-sm lg:shadow h-11.5 w-11.5 md:h-10 md:w-10 items-center justify-center text-primary hover:text-primary rounded-full cursor-pointer transition-all duration-300 z-10 ${isDarkBg ? "shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,1),inset_0_-8px_8px_-8px_rgba(255,255,255,1)]" : "shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.3),inset_0_-8px_8px_-8px_rgba(0,0,0,0.3)]"} ${isActive ? "scale-120" : ""}`}
+                className={`relative backdrop-blur-sm lg:shadow h-11.5 w-11.5 md:h-10 md:w-10 items-center justify-center text-primary hover:text-primary rounded-full cursor-pointer transition-all duration-300 z-10 shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.3),inset_0_-8px_8px_-8px_rgba(0,0,0,0.3)] ${isActive ? "scale-120" : ""}`}
             >
                 <svg className="w-5 h-5 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
