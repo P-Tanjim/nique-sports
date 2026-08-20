@@ -9,7 +9,7 @@ const ProductCard = ({ product }) => {
                 <div className='absolute inset-0 bg-linear-to-t from-black/80 via-black/0 to-transparent pointer-events-none z-10' />
                 <div className='absolute bottom-0 left-0 right-0 p-4 z-20 flex justify-between items-start'>
                     <p className='text-primary-soft text-[10px] max-w-[70%] font-medium line-clamp-2'>{product.title}</p>
-                    <p className='text-primary-soft text-xs font-medium'>{product.price}৳</p>
+                    <p className='text-primary-soft text-xs font-bold'>{product.price}৳</p>
                 </div>
             </div>
         </div>
