@@ -1,4 +1,11 @@
 import "./globals.css";
+import { Dancing_Script } from 'next/font/google';
+
+const dancingScript = Dancing_Script({
+  subsets: ["latin"],
+  variable: "--font-dancing-script",
+  weight: ["400", "500", "600", "700"],
+});
 
 export const metadata = {
   title: "Nique Sports",
@@ -9,7 +16,7 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`h-full antialiased`}
+      className={`h-full antialiased ${dancingScript.className}`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
