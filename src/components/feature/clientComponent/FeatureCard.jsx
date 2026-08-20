@@ -53,7 +53,7 @@ function getSlotConfig(totalCards, slot) {
 const T_ELASTIC_IN  = { type: "spring", stiffness: 65, damping: 11 }; // elastic.out(1.05,.78) ~1.2s
 const T_HOVER       = { type: "spring", stiffness: 100, damping: 14 }; // elastic.out(1,.75)  ~0.5s
 
-const ARROW_CLASSES = "relative flex items-center justify-center rounded-full border-[1.5px] border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 backdrop-blur-[16px] text-black/40 dark:text-white/55 cursor-pointer shrink-0 z-30 outline-none shadow-[0_4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:border-black/25 dark:hover:border-white/25 hover:text-black/70 dark:hover:text-white/80 active:opacity-70 transition-colors duration-300 before:content-[''] before:absolute before:inset-[3px] before:rounded-full before:border before:border-black/[0.04] dark:before:border-white/[0.04] before:pointer-events-none";
+const ARROW_CLASSES = "relative flex items-center justify-center rounded-full shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,1),inset_0_-8px_8px_-8px_rgba(255,255,255,1)] backdrop-blur-sm text-accent cursor-pointer shrink-0 z-30 outline-none hover:text-primary/70 active:opacity-70 transition-colors duration-300 before:content-[''] ";
 
 // Hoisted — pure, never needs to re-create
 const Chevron = ({ direction }) => (
@@ -209,7 +209,7 @@ export default function FeatureCard({ cards = [] }) {
   return (
     <section className="flex flex-col items-center w-full py-4 lg:py-8 px-4 md:px-8 relative z-20">
       <div className="flex items-center justify-center w-full max-w-360">
-        <div ref={scope} className="fan-layout flex relative justify-center items-center w-full h-96 sm:h-112 md:h-[34rem] max-w-7xl">
+        <div ref={scope} className="fan-layout flex relative justify-center items-center w-full h-96 sm:h-112 md:h-136 max-w-7xl">
           {cards.map((card, index) => {
             const imgSrc = card.imgURL || card.imgUrl;
             return (
@@ -237,7 +237,7 @@ export default function FeatureCard({ cards = [] }) {
           <button className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("left")} aria-label="Previous"><Chevron direction="left" /></button>
           <div className="flex items-center gap-2">
             {cards.map((_, i) => (
-              <span key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${i === centerIndex ? "bg-black/70 dark:bg-white/80 scale-[1.3]" : "bg-black/15 dark:bg-white/15"}`} />
+              <span key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${i === centerIndex ? "bg-primary-light scale-[1.3]" : "bg-black/15 dark:bg-white/15"}`} />
             ))}
           </div>
           <button className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("right")} aria-label="Next"><Chevron direction="right" /></button>

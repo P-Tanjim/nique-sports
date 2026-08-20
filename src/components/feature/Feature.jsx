@@ -25,8 +25,8 @@ const products = [
 
 const Feature = () => {
     return (
-        <div className='mb-10 mt-5'>
-            <h1 className={`text-center text-4xl md:text-6xl lg:text-7xl mb-4 text-primary ${dancingScript.className}`}>Featured Jersey</h1>
+        <div className='mb-10 mt-10'>
+            <h1 className={`text-center text-4xl md:text-6xl lg:text-7xl text-primary ${dancingScript.className}`}>Featured Jersey</h1>
             <div className='px-4 md:px-20 min-h-80 flex items-center overflow-clip'>
                <FeatureCard cards={products}></FeatureCard>
             </div>
