@@ -13,7 +13,7 @@ import { NavProvider } from './clientComponent/NavStateContext'
 const Navbar = () => {
   return (
     <NavProvider>
-      <nav className='px-4 md:px-20 py-3 w-full flex flex-col sticky top-0 z-40'>
+      <nav className='px-4 md:px-20 py-3 w-full flex flex-col sticky top-0 z-50'>
         <div className='desktop-navbar flex justify-between items-center'>
           <MobileSideNav />
           <Image src={logo} width={50} height={50} alt='nique sports logo' className='min-[1003px]:mr-0 mr-2' />

@@ -48,3 +48,6 @@
   background: var(--color-primary);
   border-radius: 10px;
 }
+.fancyText {
+  font-family: var(--font-dancing-script), cursive;
+}

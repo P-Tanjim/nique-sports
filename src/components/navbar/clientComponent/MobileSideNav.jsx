@@ -132,7 +132,7 @@ const MobileNav = ({ navItems = defaultNavItems, where = "sidebar" }) => {
 			{where === "sidebar" ? (
 				<div
 					ref={btnRef}
-					className={`relative z-80 rounded-full backdrop-blur-sm h-12 w-12 flex items-center justify-center min-[1003px]:hidden transition-all duration-300 ease-in-out ${isDarkBg ? "shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,0.5),inset_0_-8px_8px_-8px_rgba(255,255,255,0.5)]" : "shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.2),inset_0_-8px_8px_-8px_rgba(0,0,0,0.2)]"
+					className={`relative z-80 rounded-full backdrop-blur-sm h-12 w-12 flex items-center justify-center min-[1003px]:hidden transition-all duration-300 ease-in-out ${isDarkBg ? "shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,0.8),inset_0_-8px_8px_-8px_rgba(255,255,255,0.8)]" : "shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.3),inset_0_-8px_8px_-8px_rgba(0,0,0,0.3)]"
 						} ${isActive ? "-translate-y-2.5" : ""}`}
 				>
 					<div
@@ -147,7 +147,7 @@ const MobileNav = ({ navItems = defaultNavItems, where = "sidebar" }) => {
 					</div>
 				</div>
 			) : (
-				<div onClick={() => setIsActive(!isActive)} className="cursor-pointer">
+				<div onClick={() => setIsActive(!isActive)} className="cursor-pointer z-40">
 					<ChartBarStacked size={28} color="#ffffff" />
 				</div>
 			)}
