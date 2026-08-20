@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef } from "react";
 import bdFlag from '../../../../public/bd-flag.webp';
 import usFlag from '../../../../public/en-flag.webp';
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,10 +11,10 @@ import { useNav } from "./NavStateContext";
 import { useAdaptiveShadow } from "@/reuseable/useAdaptiveShadow";
 
 const MENU_SLIDE_ANIMATION = {
-	initial: { x: "calc(100% + 100px)" },
-	enter: { x: "0", transition: { duration: 0.8, ease: [0.76, 0, 0.24, 1] } },
+	initial: { x: "100%" },
+	enter: { x: "0%", transition: { duration: 0.8, ease: [0.76, 0, 0.24, 1] } },
 	exit: {
-		x: "calc(100% + 100px)",
+		x: "100%",
 		transition: { duration: 0.8, ease: [0.76, 0, 0.24, 1] },
 	},
 };
@@ -77,46 +77,13 @@ const NavLink = ({ heading, href, setIsActive, index }) => (
 	</motion.div>
 );
 
-const Curve = () => {
-	const [windowHeight, setWindowHeight] = useState(0);
-
-	useEffect(() => {
-		setWindowHeight(window.innerHeight);
-		const handleResize = () => setWindowHeight(window.innerHeight);
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, []);
-
-	const half = windowHeight / 2;
-	const curve = {
-		initial: { d: `M100 0 L200 0 L200 ${windowHeight} L100 ${windowHeight} Q-100 ${half} 100 0` },
-		enter: {
-			d: `M100 0 L200 0 L200 ${windowHeight} L100 ${windowHeight} Q100 ${half} 100 0`,
-			transition: { duration: 1, ease: [0.76, 0, 0.24, 1] },
-		},
-		exit: {
-			d: `M100 0 L200 0 L200 ${windowHeight} L100 ${windowHeight} Q-100 ${half} 100 0`,
-			transition: { duration: 0.8, ease: [0.76, 0, 0.24, 1] },
-		},
-	};
-
-	return (
-		<svg
-			className="absolute top-0 -left-24.75 w-25 stroke-none h-full"
-			style={{ fill: "#ffffff" }}
-		>
-			<motion.path variants={curve} initial="initial" animate="enter" exit="exit" />
-		</svg>
-	);
-};
-
-const CurvedNavbar = ({ setIsActive, navItems }) => (
+const SideNavbar = ({ setIsActive, navItems }) => (
 	<motion.div
 		variants={MENU_SLIDE_ANIMATION}
 		initial="initial"
 		animate="enter"
 		exit="exit"
-		className="h-dvh w-screen max-w-screen-sm fixed right-0 top-0 z-70 bg-white"
+		className="h-dvh w-screen max-w-screen-sm fixed right-0 top-0 z-70 bg-white shadow-2xl"
 	>
 		<div className="h-full pt-11 flex flex-col justify-between">
 			<div className="flex flex-col gap-3 mt-0 px-10 md:px-24">
@@ -152,7 +119,6 @@ const CurvedNavbar = ({ setIsActive, navItems }) => (
 				</Tabs>
 			</div>
 		</div>
-		<Curve />
 	</motion.div>
 );
 
@@ -186,11 +152,13 @@ const MobileNav = ({ navItems = defaultNavItems, where = "sidebar" }) => {
 				</div>
 			)}
 
-			<AnimatePresence mode="wait">
-				{isActive && (
-					<CurvedNavbar key="curved-navbar" setIsActive={setIsActive} navItems={navItems} />
-				)}
-			</AnimatePresence>
+			{where === "sidebar" && (
+				<AnimatePresence mode="wait">
+					{isActive && (
+						<SideNavbar key="side-navbar" setIsActive={setIsActive} navItems={navItems} />
+					)}
+				</AnimatePresence>
+			)}
 		</div>
 	);
 };

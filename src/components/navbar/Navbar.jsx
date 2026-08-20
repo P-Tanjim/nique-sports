@@ -25,7 +25,12 @@ const Navbar = () => {
             <Link href={'/player-edition'}><li className='hover:text-primary transition duration-300'>Player Edition</li></Link>
           </ul>
           <div className='flex items-center justify-center gap-5'>
-            <NavSearchbar />
+            <div className='hidden min-[1003px]:flex justify-center items-center'>
+              <NavSearchbar />
+            </div>
+            <button className="backdrop-blur-sm shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.2),inset_0_-8px_8px_-8px_rgba(0,0,0,0.2)] lg:shadow h-11 w-11 flex items-center justify-center text-primary-dark hover:text-primary rounded-full cursor-pointer transition-colors z-10">
+              <ShoppingCart size={20} />
+            </button>
 
             <Tabs className="w-fit h-auto hidden min-[1003px]:flex">
               <Tabs.ListContainer>
@@ -44,19 +49,21 @@ const Navbar = () => {
           </div>
         </div>
       </nav>
-      <div className='fixed left-1/2 -translate-x-1/2 bottom-5 mobile-nav w-[90%] py-2 px-6 rounded-full shadow-inner shadow-white/50 backdrop-blur-sm bg-primary/80 min-[1003px]:hidden z-40'>
+      <div className='fixed bottom-5 w-full px-4 z-40 flex items-center justify-between min-[1003px]:hidden'>
+        <div className='mobile-nav py-1 px-1 w-[80%] rounded-full shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,0.9),inset_0_-8px_8px_-8px_rgba(255,255,255,0.9)] backdrop-blur-sm bg-primary/80'>
           <ul className='flex flex-row justify-between items-center'>
             <Link href={'/'}>
-              <li className='px-2 py-2'><House size={28} color="#ffffff" /></li>
+              <li className='px-4 py-2 rounded-3xl bg-accent'><House size={28} color="#ffffff" /></li>
             </Link>
-            <li className='px-2 py-2'><MobileSideNav where='bottom-bar' /></li>
-            <li className='px-2 py-2 cursor-pointer'><ShoppingCart size={28} color="#ffffff" /></li>
+            <li className='px-4 py-2 rounded-3xl'><MobileSideNav where='bottom-bar' /></li>
+            <li className='px-4 py-2 rounded-3xl cursor-pointer'><ShoppingCart size={28} color="#ffffff" /></li>
             <Link href={'/account'}>
-              <li className='px-2 py-2'><CircleUser size={28} color="#ffffff" /></li>
+              <li className='px-4 py-2 rounded-3xl'><CircleUser size={28} color="#ffffff" /></li>
             </Link>
           </ul>
-
         </div>
+        <NavSearchbar></NavSearchbar>
+      </div>
     </NavProvider>
   )
 }
