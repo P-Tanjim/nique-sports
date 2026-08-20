@@ -132,7 +132,7 @@ const ProductCard = ({ product }) => {
 
 export default function TestProductSection() {
   return (
-    <section className="w-full mx-auto px-4 md:px-8 py-10">
+    <section className="w-full mx-auto md:px-8 py-10">
       <h2 className="text-2xl md:text-4xl font-extrabold text-center text-neutral-900 dark:text-white mb-8">
         Featured Collection
       </h2>
