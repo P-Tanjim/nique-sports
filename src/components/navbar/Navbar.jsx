@@ -1,6 +1,6 @@
 import React from 'react'
 import Image from 'next/image'
-import logo from '../../../public/logo.jpg'
+import logo from '../../../public/logo.png'
 import bdFlag from '../../../public/bd-flag.webp'
 import usFlag from '../../../public/en-flag.webp'
 import { Tabs } from '@heroui/react';
@@ -44,7 +44,7 @@ const Navbar = () => {
           </div>
         </div>
       </nav>
-      <div className='absolute -translate-x-1/2 left-1/2 right-1/2 bottom-5 mobile-nav w-[90%] py-2 px-6 rounded-full backdrop-blur-sm bg-primary/80 min-[1003px]:hidden'>
+      <div className='fixed left-1/2 -translate-x-1/2 bottom-5 mobile-nav w-[90%] py-2 px-6 rounded-full shadow-inner shadow-white/50 backdrop-blur-sm bg-primary/80 min-[1003px]:hidden z-40'>
           <ul className='flex flex-row justify-between items-center'>
             <Link href={'/'}>
               <li className='px-2 py-2'><House size={28} color="#ffffff" /></li>
