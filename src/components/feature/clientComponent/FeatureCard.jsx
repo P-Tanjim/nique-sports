@@ -234,13 +234,13 @@ export default function FeatureCard({ cards = [] }) {
       </div>
       {needsPagination && (
         <div className="flex items-center justify-center gap-4 mt-4 md:mt-6 z-30">
-          <button className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("left")} aria-label="Previous"><Chevron direction="left" /></button>
+          <button className={`${ARROW_CLASSES} w-12 h-12 md:w-12 md:h-12`} onClick={() => cycle("left")} aria-label="Previous"><Chevron direction="left" /></button>
           <div className="flex items-center gap-2">
             {cards.map((_, i) => (
               <span key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${i === centerIndex ? "bg-primary-light scale-[1.3]" : "bg-black/15 dark:bg-white/15"}`} />
             ))}
           </div>
-          <button className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("right")} aria-label="Next"><Chevron direction="right" /></button>
+          <button className={`${ARROW_CLASSES} w-12 h-12 md:w-12 md:h-12`} onClick={() => cycle("right")} aria-label="Next"><Chevron direction="right" /></button>
         </div>
       )}
     </section>
