@@ -2,12 +2,11 @@ import { dancingScript } from '@/app/layout'
 import React from 'react'
 import ProductCard from './clientComponent/ProductCardHR';
 import ProductCardVR from './clientComponent/ProductCardVR';
-import TestProductSection from './clientComponent/test';
 
 const ProductsSection = () => {
     const products = [
         {
-            image: '/featuredProduct/1.jpg',
+            image: '/featuredProduct/1-1.png',
             title: 'Madrid Home Kit 26/27 Replica',
             price: '৩৮০'
         },
@@ -32,7 +31,7 @@ const ProductsSection = () => {
             price: '৮৯৯'
         },
         {
-            image: '/featuredProduct/6.jpg',
+            image: '/featuredProduct/1.jpg',
             title: 'Barcelona x Undefeated 2025/26 Away Kit – Replica',
             price: '৫৫০'
         },
@@ -69,9 +68,6 @@ const ProductsSection = () => {
                     ))
                 }
             </div>
-
-            <TestProductSection></TestProductSection>
-
         </div>
     )
 }
