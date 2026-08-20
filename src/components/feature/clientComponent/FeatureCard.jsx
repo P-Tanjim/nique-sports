@@ -100,6 +100,8 @@ export default function FeatureCard({ cards = [] }) {
     const isFirstMount = !hasEntered.current;
     const { m, hMult } = mults.current;
     const slotCount = needsPagination ? MAX_VISIBLE : totalCards;
+    let isMobile = window.innerWidth < 768;
+    let isTouchDevice = window.matchMedia("(hover: none)").matches;
 
     if (isFirstMount) isAnimating.current = true;
 
@@ -120,22 +122,31 @@ export default function FeatureCard({ cards = [] }) {
       if (slot !== undefined) {
         visibleEntries.push({ el: card, slot });
         const { x, y, rot, scale, zIndex } = getSlotConfig(slotCount, slot);
-        // Note: Framer Motion uses "rotate", GSAP used "rotation"
-        const target = { x: `${x * m}rem`, y: `${y * hMult}rem`, rotate: rot, scale, opacity: 1, zIndex };
+        // Set zIndex directly — bypasses animation pipeline, no compositor cost
+        card.style.zIndex = zIndex;
+        // Only animate GPU-compositable properties: translate, rotate, scale, opacity
+        const target = { x: `${x * m}rem`, y: `${y * hMult}rem`, rotate: rot, scale, opacity: 1 };
 
         if (isFirstMount) {
           animate(card, { x: 0, y: `${12 * hMult}rem`, rotate: 0, scale: 0.5, opacity: 0 }, { duration: 0 });
-          animate(card, target, { ...T_ELASTIC_IN, delay: 0.2 + slot * 0.06 }).then(onCardDone);
+          // Mobile: simple easeOut with fixed duration — settles fast on weak CPUs
+          // Desktop: elastic spring for the premium bounce feel
+          const entryTx = isMobile
+            ? { ease: "easeOut", duration: 0.4, delay: 0.08 + slot * 0.04 }
+            : { ...T_ELASTIC_IN, delay: 0.2 + slot * 0.06 };
+          animate(card, target, entryTx).then(onCardDone);
         } else if (!wasVisible) {
           animate(card, { x: `${direction === "right" ? 40 : -40}rem`, y: `${y * hMult}rem`, rotate: direction === "right" ? 30 : -30, scale: 0.5, opacity: 0 }, { duration: 0 });
-          animate(card, target, { ease: "easeOut", duration: 0.6 }).then(onCardDone);
+          animate(card, target, { ease: "easeOut", duration: isMobile ? 0.35 : 0.6 }).then(onCardDone);
         } else {
-          animate(card, target, { ease: "easeOut", duration: 0.5 }).then(onCardDone);
+          animate(card, target, { ease: "easeOut", duration: isMobile ? 0.3 : 0.5 }).then(onCardDone);
         }
       } else if (wasVisible) {
-        animate(card, { x: `${direction === "right" ? -40 : 40}rem`, opacity: 0, scale: 0.5, rotate: direction === "right" ? -30 : 30, zIndex: 0 }, { ease: "easeIn", duration: 0.4 });
+        card.style.zIndex = 0;
+        animate(card, { x: `${direction === "right" ? -40 : 40}rem`, opacity: 0, scale: 0.5, rotate: direction === "right" ? -30 : 30 }, { ease: "easeIn", duration: 0.4 });
       } else if (isFirstMount) {
-        animate(card, { opacity: 0, scale: 0.3, x: 0, y: 0, zIndex: 0 }, { duration: 0 });
+        card.style.zIndex = 0;
+        animate(card, { opacity: 0, scale: 0.3, x: 0, y: 0 }, { duration: 0 });
       }
     });
 
@@ -147,7 +158,6 @@ export default function FeatureCard({ cards = [] }) {
     const centerSlot = visibleEntries.length >> 1;
 
     const updateHoverLayout = (hoveredSlot) => {
-      // Use cached multipliers — no window.innerWidth read on every hover
       const { m: currM, hMult: currH } = mults.current;
 
       visibleEntries.forEach(({ el, slot }) => {
@@ -169,11 +179,14 @@ export default function FeatureCard({ cards = [] }) {
                 (slot === 0 && hoveredSlot > centerSlot)) ty -= currH;
           }
         }
-        animate(el, { x: `${tx}rem`, y: `${ty}rem`, rotate: tr, scale: ts, zIndex: base.zIndex }, { ...T_HOVER, delay: d });
+        // Set zIndex directly — avoids routing it through the animation pipeline
+        el.style.zIndex = base.zIndex;
+        animate(el, { x: `${tx}rem`, y: `${ty}rem`, rotate: tr, scale: ts }, { ...T_HOVER, delay: d });
       });
     };
 
-    const listeners = visibleEntries.map(({ el, slot }) => {
+    // Skip hover wiring entirely on touch devices — saves listener overhead
+    const listeners = isTouchDevice ? [] : visibleEntries.map(({ el, slot }) => {
       const handler = () => {
         if (!isAnimating.current) {
           if (leaveTimer) clearTimeout(leaveTimer);
@@ -188,7 +201,7 @@ export default function FeatureCard({ cards = [] }) {
       if (!isAnimating.current)
         leaveTimer = setTimeout(() => { activeSlot = null; updateHoverLayout(null); }, 50);
     };
-    container.addEventListener("mouseleave", onMouseLeave);
+    if (!isTouchDevice) container.addEventListener("mouseleave", onMouseLeave);
 
     const onResize = () => {
       mults.current = getMultipliers(window.innerWidth);
@@ -198,7 +211,7 @@ export default function FeatureCard({ cards = [] }) {
 
     return () => {
       listeners.forEach(({ el, handler }) => el.removeEventListener("mouseenter", handler));
-      container.removeEventListener("mouseleave", onMouseLeave);
+      if (!isTouchDevice) container.removeEventListener("mouseleave", onMouseLeave);
       window.removeEventListener("resize", onResize);
       if (leaveTimer) clearTimeout(leaveTimer);
     };
@@ -216,7 +229,9 @@ export default function FeatureCard({ cards = [] }) {
               <Link
                 key={index}
                 href={card.linkUrl || "#"}
-                className="fan-card absolute w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-2xl shadow-xl overflow-hidden cursor-pointer"
+                // will-change-transform: promotes each card to its own GPU compositing
+                // layer BEFORE animation starts — eliminates CPU-side repaints entirely
+                className="fan-card will-change-transform absolute w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-2xl shadow-xl overflow-hidden cursor-pointer"
               >
                 <div className="relative w-full h-full overflow-hidden">
                   <Image
@@ -234,13 +249,13 @@ export default function FeatureCard({ cards = [] }) {
       </div>
       {needsPagination && (
         <div className="flex items-center justify-center gap-4 mt-4 md:mt-6 z-30">
-          <button className={`${ARROW_CLASSES} w-12 h-12 md:w-12 md:h-12`} onClick={() => cycle("left")} aria-label="Previous"><Chevron direction="left" /></button>
+          <button className={`${ARROW_CLASSES} w-12 h-12`} onClick={() => cycle("left")} aria-label="Previous"><Chevron direction="left" /></button>
           <div className="flex items-center gap-2">
             {cards.map((_, i) => (
               <span key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${i === centerIndex ? "bg-primary-light scale-[1.3]" : "bg-black/15 dark:bg-white/15"}`} />
             ))}
           </div>
-          <button className={`${ARROW_CLASSES} w-12 h-12 md:w-12 md:h-12`} onClick={() => cycle("right")} aria-label="Next"><Chevron direction="right" /></button>
+          <button className={`${ARROW_CLASSES} w-12 h-12`} onClick={() => cycle("right")} aria-label="Next"><Chevron direction="right" /></button>
         </div>
       )}
     </section>
