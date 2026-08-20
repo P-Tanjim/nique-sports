@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Dancing_Script } from 'next/font/google';
+import SmoothScroll from "@/components/common/SmoothScroll";
 
 export const dancingScript = Dancing_Script({
   subsets: ["latin"],
@@ -18,7 +19,9 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <SmoothScroll>{children}</SmoothScroll>
+      </body>
     </html>
   );
 }
