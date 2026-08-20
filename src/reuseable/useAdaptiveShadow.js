@@ -16,15 +16,18 @@ export function useAdaptiveShadow(ref, { threshold = 128 } = {}) {
 
   useEffect(() => {
     check();
-    let frame;
+    let timeoutId;
     const onChange = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(check);
+      if (timeoutId) return;
+      timeoutId = setTimeout(() => {
+        timeoutId = null;
+        check();
+      }, 150);
     };
     window.addEventListener("scroll", onChange, { passive: true });
     window.addEventListener("resize", onChange);
     return () => {
-      cancelAnimationFrame(frame);
+      if (timeoutId) clearTimeout(timeoutId);
       window.removeEventListener("scroll", onChange);
       window.removeEventListener("resize", onChange);
     };
