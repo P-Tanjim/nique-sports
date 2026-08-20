@@ -132,11 +132,11 @@ const ProductCard = ({ product }) => {
 
 export default function TestProductSection() {
   return (
-    <section className="w-full max-w-7xl mx-auto px-4 md:px-8 py-10">
+    <section className="w-full mx-auto px-4 md:px-8 py-10">
       <h2 className="text-2xl md:text-4xl font-extrabold text-center text-neutral-900 dark:text-white mb-8">
         Featured Collection
       </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-5 md:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
