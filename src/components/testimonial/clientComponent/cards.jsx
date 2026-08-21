@@ -4,12 +4,20 @@
  * TestimonialCarousel — customer-photo version (jersey project)
  * ---------------------------------------------------------------
  * Optimizations (mobile-first):
- * - Windowed render: only the active card +/- 2 neighbors ever
- *   mount, so a list of 50 customer photos costs the same as 5.
- * - next/image handles resizing/format/lazy-loading per photo —
- *   only the active (in-view) card gets `priority`, the rest lazy.
- * - Every animated value (x, y, scale, rotate, opacity) is a
- *   transform/opacity property -> GPU compositing only.
+ * - Windowed render: only cards within VISIBLE_RADIUS mount and
+ *   animate, so a list of 50 customer photos costs the same as 5.
+ * - A hidden PRELOAD_RADIUS ring (one step further out, opacity 0)
+ *   stays mounted+loaded so the *next* swipe never has to fetch a
+ *   fresh photo mid-animation — that mid-swipe fetch/decode was the
+ *   main cause of jank on longer testimonial lists.
+ * - Only x/y/scale/opacity are animated (no rotate) — one less
+ *   value to recompute per frame on a clipped, rounded raster layer,
+ *   which is the more expensive thing to composite on mobile GPUs.
+ * - The dark scrim only renders on the active card — the 4 peek
+ *   cards skip that extra paint layer entirely.
+ * - `will-change: transform, opacity` hints the browser to promote
+ *   each card to its own compositor layer up front, instead of
+ *   paying that cost on the first animation frame.
  * - Centering is done with `inset-0 m-auto` (no transform), so
  *   Framer's transform never fights Tailwind's transform utilities.
  * - No icon library — chevrons are inline SVG.
@@ -20,7 +28,14 @@
  * ---------------------------------------------------------------
  * If your photos are on a remote host (not /public), add that
  * domain to images.remotePatterns in next.config.js or next/image
- * will refuse to load it.
+ * will refuse to load it. Also worth checking: next/image should be
+ * serving photos at roughly 240px wide (check the Network tab) — if
+ * it's serving the original multi-MB file, optimization is being
+ * bypassed somewhere (unoptimized prop, a custom loader, etc.) and
+ * that alone can cause exactly this kind of stutter.
+ * Still laggy on low-end phones after this? Drop VISIBLE_RADIUS to 1
+ * below — that halves the number of simultaneously animating photo
+ * layers at the cost of the far "peek" cards.
  */
 
 import { useState, useEffect, useCallback, memo } from "react";
@@ -38,6 +53,12 @@ import Image from "next/image";
 const CARD_W = 240;
 const CARD_H = 320;
 
+// How many cards show on each side of the active one (2 = the fanned
+// look in the reference design). PRELOAD_RADIUS mounts one ring further
+// out, invisibly, so it's already loaded by the time it needs to appear.
+const VISIBLE_RADIUS = 2;
+const PRELOAD_RADIUS = VISIBLE_RADIUS + 1;
+
 /** shortest signed distance from `index` to `activeIndex` on a circular list */
 function getOffset(index, activeIndex, length) {
   let diff = index - activeIndex;
@@ -49,14 +70,17 @@ function getOffset(index, activeIndex, length) {
 function getCardMotion(offset) {
   const abs = Math.abs(offset);
   const dir = Math.sign(offset);
-  if (abs === 0) return { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, zIndex: 30 };
-  if (abs === 1)
-    return { x: dir * 68, y: -18, scale: 0.9, rotate: dir * 4, opacity: 0.5, zIndex: 20 };
-  return { x: dir * 112, y: -30, scale: 0.82, rotate: dir * 7, opacity: 0.16, zIndex: 10 };
+  if (abs === 0) return { x: 0, y: 0, scale: 1, opacity: 1, zIndex: 30 };
+  if (abs === 1) return { x: dir * 68, y: -18, scale: 0.9, opacity: 0.5, zIndex: 20 };
+  if (abs === VISIBLE_RADIUS) return { x: dir * 112, y: -30, scale: 0.82, opacity: 0.16, zIndex: 10 };
+  // preload ring: mounted and positioned, but invisible + inert until it
+  // becomes VISIBLE_RADIUS on a future swipe.
+  return { x: dir * 112, y: -30, scale: 0.82, opacity: 0, zIndex: 0 };
 }
 
 const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion }) {
   const isActive = offset === 0;
+  const isInteractive = !isActive && Math.abs(offset) <= VISIBLE_RADIUS;
   const m = getCardMotion(offset);
 
   return (
@@ -65,16 +89,18 @@ const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion }) 
       aria-roledescription="slide"
       aria-hidden={!isActive}
       aria-label={isActive ? testimonial.name : undefined}
-      onClick={!isActive ? onClick : undefined}
-      animate={{ x: m.x, y: m.y, scale: m.scale, rotate: m.rotate, opacity: m.opacity }}
+      onClick={isInteractive ? onClick : undefined}
+      animate={{ x: m.x, y: m.y, scale: m.scale, opacity: m.opacity }}
       transition={
-        reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 260, damping: 28, mass: 0.9 }
+        reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30, mass: 0.7 }
       }
-      style={{ zIndex: m.zIndex, width: CARD_W, height: CARD_H }}
+      style={{ zIndex: m.zIndex, width: CARD_W, height: CARD_H, willChange: "transform, opacity" }}
       className={`absolute inset-0 m-auto overflow-hidden rounded-[28px] border ${
         isActive
           ? "cursor-default border-white/10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.65)]"
-          : "cursor-pointer border-white/5"
+          : isInteractive
+            ? "cursor-pointer border-white/5"
+            : "pointer-events-none border-transparent"
       }`}
     >
       <Image
@@ -83,11 +109,13 @@ const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion }) 
         fill
         sizes={`${CARD_W}px`}
         priority={isActive}
-        loading={isActive ? undefined : "lazy"}
+        loading={isActive ? undefined : "eager"}
         className="object-cover"
       />
-      {/* scrim so the card edge/border stays readable against bright photos */}
-      <div className="absolute inset-0 bg-linear-to-t from-black/35 via-transparent to-transparent" />
+      {/* scrim only on the active card — peek cards are already dimmed via opacity */}
+      {isActive && (
+        <div className="absolute inset-0 bg-linear-to-t from-black/35 via-transparent to-transparent" />
+      )}
     </motion.div>
   );
 });
@@ -142,10 +170,11 @@ export default function TestimonialCarousel({
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
-  // only mount the cards actually near-visible -> stays light no matter the list size
+  // mounts VISIBLE_RADIUS cards + one invisible preload ring — stays light
+  // no matter the list size, and the next swipe never waits on a fetch
   const visible = testimonials
     .map((t, i) => ({ t, i, offset: getOffset(i, activeIndex, total) }))
-    .filter(({ offset }) => Math.abs(offset) <= 2);
+    .filter(({ offset }) => Math.abs(offset) <= PRELOAD_RADIUS);
 
   const active = testimonials[activeIndex];
 
@@ -186,8 +215,8 @@ export default function TestimonialCarousel({
       </motion.div>
 
       <div className="mt-6 text-center">
-        <p className="text-base font-semibold text-primary">{active.name}</p>
-        {active.subtitle && <p className="text-sm text-primary-dark">{active.subtitle}</p>}
+        <p className="text-base font-semibold text-white">{active.name}</p>
+        {active.subtitle && <p className="text-sm text-neutral-500">{active.subtitle}</p>}
       </div>
 
       <div className="mt-5 flex items-center justify-center gap-4">
