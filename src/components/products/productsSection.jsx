@@ -2,11 +2,12 @@ import { dancingScript } from '@/app/layout'
 import React from 'react'
 import ProductCard from './clientComponent/ProductCardHR';
 import ProductCardVR from './clientComponent/ProductCardVR';
+import ExpandableProfileCard from './clientComponent/Popover';
 
 const ProductsSection = () => {
     const products = [
         {
-            image: '/featuredProduct/1-1.png',
+            image: '/featuredProduct/1.jpg',
             title: 'Madrid Home Kit 26/27 Replica',
             price: '৩৮০'
         },
