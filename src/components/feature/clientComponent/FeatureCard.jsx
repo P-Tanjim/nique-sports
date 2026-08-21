@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAnimate } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -49,27 +48,77 @@ function getSlotConfig(totalCards, slot) {
   };
 }
 
-// Framer Motion transition equivalents for GSAP eases
-const T_ELASTIC_IN  = { type: "spring", stiffness: 65, damping: 11 }; // elastic.out(1.05,.78) ~1.2s
-const T_HOVER       = { type: "spring", stiffness: 100, damping: 14 }; // elastic.out(1,.75)  ~0.5s
+// Native CSS-transition curves standing in for the old GSAP/spring eases.
+// "Back"-style cubic-beziers overshoot past 100% before settling — the
+// closest a single curve can get to a lightly-damped spring, with no JS
+// tween engine required at runtime.
+const EASE_ELASTIC = "cubic-bezier(0.34, 1.56, 0.64, 1)";
+const EASE_HOVER    = "cubic-bezier(0.34, 1.7, 0.64, 1)";
+const EASE_OUT       = "cubic-bezier(0.25, 0.46, 0.45, 0.94)"; // ~ GSAP power2.out
+const EASE_IN        = "cubic-bezier(0.55, 0.06, 0.68, 0.19)"; // ~ GSAP power2.in
 
 const ARROW_CLASSES = "relative flex items-center justify-center rounded-full shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,1),inset_0_-8px_8px_-8px_rgba(255,255,255,1)] backdrop-blur-sm text-accent cursor-pointer shrink-0 z-30 outline-none hover:text-primary/70 active:opacity-70 transition-colors duration-300 before:content-[''] ";
 
-// Hoisted — pure, never needs to re-create
 const Chevron = ({ direction }) => (
   <svg className="relative z-2 w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <polyline points={direction === "left" ? "15 18 9 12 15 6" : "9 18 15 12 9 6"} />
   </svg>
 );
 
+// ---- vanilla, library-free card positioning --------------------------------
+// Everything here only ever touches `transform` and `opacity`, so once a
+// transition starts the browser runs it on the compositor thread — no JS
+// tick is needed, which is what keeps this from competing with scroll.
+
+function applyTransform(el, { x = 0, y = 0, rot = 0, scale = 1 }) {
+  el.style.transform = `translate(${x}rem, ${y}rem) rotate(${rot}deg) scale(${scale})`;
+}
+
+// Instantly writes a style with transitions switched off — the CSS
+// equivalent of gsap.set()/animate(..., {duration:0}).
+function setInstant(el, props) {
+  el.style.transitionProperty = "none";
+  applyTransform(el, props);
+  el.style.opacity = props.opacity ?? 1;
+}
+
+// Starts (or retargets) a transition toward `props`. `willChange` is toggled
+// on only for the lifetime of the transition, not left on permanently.
+// Any previous listener from an interrupted transition is swapped out so
+// rapid hover changes can't leak `transitionend` listeners.
+function animateCard(el, props, { duration, ease, delay = 0 }, onDone) {
+  if (el.__transitionEndHandler) {
+    el.removeEventListener("transitionend", el.__transitionEndHandler);
+    el.__transitionEndHandler = null;
+  }
+
+  el.style.willChange = "transform, opacity";
+  el.style.transitionProperty = "transform, opacity";
+  el.style.transitionDuration = `${duration}s`;
+  el.style.transitionTimingFunction = ease;
+  el.style.transitionDelay = `${delay}s`;
+  applyTransform(el, props);
+  el.style.opacity = props.opacity ?? 1;
+
+  const handleEnd = (e) => {
+    if (e.target !== el || e.propertyName !== "transform") return;
+    el.removeEventListener("transitionend", handleEnd);
+    el.__transitionEndHandler = null;
+    el.style.willChange = "auto";
+    onDone?.();
+  };
+  el.__transitionEndHandler = handleEnd;
+  el.addEventListener("transitionend", handleEnd);
+}
+
 export default function FeatureCard({ cards = [] }) {
-  // useAnimate gives an imperative animate() function — replaces gsap.set/gsap.to
-  const [scope, animate] = useAnimate();
+  const containerRef = useRef(null);
   const isAnimating = useRef(false);
   const hasEntered = useRef(false);
   const directionRef = useRef(null);
   const prevVisible = useRef(new Set());
   const mults = useRef({ m: 1, hMult: 1 });
+  const lastWidthRef = useRef(0);
 
   const totalCards = cards.length;
   const needsPagination = totalCards > MAX_VISIBLE;
@@ -83,13 +132,13 @@ export default function FeatureCard({ cards = [] }) {
   };
 
   useEffect(() => {
-    const container = scope.current;
+    const container = containerRef.current;
     if (!container || !totalCards) return;
 
+    lastWidthRef.current = window.innerWidth;
     mults.current = getMultipliers(window.innerWidth);
     const cardElements = Array.from(container.querySelectorAll(".fan-card"));
 
-    // Build visible map
     const visibleMap = new Map();
     if (!needsPagination) cards.forEach((_, i) => visibleMap.set(i, i));
     else for (let slot = 0; slot < MAX_VISIBLE; slot++)
@@ -100,8 +149,8 @@ export default function FeatureCard({ cards = [] }) {
     const isFirstMount = !hasEntered.current;
     const { m, hMult } = mults.current;
     const slotCount = needsPagination ? MAX_VISIBLE : totalCards;
-    let isMobile = window.innerWidth < 768;
-    let isTouchDevice = window.matchMedia("(hover: none)").matches;
+    const isMobile = window.innerWidth < 768;
+    const isTouchDevice = window.matchMedia("(hover: none)").matches;
 
     if (isFirstMount) isAnimating.current = true;
 
@@ -113,8 +162,15 @@ export default function FeatureCard({ cards = [] }) {
       }
     };
 
-    // Single pass: animate + build visibleEntries
+    // Cards that need a fake "from" state written before they can transition
+    // in (first mount + cards newly entering during pagination). Batched so
+    // we force exactly one reflow for the whole group, not one per card.
+    const pendingEntrances = [];
+    // Cards that are simply moving from wherever they already are, or
+    // leaving — no fake state needed, just retarget straight from "now".
+    const directRetargets = [];
     const visibleEntries = [];
+
     cardElements.forEach((card, cardIndex) => {
       const slot = visibleMap.get(cardIndex);
       const wasVisible = previouslyVisible.has(cardIndex);
@@ -122,33 +178,62 @@ export default function FeatureCard({ cards = [] }) {
       if (slot !== undefined) {
         visibleEntries.push({ el: card, slot });
         const { x, y, rot, scale, zIndex } = getSlotConfig(slotCount, slot);
-        // Set zIndex directly — bypasses animation pipeline, no compositor cost
-        card.style.zIndex = zIndex;
-        // Only animate GPU-compositable properties: translate, rotate, scale, opacity
-        const target = { x: `${x * m}rem`, y: `${y * hMult}rem`, rotate: rot, scale, opacity: 1 };
+        card.style.zIndex = zIndex; // not transitioned — instant, same as before
+        const target = { x: x * m, y: y * hMult, rot, scale, opacity: 1 };
 
         if (isFirstMount) {
-          animate(card, { x: 0, y: `${12 * hMult}rem`, rotate: 0, scale: 0.5, opacity: 0 }, { duration: 0 });
-          // Mobile: simple easeOut with fixed duration — settles fast on weak CPUs
-          // Desktop: elastic spring for the premium bounce feel
-          const entryTx = isMobile
-            ? { ease: "easeOut", duration: 0.4, delay: 0.08 + slot * 0.04 }
-            : { ...T_ELASTIC_IN, delay: 0.2 + slot * 0.06 };
-          animate(card, target, entryTx).then(onCardDone);
+          pendingEntrances.push({
+            el: card,
+            from: { x: 0, y: 12 * hMult, rot: 0, scale: 0.5, opacity: 0 },
+            to: target,
+            timing: isMobile
+              ? { duration: 0.4, ease: EASE_OUT, delay: 0.08 + slot * 0.04 }
+              : { duration: 0.9, ease: EASE_ELASTIC, delay: 0.2 + slot * 0.06 },
+            onDone: onCardDone,
+          });
         } else if (!wasVisible) {
-          animate(card, { x: `${direction === "right" ? 40 : -40}rem`, y: `${y * hMult}rem`, rotate: direction === "right" ? 30 : -30, scale: 0.5, opacity: 0 }, { duration: 0 });
-          animate(card, target, { ease: "easeOut", duration: isMobile ? 0.35 : 0.6 }).then(onCardDone);
+          const enterX = direction === "right" ? 40 : -40;
+          pendingEntrances.push({
+            el: card,
+            from: { x: enterX, y: y * hMult, rot: direction === "right" ? 30 : -30, scale: 0.5, opacity: 0 },
+            to: target,
+            timing: { duration: isMobile ? 0.35 : 0.6, ease: EASE_OUT },
+            onDone: onCardDone,
+          });
         } else {
-          animate(card, target, { ease: "easeOut", duration: isMobile ? 0.3 : 0.5 }).then(onCardDone);
+          directRetargets.push({
+            el: card,
+            to: target,
+            timing: { duration: isMobile ? 0.3 : 0.5, ease: EASE_OUT },
+            onDone: onCardDone,
+          });
         }
       } else if (wasVisible) {
         card.style.zIndex = 0;
-        animate(card, { x: `${direction === "right" ? -40 : 40}rem`, opacity: 0, scale: 0.5, rotate: direction === "right" ? -30 : 30 }, { ease: "easeIn", duration: 0.4 });
+        const exitX = direction === "right" ? -40 : 40;
+        directRetargets.push({
+          el: card,
+          to: { x: exitX, opacity: 0, scale: 0.5, rot: direction === "right" ? -30 : 30 },
+          timing: { duration: 0.4, ease: EASE_IN },
+        });
       } else if (isFirstMount) {
         card.style.zIndex = 0;
-        animate(card, { opacity: 0, scale: 0.3, x: 0, y: 0 }, { duration: 0 });
+        setInstant(card, { opacity: 0, scale: 0.3, x: 0, y: 0 });
       }
     });
+
+    // Phase 1: write every fake "from" state with transitions off, then
+    // force exactly one reflow so the browser commits them...
+    if (pendingEntrances.length) {
+      pendingEntrances.forEach(({ el, from }) => setInstant(el, from));
+      void container.offsetHeight;
+      // ...phase 2: kick off the real transition toward each target slot.
+      pendingEntrances.forEach(({ el, to, timing, onDone }) => animateCard(el, to, timing, onDone));
+    }
+
+    // Plain retargets never needed the reflow trick — they animate from
+    // whatever was already committed on screen.
+    directRetargets.forEach(({ el, to, timing, onDone }) => animateCard(el, to, timing, onDone));
 
     prevVisible.current = new Set(visibleMap.keys());
     visibleEntries.sort((a, b) => a.slot - b.slot);
@@ -179,13 +264,12 @@ export default function FeatureCard({ cards = [] }) {
                 (slot === 0 && hoveredSlot > centerSlot)) ty -= currH;
           }
         }
-        // Set zIndex directly — avoids routing it through the animation pipeline
         el.style.zIndex = base.zIndex;
-        animate(el, { x: `${tx}rem`, y: `${ty}rem`, rotate: tr, scale: ts }, { ...T_HOVER, delay: d });
+        animateCard(el, { x: tx, y: ty, rot: tr, scale: ts, opacity: 1 }, { duration: 0.45, ease: EASE_HOVER, delay: d });
       });
     };
 
-    // Skip hover wiring entirely on touch devices — saves listener overhead
+    // Touch devices never wire up hover at all — no listeners, no cost.
     const listeners = isTouchDevice ? [] : visibleEntries.map(({ el, slot }) => {
       const handler = () => {
         if (!isAnimating.current) {
@@ -203,8 +287,17 @@ export default function FeatureCard({ cards = [] }) {
     };
     if (!isTouchDevice) container.addEventListener("mouseleave", onMouseLeave);
 
+    // Fix: mobile browsers fire `resize` when the URL bar hides/shows during
+    // a scroll gesture, which only ever changes innerHeight. That used to
+    // re-run updateHoverLayout() (a full re-animate of every visible card)
+    // on every one of those ticks — the actual cause of the scroll lag.
+    // Only do any work when the width genuinely changes (rotation, an
+    // actual window resize) — height-only churn is ignored outright.
     const onResize = () => {
-      mults.current = getMultipliers(window.innerWidth);
+      const w = window.innerWidth;
+      if (w === lastWidthRef.current) return;
+      lastWidthRef.current = w;
+      mults.current = getMultipliers(w);
       if (!isAnimating.current) updateHoverLayout(activeSlot);
     };
     window.addEventListener("resize", onResize);
@@ -222,16 +315,14 @@ export default function FeatureCard({ cards = [] }) {
   return (
     <section className="flex flex-col items-center w-full py-4 lg:py-8 px-4 md:px-8 relative z-20">
       <div className="flex items-center justify-center w-full max-w-360">
-        <div ref={scope} className="fan-layout flex relative justify-center items-center w-full h-96 sm:h-112 md:h-136 max-w-7xl">
+        <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full h-96 sm:h-112 md:h-136 max-w-7xl">
           {cards.map((card, index) => {
             const imgSrc = card.imgURL || card.imgUrl;
             return (
               <Link
                 key={index}
                 href={card.linkUrl || "#"}
-                // will-change-transform: promotes each card to its own GPU compositing
-                // layer BEFORE animation starts — eliminates CPU-side repaints entirely
-                className="fan-card will-change-transform absolute w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-2xl shadow-xl overflow-hidden cursor-pointer"
+                className="fan-card absolute w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-2xl shadow-xl overflow-hidden cursor-pointer"
               >
                 <div className="relative w-full h-full overflow-hidden">
                   <Image

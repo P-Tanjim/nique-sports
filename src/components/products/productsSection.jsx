@@ -2,6 +2,8 @@ import { dancingScript } from '@/app/layout'
 import React from 'react'
 import ProductCard from './clientComponent/ProductCardHR';
 import ProductCardVR from './clientComponent/ProductCardVR';
+import { Button } from '@heroui/react';
+import { ArrowRight } from 'lucide-react';
 
 const ProductsSection = () => {
     const products = [
@@ -28,6 +30,8 @@ const ProductsSection = () => {
                     <ProductCardVR key={product.id} product={product}></ProductCardVR>
                 ))}
             </div>
+
+            <Button variant='ghost' className='mt-6 mx-auto flex items-center justify-center gap-2 bg-primary text-white'>See More <ArrowRight size={20} /></Button>
         </div>
     )
 }
