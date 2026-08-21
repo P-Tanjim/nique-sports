@@ -80,10 +80,10 @@ const MobileNav = ({ navItems = defaultNavItems, where = "sidebar" }) => {
 	const { isActive, setIsActive } = useNav();
 
 	return (
-		<div>
+		<>
 			{where === "sidebar" ? (
 				<div
-					className={`relative z-80 rounded-full backdrop-blur-sm h-12 w-12 flex items-center justify-center min-[1003px]:hidden transition-all duration-300 ease-in-out shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.3),inset_0_-8px_8px_-8px_rgba(0,0,0,0.3)] ${isActive ? "-translate-y-2.5" : ""
+					className={`relative z-80 rounded-full backdrop-blur-sm h-12 w-12 flex items-center justify-center min-[1050px]:hidden transition-all duration-300 ease-in-out shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.3),inset_0_-8px_8px_-8px_rgba(0,0,0,0.3)] ${isActive ? "-translate-y-2.5" : ""
 						}`}
 				>
 					<div
@@ -115,7 +115,7 @@ const MobileNav = ({ navItems = defaultNavItems, where = "sidebar" }) => {
 			{where === "sidebar" && (
 				<SideNavbar isActive={isActive} setIsActive={setIsActive} navItems={navItems} />
 			)}
-		</div>
+		</>
 	);
 };
 

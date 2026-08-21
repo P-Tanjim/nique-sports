@@ -7,7 +7,6 @@ import ProductsSection from "@/components/products/productsSection";
 export default function Home() {
   return (
     <>
-      <Navbar></Navbar>
       <Hero></Hero>
       <Category></Category>
       <Feature></Feature>
