@@ -322,7 +322,7 @@ export default function FeatureCard({ cards = [] }) {
               <Link
                 key={index}
                 href={card.linkUrl || "#"}
-                className="fan-card absolute w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-2xl shadow-xl overflow-hidden cursor-pointer"
+                className="fan-card absolute w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-2xl overflow-hidden cursor-pointer"
               >
                 <div className="relative w-full h-full overflow-hidden">
                   <Image

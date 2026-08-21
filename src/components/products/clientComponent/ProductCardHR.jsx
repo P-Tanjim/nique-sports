@@ -1,6 +1,6 @@
 'use client'
 import Image from 'next/image'
-import React, { useState, useId } from 'react'
+import React, { useState, useId, useEffect } from 'react'
 import { Scan, ShoppingBasket, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -8,6 +8,18 @@ const ProductCard = ({ product }) => {
     const [isOpen, setIsOpen] = useState(false);
     const id = useId();
     const layoutId = `product-card-${id}`;
+
+    // Prevent background scroll while the popover is open — this also
+    // removes the last thing that could trigger a mobile viewport/toolbar
+    // resize while the shared-layout animation is mid-flight.
+    useEffect(() => {
+        if (!isOpen) return;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [isOpen]);
 
     return (
         <>
@@ -24,14 +36,14 @@ const ProductCard = ({ product }) => {
                                 setIsOpen(true);
                             }}
                             title="Quick View"
-                            className='w-9 md:w-10 md:h-10 h-9 cursor-pointer hover:scale-110 transition-all duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
+                            className='w-9 md:w-10 md:h-10 h-9 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
                         >
                             <Scan size={14} />
                         </button>
                         <button
                             type="button"
                             title="Add to Cart"
-                            className='w-9 h-9 md:w-10 md:h-10 cursor-pointer hover:scale-110 transition-all duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
+                            className='w-9 h-9 md:w-10 md:h-10 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
                         >
                             <ShoppingBasket size={14} />
                         </button>
@@ -59,13 +71,13 @@ const ProductCard = ({ product }) => {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setIsOpen(false)}
-                            className="absolute inset-0 bg-black/70 backdrop-blur-md"
+                            className="absolute inset-0 bg-black/70"
                         />
 
                         {/* Popover Modal */}
                         <motion.div
                             layoutId={layoutId}
-                            className="relative w-full max-w-3xl h-[80vh] md:h-125 bg-white rounded-2xl overflow-hidden border border-gray-100 z-10 flex flex-col md:flex-row shadow-2xl"
+                            className="relative w-full max-w-3xl h-[80svh] md:h-125 bg-white rounded-2xl overflow-hidden border border-gray-100 z-10 flex flex-col md:flex-row shadow-2xl"
                         >
                             {/* Close Button */}
                             <button 
@@ -89,9 +101,6 @@ const ProductCard = ({ product }) => {
                             {/* Details Section */}
                             <div className="p-6 sm:p-8 w-full md:w-1/2 flex flex-col justify-between h-full overflow-y-auto">
                                 <div>
-                                    <span className="text-xs font-bold tracking-widest text-primary uppercase bg-primary/10 px-3 py-1 rounded-full inline-block mb-3">
-                                        APANIQUE SPORTS
-                                    </span>
                                     <motion.h3 
                                         layoutId={`title-${layoutId}`} 
                                         className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 leading-tight"
