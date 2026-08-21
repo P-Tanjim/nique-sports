@@ -21,12 +21,14 @@ const ProductCardVR = ({ product }) => {
             >
                 20%
             </div>
-            <Image src={product.image} width={100} height={100} alt="Product Image" className="bg-white rounded-2xl"></Image>
-            <div className="flex flex-col gap-2 p-2">
-                <p className="text-text font-semibold text-sm line-clamp-2">{product.title}</p>
-                <div className="flex gap-1">
-                    <p className="text-text-muted text-sm font-semibold line-through">{product.price}৳</p>
-                    <p className="text-text text-sm font-semibold">২০০৳</p>
+            <Image src={product.image} width={100} height={100} alt="Product Image" className="w-35 h-35 min-[430px]:w-45 min-[430px]:h-45 sm:w-35 sm:h-35 md:w-55 md:h-55 object-cover  bg-white rounded-2xl"></Image>
+            <div className="flex flex-col w-full gap-2 justify-between items-start p-2">
+                <div>
+                    <p className="text-text text-sm min-[430px]:text-xl sm:text-lg md:text-2xl line-clamp-2">{product.title}</p>
+                    <div className="flex gap-1">
+                        <p className="text-text-muted text-md min-[430px]:text-xl sm:text-sm md:text-2xl font-semibold line-through">{product.price}৳</p>
+                        <p className="text-md min-[430px]:text-2xl text-red-500 sm:text-lg md:text-3xl font-bold">২০০৳</p>
+                    </div>
                 </div>
                 <Button className={'bg-primary w-full max-h-9 rounded-xl'}>Get Offer</Button>
             </div>

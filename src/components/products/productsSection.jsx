@@ -54,14 +54,14 @@ const ProductsSection = () => {
     return (
         <div className='px-4 md:px-20 mx-auto mt-6 mb-10 w-full'>
             <h1 className={`text-center mb-10 text-4xl md:text-6xl lg:text-7xl text-primary ${dancingScript.className}`}>Our Jerseys</h1>
-            <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'>
+            <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4'>
                 {
                     products.slice(0, 6).map((product, idx) => (
                         <ProductCard key={idx} product={product}></ProductCard>
                     ))
                 }
             </div>
-            <div className='flex justify-center items-center gap-3 mt-5 flex-col'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5 '>
                 {
                     products.slice(6, 10).map((product, idx) => (
                         <ProductCardVR key={idx} product={product}></ProductCardVR>
