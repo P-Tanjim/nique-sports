@@ -2,7 +2,6 @@ import { dancingScript } from '@/app/layout'
 import React from 'react'
 import ProductCard from './clientComponent/ProductCardHR';
 import ProductCardVR from './clientComponent/ProductCardVR';
-import ExpandableProfileCard from './clientComponent/Popover';
 
 const ProductsSection = () => {
     const products = [
