@@ -25,16 +25,16 @@ const ProductCard = ({ product }) => {
                                 setIsOpen(true);
                             }}
                             title="Quick View"
-                            className='w-8 md:w-10 md:h-10 h-8 cursor-pointer hover:scale-110 transition-all duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
+                            className='w-9 md:w-10 md:h-10 h-9 cursor-pointer hover:scale-110 transition-all duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
                         >
-                            <Scan size={13} />
+                            <Scan size={14} />
                         </button>
                         <button
                             type="button"
                             title="Add to Cart"
-                            className='w-8 h-8 md:w-10 md:h-10 cursor-pointer hover:scale-110 transition-all duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
+                            className='w-9 h-9 md:w-10 md:h-10 cursor-pointer hover:scale-110 transition-all duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
                         >
-                            <ShoppingBasket size={13} />
+                            <ShoppingBasket size={14} />
                         </button>
                     </div>
                     {/* <Image src={coverImg} className='absolute top-0 z-10 w-full h-full object-cover' width={500} height={500} alt="Cover" /> */}
