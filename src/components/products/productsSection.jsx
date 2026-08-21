@@ -4,7 +4,7 @@ import ProductCard from './clientComponent/ProductCardHR';
 import ProductCardVR from './clientComponent/ProductCardVR';
 import { Button } from '@heroui/react';
 import { ArrowRight } from 'lucide-react';
-import ExpandableProfileCard from './clientComponent/Popover';
+import ExpandableProfileCard from './clientComponent/popover';
 
 const ProductsSection = () => {
     const products = [
