@@ -7,8 +7,9 @@ import { Tabs } from '@heroui/react';
 import NavSearchbar from '@/components/navbar/clientComponent/NavSearchbar'
 import Link from 'next/link'
 import MobileSideNav from './clientComponent/MobileSideNav'
-import { CircleUser, House, ShoppingCart } from 'lucide-react'
+import { CircleUser, House, ShoppingBasket, ShoppingCart } from 'lucide-react'
 import { NavProvider } from './clientComponent/NavStateContext'
+import MobileBottomNav from './clientComponent/MobileBottomNav'
 
 const Navbar = () => {
   return (
@@ -16,7 +17,7 @@ const Navbar = () => {
       <nav className='px-4 md:px-20 py-3 w-full flex flex-col sticky top-0 z-50'>
         <div className='desktop-navbar flex justify-between items-center'>
           <MobileSideNav />
-          <Image src={logo} width={50} height={50} alt='nique sports logo' className='min-[1050px]:mr-0 mr-2' />
+          <Link href={'/'}><Image src={logo} width={50} height={50} alt='nique sports logo' className='min-[1050px]:mr-0 mr-2' /></Link>
           <ul className='hidden min-[1050px]:flex md:gap-4 lg:gap-6 xl:gap-10 items-center text-ink ml-10'>
             <Link href={'/'}><li className='hover:text-primary transition duration-300'>Home</li></Link>
             <Link href={'/bd-premium'}><li className='hover:text-primary transition duration-300'>BD Premium</li></Link>
@@ -50,18 +51,7 @@ const Navbar = () => {
         </div>
       </nav>
       <div className='fixed bottom-5 w-full px-4 md:px-20 z-40 flex items-center justify-center gap-4 sm:gap-5 md:gap-15 lg:gap-20 min-[1050px]:hidden'>
-        <div className='mobile-nav py-1 px-1 w-[80%] rounded-full shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,0.9),inset_0_-8px_8px_-8px_rgba(255,255,255,0.9)] backdrop-blur-sm bg-primary/80'>
-          <ul className='flex flex-row justify-between items-center'>
-            <Link href={'/'}>
-              <li className='px-4 sm:px-5 md:px-10 lg:px-12 py-2 rounded-3xl bg-accent'><House size={28} color="#ffffff" /></li>
-            </Link>
-            <li className='px-4 sm:px-5 md:px-10 lg:px-12 py-2 rounded-3xl'><MobileSideNav where='bottom-bar' /></li>
-            <li className='px-4 sm:px-5 md:px-10 lg:px-12 py-2 rounded-3xl cursor-pointer'><ShoppingCart size={28} color="#ffffff" /></li>
-            <Link href={'/account'}>
-              <li className='px-4 sm:px-5 md:px-10 lg:px-12 py-2 rounded-3xl'><CircleUser size={28} color="#ffffff" /></li>
-            </Link>
-          </ul>
-        </div>
+        <MobileBottomNav></MobileBottomNav>
         <NavSearchbar></NavSearchbar>
       </div>
     </NavProvider>
