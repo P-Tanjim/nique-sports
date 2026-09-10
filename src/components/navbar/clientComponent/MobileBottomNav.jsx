@@ -18,45 +18,13 @@ const MobileBottomNav = () => {
   const activeIndex = NAV_ITEMS.findIndex((item) => item.href === pathname);
   const safeIndex = activeIndex !== -1 ? activeIndex : 0;
 
-  const [isAnimating, setIsAnimating] = useState(false);
-
-  // Trigger squish/stretch animation on tab change
-  useEffect(() => {
-    setIsAnimating(true);
-    const timer = setTimeout(() => setIsAnimating(false), 450);
-    return () => clearTimeout(timer);
-  }, [safeIndex]);
-
   return (
-    <nav className="mobile-nav relative w-[85%] rounded-full border border-white/20 bg-primary/80 p-1.5 shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,0.9),inset_0_-8px_8px_-8px_rgba(255,255,255,0.9)] backdrop-blur-sm">
-      {/* KEYFRAME ANIMATIONS FOR JELLY SQUASH & STRETCH */}
-      <style jsx>{`
-        @keyframes jellyMorph {
-          0% {
-            transform: translateX(${safeIndex * 100}%) scaleX(1) scaleY(1);
-          }
-          35% {
-            transform: translateX(${safeIndex * 100}%) scaleX(1.18) scaleY(0.82);
-          }
-          70% {
-            transform: translateX(${safeIndex * 100}%) scaleX(0.92) scaleY(1.08);
-          }
-          100% {
-            transform: translateX(${safeIndex * 100}%) scaleX(1) scaleY(1);
-          }
-        }
-        .animate-jelly {
-          animation: jellyMorph 450ms cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
-        }
-      `}</style>
-
+    <nav className="mobile-nav relative w-[85%] rounded-full border border-white/20 bg-primary/80 p-1.5 overflow-hidden shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,0.9),inset_0_-8px_8px_-8px_rgba(255,255,255,0.9)] backdrop-blur-sm">
       <ul className="relative flex flex-row items-center justify-between">
-        {/* SLIDING SQUASH-AND-STRETCH PILL */}
+        {/* SLIDING PILL (No dynamic style jsx tags) */}
         <div
           aria-hidden="true"
-          className={`absolute bottom-0 top-0 z-10 my-auto h-[calc(100%-2px)] rounded-3xl bg-accent shadow-md transition-transform duration-400 ease-[cubic-bezier(0.34,1.4,0.64,1)] ${
-            isAnimating ? 'animate-jelly' : ''
-          }`}
+          className="absolute bottom-0 top-0 z-10 my-auto h-[calc(100%-2px)] rounded-3xl bg-accent shadow-md transition-all duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)]"
           style={{
             width: `${100 / NAV_ITEMS.length}%`,
             transform: `translateX(${safeIndex * 100}%)`,
