@@ -7,9 +7,9 @@ import { Tabs } from '@heroui/react';
 import NavSearchbar from '@/components/navbar/clientComponent/NavSearchbar'
 import Link from 'next/link'
 import MobileSideNav from './clientComponent/MobileSideNav'
-import { CircleUser, House, ShoppingBasket, ShoppingCart } from 'lucide-react'
 import { NavProvider } from './clientComponent/NavStateContext'
 import MobileBottomNav from './clientComponent/MobileBottomNav'
+import SideCartButton from './clientComponent/SideCartButton'
 
 const Navbar = () => {
   return (
@@ -29,9 +29,7 @@ const Navbar = () => {
             <div className='hidden min-[1050px]:flex justify-center items-center'>
               <NavSearchbar />
             </div>
-            <button className="backdrop-blur-sm shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.2),inset_0_-8px_8px_-8px_rgba(0,0,0,0.2)] lg:shadow h-11 w-11 flex items-center justify-center text-primary-light hover:text-primary rounded-full cursor-pointer transition-colors z-10">
-              <ShoppingCart size={20} />
-            </button>
+            <SideCartButton></SideCartButton>
 
             <Tabs className="w-fit h-auto hidden min-[1050px]:flex">
               <Tabs.ListContainer>
