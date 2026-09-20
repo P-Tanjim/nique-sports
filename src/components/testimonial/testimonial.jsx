@@ -1,4 +1,4 @@
-import { dancingScript } from '@/app/layout'
+import { dancingScript } from '@/app/fonts'
 import React from 'react'
 import TestimonialCarousel from './clientComponent/cards';
 import customer1 from '../../../public/customer/customer-1.webp'

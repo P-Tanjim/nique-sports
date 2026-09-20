@@ -1,4 +1,4 @@
-import { dancingScript } from '@/app/layout'
+import { dancingScript } from '@/app/fonts'
 import React from 'react'
 import ProductCard from './clientComponent/ProductCardHR';
 import ProductCardVR from './clientComponent/ProductCardVR';

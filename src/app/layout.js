@@ -1,13 +1,6 @@
 import Navbar from "@/components/navbar/Navbar";
 import "./globals.css";
-import { Dancing_Script } from 'next/font/google';
 import Footer from "@/components/footer/Footer";
-
-export const dancingScript = Dancing_Script({
-  subsets: ["latin"],
-  variable: "--font-dancing-script",
-  weight: ["400", "500", "600", "700"],
-});
 
 export const metadata = {
   title: "Nique Sports",

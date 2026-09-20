@@ -136,7 +136,7 @@ export default function FeatureCard({ cards = [] }) {
     if (!container || !totalCards) return;
 
     lastWidthRef.current = window.innerWidth;
-    mults.current = getMultipliers(window.innerWidth);
+    mults.current = getMultipliers(window.ifnnerWidth);
     const cardElements = Array.from(container.querySelectorAll(".fan-card"));
 
     const visibleMap = new Map();
@@ -317,7 +317,6 @@ export default function FeatureCard({ cards = [] }) {
       <div className="flex items-center justify-center w-full max-w-360">
         <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full h-96 sm:h-112 md:h-136 max-w-7xl">
           {cards.map((card, index) => {
-            const imgSrc = card.imgURL || card.imgUrl;
             return (
               <Link
                 key={index}
@@ -326,7 +325,7 @@ export default function FeatureCard({ cards = [] }) {
               >
                 <div className="relative w-full h-full overflow-hidden">
                   <Image
-                    src={imgSrc}
+                    src={card.imageLink}
                     alt={card.alt || `Card ${index}`}
                     fill
                     sizes="(max-width: 640px) 192px, (max-width: 768px) 224px, 256px"
