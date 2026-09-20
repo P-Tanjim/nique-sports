@@ -256,7 +256,7 @@ export default function SideCart({ open, onClose }) {
 
         {/* FOOTER */}
         {hydrated && items.length > 0 && (
-          <div className="absolute bottom-0 w-full border-t border-border bg-white px-5 py-5 sm:px-6">
+          <div className="absolute bottom-0 w-full border-t border-border backdrop-blur-sm px-5 py-5 sm:px-6">
             {savings > 0 && (
               <div className="mb-3 flex items-center justify-between text-sm">
                 <span className="text-text-muted">You’re saving</span>
