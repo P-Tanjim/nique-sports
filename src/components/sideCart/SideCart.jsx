@@ -6,21 +6,18 @@
  * Cart items live in localStorage under CART_STORAGE_KEY as:
  *   [{ id, slug, name, price, originalPrice?, image, size?, quantity }]
  *
- * Add an item to the cart from anywhere in the app, e.g. from a
- * product's "Add to cart" button:
+ * Add an item to the cart from anywhere in the app — a product card's
+ * "Add to cart" button, a product page, etc. — with the exported
+ * addToCart() helper below. Don't write to localStorage by hand for
+ * this; addToCart() also fires CART_UPDATED_EVENT so every mounted
+ * SideCart (even one that's currently closed) re-reads immediately
+ * instead of waiting for a page refresh:
  *
- *   import { CART_STORAGE_KEY } from '@/components/cart/SideCart';
+ *   import { addToCart } from '@/components/cart/SideCart';
  *
- *   function addToCart(product, quantity = 1, size) {
- *     const cart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]');
- *     const key = `${product.id}__${size ?? 'default'}`;
- *     const existing = cart.find((p) => `${p.id}__${p.size ?? 'default'}` === key);
- *     const next = existing
- *       ? cart.map((p) => (p === existing ? { ...p, quantity: p.quantity + quantity } : p))
- *       : [...cart, { ...product, size, quantity }];
- *     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(next));
- *     window.dispatchEvent(new Event('storage')); // nudges any mounted SideCart to re-read
- *   }
+ *   <button onClick={() => addToCart(product, 1, selectedSize)}>
+ *     Add to cart
+ *   </button>
  *
  * This component is fully controlled — mount it once near the root
  * (e.g. in Navbar.jsx, right next to the existing cart button) and
@@ -34,16 +31,21 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, ShoppingBasket, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, ShoppingBag, X } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
 import SideCartProducts from './SideCartProducts';
 
 export const CART_STORAGE_KEY = 'nique-sports:cart';
-const FREE_SHIPPING_THRESHOLD = 2000;
+// Fired whenever the cart changes from OUTSIDE a mounted SideCart (i.e. via
+// addToCart below). The browser's native "storage" event only fires in
+// OTHER tabs, never in the tab that made the change, so same-tab updates
+// need this instead — that's what was missing before.
+export const CART_UPDATED_EVENT = 'nique-sports:cart-updated';
 
 const cartKey = (item) => `${item.id}__${item.size ?? 'default'}`;
 
-function readCart() {
+export function readCart() {
   if (typeof window === 'undefined') return [];
   try {
     const raw = window.localStorage.getItem(CART_STORAGE_KEY);
@@ -54,6 +56,9 @@ function readCart() {
   }
 }
 
+// Used internally by SideCart's own persistence effect — its React state is
+// already the source of truth when this runs, so it just saves, no need to
+// tell anyone.
 function writeCart(items) {
   if (typeof window === 'undefined') return;
   try {
@@ -61,6 +66,27 @@ function writeCart(items) {
   } catch {
     // storage unavailable (private mode / quota) — fail silently
   }
+}
+
+/**
+ * Add a product to the cart from anywhere in the app (product card,
+ * product page, quick-add button, ...). Merges quantities when the same
+ * product + size is already in the cart. Persists to localStorage and
+ * notifies every mounted SideCart to update immediately.
+ */
+export function addToCart(product, quantity = 1, size) {
+  const cart = readCart();
+  const key = `${product.id}__${size ?? 'default'}`;
+  const existing = cart.find((p) => cartKey(p) === key);
+  const next = existing
+    ? cart.map((p) => (cartKey(p) === key ? { ...p, quantity: p.quantity + quantity } : p))
+    : [...cart, { ...product, size, quantity }];
+
+  writeCart(next);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(CART_UPDATED_EVENT));
+  }
+  return next;
 }
 
 export default function SideCart({ open, onClose }) {
@@ -74,14 +100,19 @@ export default function SideCart({ open, onClose }) {
     setHydrated(true);
   }, []);
 
-  // Stay in sync if the cart is changed from another tab (or by an
-  // "add to cart" button elsewhere that dispatches a storage event).
+  // Stay in sync whenever the cart changes outside this component's own
+  // handlers: addToCart() in this tab (CART_UPDATED_EVENT) or the cart
+  // being changed in another tab (the native "storage" event).
   useEffect(() => {
-    function handleStorage(e) {
-      if (e.key === CART_STORAGE_KEY || e.key === null) setItems(readCart());
+    function refresh() {
+      setItems(readCart());
     }
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    window.addEventListener(CART_UPDATED_EVENT, refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener(CART_UPDATED_EVENT, refresh);
+      window.removeEventListener('storage', refresh);
+    };
   }, []);
 
   // Persist every change — skipped until the initial read has happened,
@@ -124,162 +155,162 @@ export default function SideCart({ open, onClose }) {
     () => items.reduce((sum, i) => sum + Math.max(0, (i.originalPrice ?? i.price) - i.price) * i.quantity, 0),
     [items]
   );
-  const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
-  const shippingProgress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
 
   return (
-    <>
-      {/* BACKDROP */}
-      <div
-        onClick={onClose}
-        className={`fixed inset-0 z-9998 bg-ink/50 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${
-          open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
-        }`}
-      />
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* BACKDROP */}
+          <motion.div
+            key="cart-backdrop"
+            onClick={onClose}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-9998 bg-ink/50 backdrop-blur-sm"
+          />
 
-      {/* PANEL */}
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-label="Shopping cart"
-        className={`fixed inset-y-0 right-0 z-9999 flex h-dvh w-[85%] flex-col bg-white shadow-2xl transition-transform duration-400 ease-[cubic-bezier(0.207,0.473,0.504,0.935)] sm:w-105 ${
-          open ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        {/* HEADER */}
-        <div className="flex items-center justify-between border-b border-border px-5 py-4 sm:px-6">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft text-primary">
-              <ShoppingBasket size={17} strokeWidth={2} />
-            </span>
-            <div>
-              <h2 className="text-lg font-semibold text-text">Your Busket</h2>
-              {itemCount > 0 && (
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-text-muted">
-                    {itemCount} {itemCount === 1 ? 'item' : 'items'}
-                  </p>
-                  <span className="text-text-muted/40">•</span>
-                  <button
-                    type="button"
-                    onClick={() => setItems([])}
-                    className="text-xs font-medium text-danger transition-colors hover:underline"
-                  >
-                    Clear cart
-                  </button>
+          {/* PANEL */}
+          <motion.aside
+            key="cart-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Shopping cart"
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+            className="fixed inset-y-0 right-0 z-9999 flex h-dvh w-full flex-col bg-white shadow-2xl sm:w-105"
+          >
+            {/* HEADER */}
+            <div className="flex items-center justify-between border-b border-border px-5 py-4 sm:px-6">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft text-primary">
+                  <ShoppingBag size={17} strokeWidth={2} />
+                </span>
+                <div>
+                  <h2 className="text-lg font-semibold text-text">Your Bag</h2>
+                  {itemCount > 0 && (
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-text-muted">
+                        {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                      </p>
+                      <span className="text-text-muted/40">•</span>
+                      <button
+                        type="button"
+                        onClick={() => setItems([])}
+                        className="text-xs font-medium text-danger transition-colors hover:underline"
+                      >
+                        Clear cart
+                      </button>
+                    </div>
+                  )}
                 </div>
+              </div>
+              <motion.button
+                type="button"
+                onClick={onClose}
+                whileHover={{ rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+                aria-label="Close cart"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface hover:text-text"
+              >
+                <X size={18} />
+              </motion.button>
+            </div>
+
+            {/* ITEMS */}
+            <div className="flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-61.5 sm:px-6">
+              {!hydrated ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex animate-pulse gap-3">
+                      <div className="h-20 w-20 shrink-0 rounded-2xl bg-surface" />
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-3 w-3/4 rounded bg-surface" />
+                        <div className="h-3 w-1/2 rounded bg-surface" />
+                        <div className="h-3 w-1/4 rounded bg-surface" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : items.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex h-full flex-col items-center justify-center py-16 text-center"
+                >
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface text-text-muted">
+                    <ShoppingBag size={26} strokeWidth={1.5} />
+                  </span>
+                  <p className="mt-4 text-base font-medium text-text">Your bag is empty</p>
+                  <p className="mt-1 text-sm text-text-muted">Looks like you haven’t added anything yet.</p>
+                  <Link
+                    href="/shop"
+                    onClick={onClose}
+                    className="mt-6 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+                  >
+                    Continue Shopping
+                  </Link>
+                </motion.div>
+              ) : (
+                <ul className="space-y-3">
+                  <AnimatePresence initial={false}>
+                    {items.map((item, index) => (
+                      <SideCartProducts
+                        key={cartKey(item)}
+                        item={item}
+                        index={index}
+                        onQuantityChange={(next) => handleQuantityChange(item, next)}
+                        onRemove={() => handleRemove(item)}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </ul>
               )}
             </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close cart"
-            className="group flex h-9 w-9 cursor-pointer shrink-0 items-center justify-center rounded-full text-text-muted transition-all duration-200 hover:bg-surface hover:text-text active:scale-90"
-          >
-            <X size={18} className="transition-transform duration-200 group-hover:rotate-90" />
-          </button>
-        </div>
 
-        {/* FREE SHIPPING PROGRESS */}
-        {hydrated && items.length > 0 && (
-          <div className="border-b border-border bg-surface-blue/60 px-5 py-3 sm:px-6">
-            {remainingForFreeShipping > 0 ? (
-              <p className="text-xs text-text-muted">
-                Add <span className="font-semibold text-primary">{formatPrice(remainingForFreeShipping)}৳</span>{' '}
-                more for free shipping
-              </p>
-            ) : (
-              <p className="text-xs font-medium text-success">You’ve unlocked free shipping 🎉</p>
-            )}
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
-                style={{ width: `${shippingProgress}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* ITEMS */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6">
-          {!hydrated ? (
-            <div className="space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex animate-pulse gap-3">
-                  <div className="h-20 w-20 shrink-0 rounded-2xl bg-surface" />
-                  <div className="flex-1 space-y-2 py-1">
-                    <div className="h-3 w-3/4 rounded bg-surface" />
-                    <div className="h-3 w-1/2 rounded bg-surface" />
-                    <div className="h-3 w-1/4 rounded bg-surface" />
+            {/* FOOTER */}
+            {hydrated && items.length > 0 && (
+              <div className="border-t border-borde absolute w-full bottom-0 backdrop-blur px-5 py-5 sm:px-6">
+                {savings > 0 && (
+                  <div className="mb-3 flex items-center justify-between text-sm">
+                    <span className="text-text-muted">You’re saving</span>
+                    <span className="font-semibold text-success">{formatPrice(savings)}৳</span>
                   </div>
+                )}
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-sm text-text-muted">Subtotal</span>
+                  <span className="text-xl font-semibold text-text">{formatPrice(subtotal)}৳</span>
                 </div>
-              ))}
-            </div>
-          ) : items.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center py-16 text-center animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface text-text-muted">
-                <ShoppingBasket size={26} strokeWidth={1.5} />
-              </span>
-              <p className="mt-4 text-base font-medium text-text">Your bag is empty</p>
-              <p className="mt-1 text-sm text-text-muted">Looks like you haven’t added anything yet.</p>
-              <Link
-                href="/shop"
-                onClick={onClose}
-                className="mt-6 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
-              >
-                Continue Shopping
-              </Link>
-            </div>
-          ) : (
-            <ul className="space-y-3">
-              {items.map((item, index) => (
-                <SideCartProducts
-                  key={cartKey(item)}
-                  item={item}
-                  index={index}
-                  onQuantityChange={(next) => handleQuantityChange(item, next)}
-                  onRemove={() => handleRemove(item)}
-                />
-              ))}
-            </ul>
-          )}
-        </div>
+                <p className="mb-4 text-xs text-text-muted">Shipping and taxes calculated at checkout.</p>
 
-        {/* FOOTER */}
-        {hydrated && items.length > 0 && (
-          <div className="border-t border-border bg-white px-5 py-5 sm:px-6">
-            {savings > 0 && (
-              <div className="mb-3 flex items-center justify-between text-sm">
-                <span className="text-text-muted">You’re saving</span>
-                <span className="font-semibold text-success">{formatPrice(savings)}৳</span>
+                <motion.div whileTap={{ scale: 0.98 }}>
+                  <Link
+                    href="/checkout"
+                    onClick={onClose}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-white shadow-[0_10px_25px_-8px_rgba(48,136,152,0.5)] transition-colors hover:bg-primary-dark"
+                  >
+                    Checkout
+                    <ArrowRight size={16} />
+                  </Link>
+                </motion.div>
+
+                <Link
+                  href="/shop"
+                  onClick={onClose}
+                  className="mt-3 flex w-full items-center justify-center text-sm font-medium text-text-muted transition-colors hover:text-primary"
+                >
+                  Continue Shopping
+                </Link>
               </div>
             )}
-            <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm text-text-muted">Subtotal</span>
-              <span className="text-xl font-semibold text-text">{formatPrice(subtotal)}৳</span>
-            </div>
-            <p className="mb-4 text-xs text-text-muted">Shipping and taxes calculated at checkout.</p>
-
-            <Link
-              href="/checkout"
-              onClick={onClose}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-white shadow-[0_10px_25px_-8px_rgba(48,136,152,0.5)] transition-all duration-200 hover:bg-primary-dark active:scale-[0.98]"
-            >
-              Checkout
-              <ArrowRight size={16} />
-            </Link>
-
-            <Link
-              href="/shop"
-              onClick={onClose}
-              className="mt-3 flex w-full items-center justify-center text-sm font-medium text-text-muted transition-colors hover:text-primary"
-            >
-              Continue Shopping
-            </Link>
-          </div>
-        )}
-      </aside>
-    </>
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

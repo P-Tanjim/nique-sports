@@ -2,6 +2,7 @@
 import Image from 'next/image'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Scan, ShoppingBasket, X } from 'lucide-react'
+import { addToCart } from '@/components/sideCart/SideCart';
 
 const TRANSITION_MS = 300;
 
@@ -86,6 +87,7 @@ const ProductCard = ({ product }) => {
                         <button
                             type="button"
                             title="Add to Cart"
+                            onClick={() => addToCart(product, 1, 'XL')}
                             className='w-9 h-9 md:w-10 md:h-10 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
                         >
                             <ShoppingBasket size={14} />

@@ -8,6 +8,7 @@ import { Heart, QrCode, ShoppingBasket } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
 import ProductQrModal from './ProductQrModal';
 import ProductImage from '../../../public/products/1.jpg';
+import { addToCart } from '../sideCart/SideCart';
 
 export default function ProductCard({
   product,
@@ -18,16 +19,7 @@ export default function ProductCard({
   const [loaded, setLoaded] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
 
-  const {
-    name,
-    price,
-    originalPrice,
-    discountPercent,
-    isNew,
-    stamp,
-    image,
-    slug,
-  } = product || {};
+  const {name, price, originalPrice, discountPercent, isNew, stamp, image, slug,} = product || {};
 
   return (
     <>
@@ -119,6 +111,7 @@ export default function ProductCard({
             {/* Cart - Shopping Basket */}
             <button
               type="button"
+              onClick={() => addToCart(product, 1, 'M')}
               aria-label="Add to cart"
               className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/50 text-white shadow-sm backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-black/70 md:h-9 md:w-9"
             >
