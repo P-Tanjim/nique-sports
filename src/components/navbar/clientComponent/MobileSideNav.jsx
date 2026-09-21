@@ -61,11 +61,11 @@ const SideNavbar = ({ isActive, setIsActive, navItems }) => (
 					<Tabs.ListContainer>
 						<Tabs.List aria-label="Options">
 							<Tabs.Tab id="overview">
-								<Image src={bdFlag} width={18} height={18} alt="BD Flag" />
+								<Image src={bdFlag} width={18} alt="BD Flag w-auto h-auto" />
 								<Tabs.Indicator className="px-2 py-2" />
 							</Tabs.Tab>
 							<Tabs.Tab id="analytics">
-								<Image src={usFlag} width={18} height={18} alt="US Flag" />
+								<Image src={usFlag} width={18} alt="US Flag w-auto h-auto" />
 								<Tabs.Indicator />
 							</Tabs.Tab>
 						</Tabs.List>

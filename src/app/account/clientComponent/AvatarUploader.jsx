@@ -58,33 +58,39 @@ export default function AvatarUploader({ initialImage, name }) {
     }
   }
 
+  // Helper check for base64 images
+  const isDataUri = typeof image === "string" && image.startsWith("data:");
+
   return (
-    <div className="relative mx-auto w-fit">
+    <div className="relative mx-auto w-fit text-center">
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
         aria-label={image ? "Change profile photo" : "Add profile photo"}
-        className="group relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-border bg-surface text-2xl font-semibold text-text-muted transition-colors hover:border-primary/40"
+        className="group cursor-pointer relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-border bg-surface text-2xl font-semibold text-text-muted transition-colors hover:border-primary/40"
       >
         {image ? (
           <Image
             src={image}
-            alt=""
+            alt="Profile Avatar"
             fill
             sizes="112px"
             className="object-cover"
-            unoptimized={image.startsWith("data:")}
+            unoptimized={true}
+            priority
           />
         ) : (
-          getInitials(name)
+          <span>{getInitials(name)}</span>
         )}
 
-        <span className="absolute inset-0 flex items-center justify-center bg-ink/0 text-white opacity-0 transition-all duration-200 group-hover:bg-ink/40 group-hover:opacity-100">
+        {/* HOVER OVERLAY */}
+        <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 z-10">
           <Camera size={20} strokeWidth={1.8} />
         </span>
 
+        {/* SAVING SPINNER */}
         {saving && (
-          <span className="absolute inset-0 flex items-center justify-center bg-white/70">
+          <span className="absolute inset-0 flex items-center justify-center bg-white/70 z-20">
             <Loader2 size={20} className="animate-spin text-primary" />
           </span>
         )}
@@ -95,7 +101,7 @@ export default function AvatarUploader({ initialImage, name }) {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="mt-3 text-xs font-medium text-primary hover:underline"
+        className="mt-3 cursor-pointer text-xs font-medium text-primary hover:underline"
       >
         {image ? "Change photo" : "Add photo"}
       </button>

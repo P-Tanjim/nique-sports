@@ -10,6 +10,7 @@ import MobileSideNav from './clientComponent/MobileSideNav'
 import { NavProvider } from './clientComponent/NavStateContext'
 import MobileBottomNav from './clientComponent/MobileBottomNav'
 import SideCartButton from './clientComponent/SideCartButton'
+import ShopMenu from './clientComponent/ShopMenu'
 
 const shopItems = [
   {
@@ -55,71 +56,7 @@ const Navbar = () => {
             </li>
 
             {/* Shop */}
-            <li className="relative group">
-              <Link
-                href="/shop"
-                className="inline-flex items-center gap-1.5 py-5 hover:text-primary transition-colors duration-300"
-              >
-                Shop
-
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  className="transition-transform duration-300 group-hover:rotate-180"
-                >
-                  <path
-                    d="M3 4.5L6 7.5L9 4.5"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </Link>
-
-              {/* Shop Dropdown */}
-              <div
-                className="
-                  invisible opacity-0 translate-y-2
-                  group-hover:visible group-hover:opacity-100 group-hover:translate-y-0
-                  absolute left-1/2 -translate-x-1/2 top-full
-                  pt-3
-                  transition-all duration-200
-                "
-              >
-                <div
-                  className="
-                    w-64
-                    rounded-2xl
-                    border border-black/8
-                    bg-white/95
-                    backdrop-blur-xl
-                    shadow-[0_18px_50px_rgba(0,0,0,0.10)]
-                    p-2
-                  "
-                >
-                  {shopItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="
-                      flex items-center
-                      px-4 py-3
-                      rounded-xl
-                      text-sm text-ink
-                      hover:bg-black/4
-                      hover:text-primary
-                      transition-colors duration-200
-                      "
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </li>
+            <ShopMenu shopItems={shopItems}></ShopMenu>
 
             {/* Account */}
             <li>
@@ -139,7 +76,7 @@ const Navbar = () => {
               width={50}
               height={50}
               alt="nique sports logo"
-              className="min-[1050px]:mr-0 mr-2"
+              className="min-[1050px]:mr-0 mr-2 w-auto h-auto"
             />
           </Link>
 
@@ -159,8 +96,7 @@ const Navbar = () => {
                     <Image
                       src={bdFlag}
                       width={18}
-                      height={18}
-                      alt="Bangladesh"
+                      alt="Bangladesh w-auto h-auto"
                     />
                     <Tabs.Indicator className="px-2 py-2" />
                   </Tabs.Tab>
@@ -169,8 +105,7 @@ const Navbar = () => {
                     <Image
                       src={usFlag}
                       width={18}
-                      height={18}
-                      alt="United States"
+                      alt="United States w-auto h-auto"
                     />
                     <Tabs.Indicator />
                   </Tabs.Tab>

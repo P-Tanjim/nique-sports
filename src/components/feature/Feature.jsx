@@ -12,15 +12,15 @@ import ProductEight from '../../../public/featuredProduct/8.jpg'
 import ProductNine from '../../../public/featuredProduct/9.jpg'
 
 const fallbackProducts = [
-    { imgURL: ProductOne },
-    { imgURL: ProductTwo },
-    { imgURL: ProductThree },
-    { imgURL: ProductFour },
-    { imgURL: ProductFive },
-    { imgURL: ProductSix },
-    { imgURL: ProductSeven },
-    { imgURL: ProductEight },
-    { imgURL: ProductNine },
+    { imageLink: ProductOne },
+    { imageLink: ProductTwo },
+    { imageLink: ProductThree },
+    { imageLink: ProductFour },
+    { imageLink: ProductFive },
+    { imageLink: ProductSix },
+    { imageLink: ProductSeven },
+    { imageLink: ProductEight },
+    { imageLink: ProductNine },
 ]
 
 const Feature = async () => {
@@ -29,7 +29,7 @@ const Feature = async () => {
 
 
     // Use checkProducts if available, otherwise fallback to static images
-    const productsToDisplay = checkProducts?.length ? checkProducts : fallbackProducts;
+    const productsToDisplay = checkProducts?.length>0 ? checkProducts : fallbackProducts;
 
     return (
         <div className='mb-10 mt-10'>
