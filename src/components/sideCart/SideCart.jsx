@@ -191,7 +191,7 @@ export default function SideCart({ open, onClose }) {
                   <button
                     type="button"
                     onClick={() => setItems([])}
-                    className="text-xs font-medium text-danger transition-colors hover:underline"
+                    className="text-xs cursor-pointer font-medium text-danger transition-colors hover:underline"
                   >
                     Clear cart
                   </button>
@@ -203,7 +203,7 @@ export default function SideCart({ open, onClose }) {
             type="button"
             onClick={onClose}
             aria-label="Close cart"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-muted transition-all duration-200 hover:rotate-90 hover:bg-surface hover:text-text active:scale-90"
+            className="flex cursor-pointer h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-muted transition-all duration-200 hover:rotate-90 hover:bg-surface hover:text-text active:scale-90"
           >
             <X size={18} />
           </button>
