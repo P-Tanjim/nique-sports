@@ -112,7 +112,7 @@ export default function AvatarCropper({ src, onCancel, onConfirm }) {
             alt=""
             onLoad={handleImageLoad}
             draggable={false}
-            className="absolute cursor-grab active:cursor-grabbing"
+            className="absolute cursor-grab max-w-none active:cursor-grabbing"
             style={{ left: pos.x, top: pos.y, width: dispW || undefined, height: dispH || undefined }}
           />
           {/* circular crop guide + vignette — purely visual */}

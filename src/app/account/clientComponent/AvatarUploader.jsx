@@ -31,7 +31,7 @@ export default function AvatarUploader({ initialImage, name }) {
       setError("Please choose an image file.");
       return;
     }
-    if (file.size > MAX_SOURCE_SIZE) {
+    if (file.size >= MAX_SOURCE_SIZE) {
       setError("That image is too large — pick one under 8MB.");
       return;
     }
