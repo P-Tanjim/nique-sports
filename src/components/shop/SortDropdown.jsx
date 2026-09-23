@@ -74,7 +74,7 @@ export default function SortDropdown() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.4 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 z-30 mt-2 w-56 origin-top-right overflow-hidden rounded-2xl border border-border bg-white/95 p-1.5 shadow-[0_20px_50px_rgba(32,36,38,0.12)] backdrop-blur-xl"
+            className="absolute right-0 z-30 mt-2 w-56 origin-top-right overflow-hidden rounded-2xl border border-border bg-white/95 p-1.5 shadow-[0_20px_50px_rgba(32,36,38,0.12)] backdrop-blur-sm"
           >
             {SORT_OPTIONS.map((option) => (
               <li key={option.value} role="option" aria-selected={option.value === current}>

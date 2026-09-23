@@ -30,25 +30,22 @@ export default function ShopMenu({ shopItems }) {
         </svg>
       </Link>
 
-      <div
-        className={`
-          invisible opacity-0 scale-50 origin-top
-          group-hover/shop:visible group-hover/shop:opacity-100 group-hover/shop:scale-100
-          absolute left-1/2 -translate-x-1/2 top-full
-          pt-3
-          transition-all duration-200
-        `}
-      >
+      {/* Added pointer-events-none and group-hover/shop:pointer-events-auto */}
+      <div className="absolute left-1/2 -translate-x-1/2 top-full pointer-events-none group-hover/shop:pointer-events-auto">
+        
         <div
           onMouseLeave={() => setHoveredIndex(null)}
           className={`
-            w-64
-            rounded-[24px]
-            border border-white/10
-            bg-primary-dark/70
-            backdrop-blur-sm
-            shadow-2xl
-            p-2
+            w-64 rounded-[24px] border border-white/10 p-2 shadow-2xl
+            origin-top transition-all duration-300 ease-out backdrop-saturate-150
+
+            /* Hidden State */
+            invisible opacity-0 scale-50 
+            bg-transparent backdrop-blur-none
+
+            /* Hover State */
+            group-hover/shop:visible group-hover/shop:opacity-100 group-hover/shop:scale-100
+            group-hover/shop:bg-primary-dark/20 group-hover/shop:backdrop-blur-sm
           `}
         >
           {shopItems.map((item, index) => (
@@ -56,9 +53,8 @@ export default function ShopMenu({ shopItems }) {
               key={item.href}
               href={item.href}
               onMouseEnter={() => setHoveredIndex(index)}
-              className="relative flex items-center px-4 py-3 text-sm font-medium text-white group/item"
+              className="relative flex items-center px-4 py-3 text-sm font-medium text-black/70 group/item"
             >
-              {/* Floating iOS Indicator Pill */}
               {hoveredIndex === index && (
                 <motion.div
                   layoutId="ios-pill"

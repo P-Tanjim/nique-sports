@@ -1,6 +1,7 @@
 import Navbar from "@/components/navbar/Navbar";
 import "./globals.css";
 import Footer from "@/components/footer/Footer";
+import { Toaster } from "react-hot-toast";
 
 export const metadata = {
   title: "Nique Sports",
@@ -17,6 +18,7 @@ export default function RootLayout({ children }) {
         <Navbar></Navbar>
         {children}
         <Footer></Footer>
+        <Toaster />
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import Hero from "@/components/hero/Hero";
 import Navbar from "@/components/navbar/Navbar";
 import ProductsSection from "@/components/products/productsSection";
 import Testimonial from "@/components/testimonial/testimonial";
+import { Toaster } from "react-hot-toast";
 
 export default function Home() {
   return (

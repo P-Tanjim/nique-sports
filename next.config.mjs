@@ -11,7 +11,7 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: '8mb', // Allows large uploads site-wide so Next.js doesn't throw a network error
+      bodySizeLimit: '10mb', // Allows large uploads site-wide so Next.js doesn't throw a network error
     },
   },
 };
