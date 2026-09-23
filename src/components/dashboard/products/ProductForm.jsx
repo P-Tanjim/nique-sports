@@ -55,28 +55,49 @@ export default function ProductForm({ categories }) {
       toast.error('Title, price and category are required.');
       return;
     }
+
+    // NEW: Size validation
+    if (form.size.length === 0) {
+      toast.error('Please select at least one size.');
+      return;
+    }
+
     if (form.imagesLink.length === 0) {
       toast.error('Add at least one product image.');
       return;
     }
 
-    setSaving(true);
-    const result = await createProduct({
-      ...form,
-      price: Number(form.price),
-      stock: Number(form.stock) || 0,
-      patchsImg: form.patch ? form.patchsImg : [],
-    });
-    setSaving(false);
-
-    if (!result.success) {
-      toast.error(result.error || 'Could not add the product.');
+    if (form.patch && form.patchsImg.length === 0) {
+      toast.error('Please add at least one patch image, or turn off "Patch available".');
       return;
     }
 
-    toast.success('Product added.');
-    setForm(initialState);
-    router.refresh();
+    setSaving(true);
+
+    try {
+      const result = await createProduct({
+        ...form,
+        price: Number(form.price),
+        stock: Number(form.stock) || 0,
+        patchsImg: form.patch ? form.patchsImg : [],
+      });
+
+      setSaving(false);
+
+      if (!result?.success) {
+        toast.error(result?.error || 'Could not add the product.');
+        return;
+      }
+
+      toast.success('Product added.');
+      setForm(initialState);
+      router.refresh();
+
+    } catch (error) {
+      setSaving(false);
+      toast.error("Network or server error occurred.");
+      console.error("Submission error:", error);
+    }
   }
 
   return (

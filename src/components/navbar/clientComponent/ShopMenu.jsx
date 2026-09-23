@@ -8,8 +8,7 @@ export default function ShopMenu({ shopItems }) {
 
   return (
     <li className="relative group/shop">
-      <Link
-        href="/shop"
+      <p
         className="inline-flex items-center gap-1.5 py-5 hover:text-primary transition-colors duration-300"
       >
         Shop
@@ -28,7 +27,7 @@ export default function ShopMenu({ shopItems }) {
             strokeLinejoin="round"
           />
         </svg>
-      </Link>
+      </p>
 
       {/* Added pointer-events-none and group-hover/shop:pointer-events-auto */}
       <div className="absolute left-1/2 -translate-x-1/2 top-full pointer-events-none group-hover/shop:pointer-events-auto">
@@ -37,7 +36,7 @@ export default function ShopMenu({ shopItems }) {
           onMouseLeave={() => setHoveredIndex(null)}
           className={`
             w-64 rounded-[24px] border border-white/10 p-2 shadow-2xl
-            origin-top transition-all duration-300 ease-out backdrop-saturate-150
+            origin-top transition-all duration-300 ease backdrop-saturate-150
 
             /* Hidden State */
             invisible opacity-0 scale-50 
