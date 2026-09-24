@@ -30,7 +30,7 @@ export default function PatchGallery({ images }) {
               alt={`Patch option ${index + 1}`}
               fill
               sizes="80px"
-              className="object-contain p-1.5"
+              className="rounded-xl object-contain p-1.5"
             />
           </div>
         ))}

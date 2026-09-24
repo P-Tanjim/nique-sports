@@ -82,7 +82,7 @@ export default function PurchasePanel({ product, slug }) {
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
             disabled={quantity <= 1}
             aria-label="Decrease quantity"
-            className="flex h-full w-11 items-center justify-center text-text-muted transition-colors enabled:hover:bg-surface disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-full w-11 cursor-pointer items-center justify-center text-text-muted transition-colors enabled:hover:bg-surface disabled:cursor-not-allowed disabled:opacity-30"
           >
             <Minus size={14} />
           </button>
@@ -94,7 +94,7 @@ export default function PurchasePanel({ product, slug }) {
             onClick={() => setQuantity((q) => Math.min(stock, q + 1))}
             disabled={isOutOfStock || quantity >= stock}
             aria-label="Increase quantity"
-            className="flex h-full w-11 items-center justify-center text-text-muted transition-colors enabled:hover:bg-surface disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-full w-11 cursor-pointer items-center justify-center text-text-muted transition-colors enabled:hover:bg-surface disabled:cursor-not-allowed disabled:opacity-30"
           >
             <Plus size={14} />
           </button>
@@ -106,7 +106,7 @@ export default function PurchasePanel({ product, slug }) {
           type="button"
           onClick={handleAddToCart}
           disabled={isOutOfStock}
-          className="flex p-3 md:h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-primary bg-white text-sm font-semibold text-primary transition-colors hover:bg-primary-soft disabled:cursor-not-allowed disabled:border-border disabled:text-text-muted disabled:hover:bg-white"
+          className="flex cursor-pointer p-3 md:h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-primary bg-white text-sm font-semibold text-primary transition-colors hover:bg-primary-soft disabled:cursor-not-allowed disabled:border-border disabled:text-text-muted disabled:hover:bg-white"
         >
           <ShoppingBasket size={17} />
           Add to Cart
@@ -115,7 +115,7 @@ export default function PurchasePanel({ product, slug }) {
           type="button"
           onClick={handleBuyNow}
           disabled={isOutOfStock}
-          className="flex p-3 md:h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white shadow-[0_10px_25px_-8px_rgba(48,136,152,0.5)] transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-border disabled:shadow-none"
+          className="flex cursor-pointer p-3 md:h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white shadow-[0_10px_25px_-8px_rgba(48,136,152,0.5)] transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-border disabled:shadow-none"
         >
           <Zap size={17} />
           Buy Now

@@ -6,7 +6,7 @@ import { Minus, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
 
 const UNDO_WINDOW_MS = 4000;
-const HEIGHT_TRANSITION_MS = 280;
+const HEIGHT_TRANSITION_MS = 380;
 
 // Scoped keyframes for this component, shipped inline so this file works
 // the moment you drop it in — nothing else to paste into globals.css.
@@ -83,10 +83,15 @@ export default function SideCartProducts({
   // Removing is reversible — tap trash, watch the border count down,
   // tap Undo before it runs out, or let it finish and it's gone.
   const [isRemoving, setIsRemoving] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const undoTimer = useRef(null);
+  const removeTimer = useRef(null);
   const { outerRef, innerRef } = useHeightTransition();
 
-  useEffect(() => () => clearTimeout(undoTimer.current), []);
+  useEffect(() => () => {
+    clearTimeout(undoTimer.current);
+    clearTimeout(removeTimer.current);
+  }, []);
 
   // Direction-aware count animation — no animation library involved.
   // Giving the digit a new `key` on every change makes React mount a
@@ -129,7 +134,11 @@ export default function SideCartProducts({
 
   const handleRemoveTap = () => {
     setIsRemoving(true);
-    undoTimer.current = setTimeout(onRemove, UNDO_WINDOW_MS);
+    undoTimer.current = setTimeout(() => {
+      setIsExiting(true);
+      if (outerRef.current) outerRef.current.style.height = '0px';
+      removeTimer.current = setTimeout(onRemove, HEIGHT_TRANSITION_MS);
+    }, UNDO_WINDOW_MS);
   };
 
   const handleUndo = () => {
@@ -149,10 +158,11 @@ export default function SideCartProducts({
         rounded-xl
         border border-border/80
         bg-white
-        transition-colors
-        duration-200
+        transition-[color,opacity,transform]
+        duration-[280ms]
         hover:border-primary/30
         focus-within:border-primary/40
+        ${isExiting ? 'translate-x-4 opacity-0' : ''}
       "
     >
       <style>{CART_ITEM_KEYFRAMES}</style>

@@ -15,7 +15,7 @@ export default function SizeSelector({ sizes, selectedSize, onSelect, onOpenSize
         <button
           type="button"
           onClick={onOpenSizeChart}
-          className="text-xs font-medium text-primary underline-offset-2 hover:underline"
+          className="cursor-pointer text-xs font-medium text-primary underline-offset-2 hover:underline"
         >
           Size guide
         </button>
@@ -30,7 +30,7 @@ export default function SizeSelector({ sizes, selectedSize, onSelect, onOpenSize
               type="button"
               onClick={() => onSelect(size)}
               aria-pressed={isActive}
-              className={`flex h-10 min-w-14 items-center justify-center rounded-xl border px-3 text-sm font-semibold transition-colors ${
+              className={`flex h-10 min-w-14 cursor-pointer items-center justify-center rounded-xl border px-3 text-sm font-semibold transition-colors ${
                 isActive
                   ? 'border-primary bg-primary text-white'
                   : 'border-border bg-white text-text hover:border-primary/40'

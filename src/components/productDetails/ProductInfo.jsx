@@ -48,7 +48,11 @@ export default function ProductInfo({ product }) {
         <p className="mt-2 text-sm font-medium text-warning">Only {stockCount} left in stock</p>
       ) : null}
 
-      {desc && <p className="mt-4 text-sm leading-relaxed text-text-muted">{desc}</p>}
+      {desc && (
+        <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-text-muted">
+          {desc}
+        </p>
+      )}
     </div>
   );
 }

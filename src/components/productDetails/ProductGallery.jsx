@@ -44,7 +44,7 @@ export default function ProductGallery({ images, title }) {
               onClick={() => setActiveIndex(index)}
               aria-label={`Show image ${index + 1}`}
               aria-current={index === activeIndex}
-              className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-colors sm:h-20 sm:w-20 ${
+              className={`relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 transition-colors sm:h-20 sm:w-20 ${
                 index === activeIndex ? 'border-primary' : 'border-border hover:border-primary/40'
               }`}
             >

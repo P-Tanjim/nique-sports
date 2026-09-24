@@ -1,9 +1,16 @@
 'use server'
 
+import { revalidatePath } from 'next/cache';
 import { serverFetch, serverPost } from '../core/core';
 
 export async function createProduct(product) {
-  return serverPost('/admin/products', product);
+  const result = await serverPost('/admin/products', product);
+
+  if (result?.success) {
+    revalidatePath('/', 'page');
+  }
+
+  return result;
 }
 
 function toSlug(value) {

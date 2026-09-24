@@ -42,7 +42,7 @@ export const CART_STORAGE_KEY = 'nique-sports:cart';
 // need this instead — that's what was missing before.
 export const CART_UPDATED_EVENT = 'nique-sports:cart-updated';
 
-const cartKey = (item) => `${item.id}__${item.size ?? 'default'}`;
+const cartKey = (item) => `${item.id ?? item._id}__${item.size ?? 'default'}`;
 
 export function readCart() {
   if (typeof window === 'undefined') return [];
@@ -75,7 +75,7 @@ function writeCart(items) {
  */
 export function addToCart(product, quantity = 1, size) {
   const cart = readCart();
-  const key = `${product.id}__${size ?? 'default'}`;
+  const key = cartKey({ ...product, size });
   const existing = cart.find((p) => cartKey(p) === key);
   const next = existing
     ? cart.map((p) => (cartKey(p) === key ? { ...p, quantity: p.quantity + quantity } : p))
