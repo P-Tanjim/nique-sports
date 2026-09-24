@@ -4,12 +4,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Scan, ShoppingBasket, X } from 'lucide-react'
 import { addToCart } from '@/components/sideCart/SideCart';
 
-const TRANSITION_MS = 300;
+const TRANSITION_MS = 400;
 
 const ProductCard = ({ product }) => {
-    const [isOpen, setIsOpen] = useState(false);   // did the user ask to open it
-    const [mounted, setMounted] = useState(false); // is the modal in the DOM at all
-    const [visible, setVisible] = useState(false); // has it transitioned in
+    const [isOpen, setIsOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
+    const [visible, setVisible] = useState(false);
     const mountedRef = useRef(false);
     const closeTimerRef = useRef(null);
 
@@ -21,19 +21,12 @@ const ProductCard = ({ product }) => {
         setIsOpen(true);
 
         if (mountedRef.current) {
-            // Re-opened before the close transition finished — the node is
-            // already in the DOM, so just reverse straight back to visible.
             setVisible(true);
             return;
         }
 
         mountedRef.current = true;
         setMounted(true);
-        // Wait two frames before revealing: the first lets the browser
-        // actually paint the "closed" starting state, the second is where
-        // we flip to "open" — skip this and the two states can get
-        // collapsed into a single frame, and it just jumps instead of
-        // transitioning.
         requestAnimationFrame(() => {
             requestAnimationFrame(() => setVisible(true));
         });
@@ -48,7 +41,6 @@ const ProductCard = ({ product }) => {
         }, TRANSITION_MS);
     }, []);
 
-    // While the modal exists: lock background scroll and let Escape close it.
     useEffect(() => {
         if (!mounted) return;
 
@@ -66,108 +58,165 @@ const ProductCard = ({ product }) => {
         };
     }, [mounted, close]);
 
-    // Clean up a pending close timer if the component unmounts mid-close.
     useEffect(() => () => {
         if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     }, []);
 
+    const imageAlt = product?.title ? `${product.title} - front view merchandise` : 'Sports jersey merchandise';
+
     return (
         <>
-            <div className='w-full rounded-2xl'>
-                <div className='relative w-full h-full rounded-xl overflow-hidden group'>
-                    <div className='flex flex-col gap-1 absolute top-2 right-2 z-30'>
-                        <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); open(); }}
-                            title="Quick View"
-                            className='w-9 md:w-10 md:h-10 h-9 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
-                        >
-                            <Scan size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            title="Add to Cart"
-                            onClick={() => addToCart(product, 1, 'XL')}
-                            className='w-9 h-9 md:w-10 md:h-10 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
-                        >
-                            <ShoppingBasket size={14} />
-                        </button>
-                    </div>
+            {/* 
+              CARD DESIGN 
+              Mobile: Minimalist info bar below image with always-visible square 'Add' button.
+              Desktop: Editorial layout with hover-reveal action block.
+            */}
+            <div className="group relative w-full">
+                <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#f4f4f4] cursor-pointer md:cursor-default" onClick={(e) => {
+                    // On mobile, tapping the image opens the Quick View
+                    if (window.innerWidth < 768) open();
+                }}>
                     <Image
                         src={product.image}
-                        alt={product.title}
-                        width={150}
-                        height={150}
-                        className='object-cover z-20 h-full w-full'
+                        alt={imageAlt}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 300px"
+                        className="object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] md:group-hover:scale-105"
                     />
-                    <div className='absolute w-[95%] mx-auto bottom-3 md:bottom-5 left-0 right-0 px-2 py-1.5 z-20 flex justify-between items-start bg-white rounded-xl shadow-sm'>
-                        <p className='text-text text-xs min-[450px]:text-sm sm:text-base max-w-[70%] font-medium line-clamp-2'>{product.title}</p>
-                        <p className='text-text text-xs min-[450px]:text-sm sm:text-base font-bold'>{product.price}৳</p>
+                    
+                    {/* MOBILE ONLY: Quick View Hint (Floating Top Right) */}
+                    <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); open(); }}
+                        aria-label="Quick view"
+                        className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center bg-white/90 backdrop-blur shadow-sm md:hidden"
+                    >
+                        <Scan size={14} strokeWidth={2} />
+                    </button>
+
+                    {/* DESKTOP ONLY: Hover Action Block */}
+                    <div className="hidden md:flex absolute inset-x-0 bottom-0 translate-y-full flex-col bg-white/90 p-3 backdrop-blur-md transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-y-0">
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); open(); }}
+                                className="flex h-11 flex-1 items-center justify-center gap-2 border border-black bg-transparent text-xs font-bold uppercase tracking-widest text-black transition-colors hover:bg-black hover:text-white"
+                            >
+                                <Scan size={16} strokeWidth={1.5} />
+                                View
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => addToCart(product, 1, 'XL')}
+                                className="flex h-11 flex-1 items-center justify-center gap-2 bg-black text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-neutral-800"
+                            >
+                                <ShoppingBasket size={16} strokeWidth={1.5} />
+                                Add
+                            </button>
+                        </div>
                     </div>
+                </div>
+
+                {/* Info Block */}
+                <div className="mt-3 flex items-start justify-between md:mt-4 md:block md:text-center">
+                    <div className="flex flex-col pr-2 md:pr-0">
+                        <h3 className="text-sm font-bold uppercase tracking-[0.1em] text-neutral-900 line-clamp-2 md:line-clamp-1 md:tracking-[0.15em]">
+                            {product.title}
+                        </h3>
+                        <p className="mt-1 text-sm font-medium text-neutral-500 md:mt-1.5">
+                            {product.price} <span className="font-sans text-xs">৳</span>
+                        </p>
+                    </div>
+                    
+                    {/* MOBILE ONLY: Quick Add Square Button */}
+                    <button
+                        type="button"
+                        onClick={() => addToCart(product, 1, 'XL')}
+                        aria-label="Add to cart"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center bg-black text-white active:bg-neutral-800 md:hidden"
+                    >
+                        <ShoppingBasket size={18} strokeWidth={1.5} />
+                    </button>
                 </div>
             </div>
 
+            {/* MODAL DESIGN */}
             {mounted && (
                 <div
                     role="dialog"
                     aria-modal="true"
-                    aria-label={product.title}
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10"
+                    aria-label={`Quick view for ${product.title}`}
+                    className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-12"
                 >
                     {/* Backdrop */}
                     <div
                         onClick={close}
-                        className={`absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-300 ${
+                        className={`absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-400 ${
                             visible ? 'opacity-100' : 'opacity-0'
                         }`}
                     />
 
-                    {/* Popover panel — simple fade + scale, no shared-element measurement */}
+                    {/* 
+                      Modal Panel 
+                      Mobile: Slide-up "Bottom Sheet" (rounded top, fixed bottom, scrollable inner).
+                      Desktop: Centered split-panel (sharp edges, side-by-side).
+                    */}
                     <div
-                        className={`relative w-full max-w-3xl h-[80svh] md:h-125 bg-white rounded-2xl overflow-hidden border border-gray-100 z-10 flex flex-col md:flex-row shadow-2xl transition duration-300 ease-out ${
-                            visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                        className={`relative z-10 flex w-full flex-col bg-white transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] 
+                        max-h-[90vh] rounded-t-3xl md:h-[600px] md:max-w-5xl md:flex-row md:rounded-none md:max-h-none ${
+                            visible 
+                                ? 'translate-y-0 opacity-100 md:scale-100' 
+                                : 'translate-y-full opacity-0 md:translate-y-8 md:scale-[0.98]'
                         }`}
                     >
+                        {/* Close Button */}
                         <button
                             onClick={close}
-                            aria-label="Close"
-                            className="absolute top-4 right-4 z-30 flex h-9 w-9 items-center justify-center bg-black/60 hover:bg-black rounded-full text-white transition-colors backdrop-blur-sm cursor-pointer"
+                            aria-label="Close dialog"
+                            className="absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white/50 text-black backdrop-blur transition-transform hover:scale-90 md:right-6 md:top-6 md:rounded-none md:bg-white"
                         >
-                            <X size={18} />
+                            <X size={24} strokeWidth={1.5} />
                         </button>
 
-                        <div className="relative h-64 w-full shrink-0 overflow-hidden md:h-full md:w-1/2">
+                        {/* Left Side: Image (Shorter on mobile to leave room for content) */}
+                        <div className="relative h-[45vh] w-full shrink-0 overflow-hidden rounded-t-3xl bg-[#f4f4f4] md:h-full md:w-1/2 md:rounded-none">
                             <Image
                                 src={product.image}
-                                alt={product.title}
+                                alt={`Detailed full view of ${product.title}`}
                                 fill
                                 sizes="(max-width: 768px) 100vw, 50vw"
-                                className="object-cover z-20"
+                                className="object-cover"
+                                priority
                             />
                         </div>
 
-                        <div className="p-6 sm:p-8 w-full md:w-1/2 flex flex-col justify-between h-full overflow-y-auto">
-                            <div>
-                                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 leading-tight">
+                        {/* Right Side: Content (Scrollable on mobile) */}
+                        <div className="flex w-full flex-col overflow-y-auto p-6 md:w-1/2 md:justify-center md:p-14 lg:p-16">
+                            <div className="mb-auto">
+                                <h2 className="text-xl font-black uppercase tracking-widest text-black md:text-3xl md:leading-tight">
                                     {product.title}
-                                </h3>
-
-                                <div className="flex items-baseline gap-2 mb-4">
-                                    <span className="text-2xl sm:text-3xl font-extrabold text-primary">{product.price}৳</span>
-                                </div>
-
-                                <p className="text-gray-600 text-sm leading-relaxed mb-6">
-                                    Premium quality sportswear jersey engineered with moisture-wicking fabric and ergonomic athletic fit. Perfect for matches, training, or casual wear.
+                                </h2>
+                                <p className="mt-2 text-xl text-neutral-500 md:mt-4 md:text-2xl">
+                                    {product.price} <span className="text-sm md:text-lg">৳</span>
                                 </p>
                             </div>
 
-                            <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
+                            <div className="my-6 h-[1px] w-12 bg-black md:my-8"></div>
+
+                            <p className="mb-8 text-sm leading-relaxed text-neutral-600 md:mb-10">
+                                Premium quality sportswear engineered with moisture-wicking fabric and an ergonomic athletic fit. Designed for maximum breathability during matches, high-intensity training, or everyday street styling.
+                            </p>
+
+                            <div className="mt-auto pb-4 md:pb-0 pt-4">
                                 <button
-                                    onClick={close}
-                                    className="w-full py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                                    onClick={() => {
+                                        addToCart(product, 1, 'XL');
+                                        close();
+                                    }}
+                                    className="group flex h-14 w-full items-center justify-center gap-3 bg-black text-sm font-bold uppercase tracking-widest text-white transition-all hover:bg-neutral-800"
                                 >
-                                    <ShoppingBasket size={18} />
-                                    Add to Cart
+                                    <ShoppingBasket size={18} strokeWidth={1.5} className="transition-transform group-hover:-translate-y-0.5" />
+                                    Add to Cart — {product.price}৳
                                 </button>
                             </div>
                         </div>

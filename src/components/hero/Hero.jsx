@@ -6,7 +6,7 @@ export default function Hero() {
   return (
     <div className='mb-10'>
         {/* hero image  */}
-        <Image src={heroBg} alt='hero-background' className='w-full aspect-video' />
+        <Image loading='eager' src={heroBg} alt='hero-background' className='w-full aspect-video' />
     </div>
   )
 }

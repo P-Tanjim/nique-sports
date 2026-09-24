@@ -80,6 +80,7 @@ const Navbar = () => {
                 height={50}
                 alt="nique sports logo"
                 className="min-[1050px]:mr-0 mr-2 w-auto h-auto"
+                loading='eager'
               />
             </Link>
 

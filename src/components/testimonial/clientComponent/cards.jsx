@@ -42,14 +42,6 @@ import { useState, useEffect, useCallback, memo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 
-/**
- * @typedef {Object} Testimonial
- * @property {string|number} id
- * @property {string} image   - path or URL to the customer photo
- * @property {string} name    - shown below the card stack
- * @property {string} [subtitle] - optional second line (team, city, order #...)
- */
-
 const CARD_W = 240;
 const CARD_H = 320;
 
@@ -78,7 +70,7 @@ function getCardMotion(offset) {
   return { x: dir * 112, y: -30, scale: 0.82, opacity: 0, zIndex: 0 };
 }
 
-const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion }) {
+const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion, isPriority }) {
   const isActive = offset === 0;
   const isInteractive = !isActive && Math.abs(offset) <= VISIBLE_RADIUS;
   const m = getCardMotion(offset);
@@ -108,7 +100,7 @@ const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion }) 
         alt={`${testimonial.name} wearing their jersey`}
         fill
         sizes={`${CARD_W}px`}
-        priority={isActive}
+        priority={isPriority}
         loading={isActive ? undefined : "eager"}
         className="object-cover"
       />
@@ -145,7 +137,7 @@ const NavButton = memo(function NavButton({ direction, onClick }) {
 export default function TestimonialCarousel({
   testimonials = DEFAULT_TESTIMONIALS,
   autoPlay = false,
-  autoPlayInterval = 5500,
+  autoPlayInterval = 3500,
   className = "",
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -205,19 +197,20 @@ export default function TestimonialCarousel({
       >
         {visible.map(({ t, i, offset }) => (
           <Card
-            key={t.id}
+            key={t._id}
             testimonial={t}
             offset={offset}
             reduceMotion={reduceMotion}
             onClick={() => goTo(i)}
+            isPriority={Math.abs(offset) <= 2}
           />
         ))}
       </motion.div>
-
+{/* 
       <div className="mt-6 text-center">
         <p className="text-base font-semibold text-white">{active.name}</p>
         {active.subtitle && <p className="text-sm text-neutral-500">{active.subtitle}</p>}
-      </div>
+      </div> */}
 
       <div className="mt-5 flex items-center justify-center gap-4">
         <NavButton direction="prev" onClick={goPrev} />
@@ -225,7 +218,7 @@ export default function TestimonialCarousel({
         <div className="flex items-center gap-2">
           {testimonials.map((t, i) => (
             <button
-              key={t.id}
+              key={t._id}
               type="button"
               onClick={() => goTo(i)}
               aria-label={`Go to testimonial ${i + 1}`}

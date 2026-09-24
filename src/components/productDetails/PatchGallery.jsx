@@ -25,6 +25,7 @@ export default function PatchGallery({ images }) {
             className="relative aspect-square overflow-hidden rounded-xl border border-border bg-white"
           >
             <Image
+              loading="eager"
               src={src}
               alt={`Patch option ${index + 1}`}
               fill

@@ -1,31 +1,10 @@
 import { dancingScript } from '@/app/fonts'
 import FeatureCard from './clientComponent/FeatureCard'
 import { getFeaturedProducts } from '@/lib/api/requests/requests';
-import ProductOne from '../../../public/featuredProduct/1.jpg'
-import ProductTwo from '../../../public/featuredProduct/2.jpg'
-import ProductThree from '../../../public/featuredProduct/3.jpg'
-import ProductFour from '../../../public/featuredProduct/4.jpg'
-import ProductFive from '../../../public/featuredProduct/5.jpg'
-import ProductSix from '../../../public/featuredProduct/6.jpg'
-import ProductSeven from '../../../public/featuredProduct/7.jpg'
-import ProductEight from '../../../public/featuredProduct/8.jpg'
-import ProductNine from '../../../public/featuredProduct/9.jpg'
-
-const fallbackProducts = [
-    { imageLink: ProductOne },
-    { imageLink: ProductTwo },
-    { imageLink: ProductThree },
-    { imageLink: ProductFour },
-    { imageLink: ProductFive },
-    { imageLink: ProductSix },
-    { imageLink: ProductSeven },
-    { imageLink: ProductEight },
-    { imageLink: ProductNine },
-]
 
 const Feature = async () => {
-    // const checkProducts = await getFeaturedProducts();
-    const checkProducts = [];
+    const checkProducts = await getFeaturedProducts();
+    // const checkProducts = [];
 
 
     // Use checkProducts if available, otherwise fallback to static images

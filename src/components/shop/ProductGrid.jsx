@@ -1,4 +1,4 @@
-import { getProducts } from '@/lib/products';
+import { getProducts } from '@/lib/api/products/products';
 import ProductCard from './ProductCard';
 import ShopPagination from './ShopPagination';
 
@@ -8,8 +8,8 @@ import ShopPagination from './ShopPagination';
 export default async function ProductGrid({ category, minPrice, maxPrice, sort, perPage, page }) {
   const { items, totalPages, page: safePage } = await getProducts({
     category,
-    minPrice,
-    maxPrice,
+    minPrice:0,
+    maxPrice:1000,
     sort,
     perPage,
     page,
@@ -30,7 +30,7 @@ export default async function ProductGrid({ category, minPrice, maxPrice, sort, 
     <>
       <div className="grid grid-cols-2 gap-5 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-7">
         {items.map((product, index) => (
-          <ProductCard key={product.id} product={product} priority={index < 4} index={index} />
+          <ProductCard key={product._id} product={product} priority={index < 4} index={index} />
         ))}
       </div>
 

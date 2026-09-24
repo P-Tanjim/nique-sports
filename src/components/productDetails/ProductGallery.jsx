@@ -24,6 +24,7 @@ export default function ProductGallery({ images, title }) {
     <div>
       <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-border bg-white">
         <Image
+          loading="eager"
           key={activeImage}
           src={activeImage}
           alt={title || 'Product image'}
@@ -47,7 +48,7 @@ export default function ProductGallery({ images, title }) {
                 index === activeIndex ? 'border-primary' : 'border-border hover:border-primary/40'
               }`}
             >
-              <Image src={src} alt="" fill sizes="80px" className="object-cover" />
+              <Image loading="eager" src={src} alt="" fill sizes="80px" className="object-cover" />
             </button>
           ))}
         </div>

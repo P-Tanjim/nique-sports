@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { Heart, QrCode, ShoppingBasket } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
 import ProductQrModal from './ProductQrModal';
-import ProductImage from '../../../public/products/1.jpg';
+// import ProductImage from '../../../public/products/1.jpg';
 import { addToCart } from '../sideCart/SideCart';
 
 export default function ProductCard({
