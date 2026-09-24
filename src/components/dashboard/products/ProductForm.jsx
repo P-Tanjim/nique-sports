@@ -30,10 +30,11 @@ const initialState = {
   patch: false,
   font: false,
   featured: false,
-  discount: false,       // NEW
-  beforePrice: '',      // NEW
+  discount: false,
+  beforePrice: '',
   imagesLink: [],
   patchsImg: [],
+  fontsImg: [],
 };
 
 export default function ProductForm({ categories }) {
@@ -41,6 +42,7 @@ export default function ProductForm({ categories }) {
   const [form, setForm] = useState(initialState);
   const [saving, setSaving] = useState(false);
   const [shake, setShake] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(0);
 
   const categoryOptions =
     categories?.length > 0
@@ -57,6 +59,10 @@ export default function ProductForm({ categories }) {
     requestAnimationFrame(() => setShake(true));
   }
 
+  function handleUploadingChange(isUploading) {
+    setUploadingImages((count) => Math.max(0, count + (isUploading ? 1 : -1)));
+  }
+
   // Calculate live discount percentage for UI preview
   const liveDiscountPercent =
     form.discount && Number(form.beforePrice) > Number(form.price) && Number(form.price) > 0
@@ -65,6 +71,11 @@ export default function ProductForm({ categories }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    if (uploadingImages > 0) {
+      toast.error('Please wait for all images to finish uploading.');
+      return;
+    }
 
     if (!form.title.trim() || !form.price || !form.category) {
       showValidationError('Title, price and category are required.');
@@ -99,6 +110,11 @@ export default function ProductForm({ categories }) {
       return;
     }
 
+    if (form.font && form.fontsImg.length === 0) {
+      showValidationError('Please add at least one font image, or turn off "Custom font".');
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -114,6 +130,7 @@ export default function ProductForm({ categories }) {
         discountPercent: discountPercent,           // auto calculated percent
         stock: Number(form.stock) || 0,
         patchsImg: form.patch ? form.patchsImg : [],
+        fontsImg: form.font ? form.fontsImg : [],
       });
 
       setSaving(false);
@@ -328,7 +345,12 @@ export default function ProductForm({ categories }) {
           Product images
         </h2>
         <div className="mt-4">
-          <ImageUploader label="Product image" value={form.imagesLink} onChange={(v) => set('imagesLink', v)} />
+          <ImageUploader
+            label="Product image"
+            value={form.imagesLink}
+            onChange={(v) => set('imagesLink', v)}
+            onUploadingChange={handleUploadingChange}
+          />
         </div>
 
         <AnimatePresence>
@@ -349,6 +371,34 @@ export default function ProductForm({ categories }) {
                     label="Patch image"
                     value={form.patchsImg}
                     onChange={(v) => set('patchsImg', v)}
+                    onUploadingChange={handleUploadingChange}
+                    max={4}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {form.font && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+              className="overflow-hidden"
+            >
+              <div className="pt-6">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-text-muted">
+                  Font references
+                </h3>
+                <div className="mt-3">
+                  <ImageUploader
+                    label="Font image"
+                    value={form.fontsImg}
+                    onChange={(v) => set('fontsImg', v)}
+                    onUploadingChange={handleUploadingChange}
                     max={4}
                   />
                 </div>
@@ -361,11 +411,11 @@ export default function ProductForm({ categories }) {
       {/* SUBMIT */}
       <button
         type="submit"
-        disabled={saving}
+        disabled={saving || uploadingImages > 0}
         className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark disabled:opacity-70 sm:w-auto sm:px-10"
       >
-        {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-        {saving ? 'Saving…' : 'Add product'}
+        {saving || uploadingImages > 0 ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+        {saving ? 'Saving…' : uploadingImages > 0 ? 'Uploading images…' : 'Add product'}
       </button>
     </form>
   );

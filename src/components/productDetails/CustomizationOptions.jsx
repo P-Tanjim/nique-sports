@@ -7,10 +7,11 @@ import IOSSwitch from '@/components/dashboard/products/IOSSwitch';
 
 const IOS_EASE = [0.32, 0.72, 0, 1];
 
-export default function CustomizationOptions({ font = false, patches = [], onChange }) {
+export default function CustomizationOptions({ font = false, fontImages = [], patches = [], onChange }) {
   const [fontEnabled, setFontEnabled] = useState(false);
   const [name, setName] = useState('');
   const [number, setNumber] = useState('');
+  const [selectedFont, setSelectedFont] = useState('');
   const [selectedPatch, setSelectedPatch] = useState('');
 
   function update(next) {
@@ -18,6 +19,7 @@ export default function CustomizationOptions({ font = false, patches = [], onCha
       fontEnabled,
       name,
       number,
+      font: selectedFont,
       patch: selectedPatch,
       ...next,
     });
@@ -38,6 +40,12 @@ export default function CustomizationOptions({ font = false, patches = [], onCha
     update({ number: value });
   }
 
+  function chooseFont(value) {
+    const nextValue = selectedFont === value ? '' : value;
+    setSelectedFont(nextValue);
+    update({ font: nextValue });
+  }
+
   function choosePatch(value) {
     setSelectedPatch(value);
     update({ patch: value });
@@ -49,6 +57,46 @@ export default function CustomizationOptions({ font = false, patches = [], onCha
     <div className="mt-6 space-y-4 rounded-3xl border border-border bg-white p-4 shadow-[0_8px_24px_-18px_rgba(32,36,38,0.35)] sm:p-5">
       {font && (
         <div>
+          {fontImages.length > 0 && (
+            <div className="mb-4 rounded-2xl border border-border bg-surface/70 p-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-text">Font references</p>
+                  <p className="mt-0.5 text-xs text-text-muted">Choose a style for your name and number.</p>
+                </div>
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
+                  Preview
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Font styles">
+                {fontImages.map((src, index) => (
+                  <button
+                    key={src + index}
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedFont === src}
+                    aria-label={`Choose font reference ${index + 1}`}
+                    onClick={() => chooseFont(src)}
+                    className={`group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-xl border-2 bg-white transition-colors ${
+                      selectedFont === src
+                        ? 'border-primary'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <Image
+                      src={src}
+                      alt={`Font reference ${index + 1}`}
+                      fill
+                      sizes="(max-width: 640px) 50vw, 120px"
+                      className={`object-contain p-2 transition-transform ${selectedFont === src ? 'scale-[0.9]' : 'group-hover:scale-[0.96]'}`}
+                    />
+                    <span className={`absolute right-1.5 top-1.5 h-4 w-4 rounded-full border-2 border-white transition-colors ${selectedFont === src ? 'bg-primary' : 'bg-black/10'}`} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <IOSSwitch
             label="Add name and number"
             description="Personalize the back of your jersey"

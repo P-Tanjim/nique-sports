@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { deleteFromCloudinary, uploadToCloudinary } from '@/lib/api/requests/requests';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function ImageUploader({ label, value = [], onChange, max = 10 }) {
+export default function ImageUploader({ label, value = [], onChange, onUploadingChange, max = 10 }) {
   const inputRef = useRef(null);
   const [uploadingCount, setUploadingCount] = useState(0);
 
@@ -27,20 +27,28 @@ export default function ImageUploader({ label, value = [], onChange, max = 10 })
     }
 
     setUploadingCount((c) => c + toUpload.length);
+    onUploadingChange?.(true);
     const uploaded = [];
 
-    for (const file of toUpload) {
-      const data = new FormData();
-      data.append('image', file);
-      const result = await uploadToCloudinary(data);
-      if (result.success) {
-        uploaded.push(result.url);
-      } else {
-        toast.error(result.error || 'One image failed to upload.');
+    try {
+      for (const file of toUpload) {
+        const data = new FormData();
+        data.append('image', file);
+        const result = await uploadToCloudinary(data);
+        if (result.success) {
+          uploaded.push(result.url);
+        } else {
+          toast.error(result.error || 'One image failed to upload.');
+        }
       }
+    } catch (error) {
+      toast.error('One image failed to upload.');
+      console.error('Image upload error:', error);
+    } finally {
+      setUploadingCount((c) => c - toUpload.length);
+      onUploadingChange?.(false);
     }
 
-    setUploadingCount((c) => c - toUpload.length);
     if (uploaded.length) onChange([...value, ...uploaded]);
   }
 

@@ -8,7 +8,7 @@ const Feature = async () => {
 
 
     // Use checkProducts if available, otherwise fallback to static images
-    const productsToDisplay = checkProducts?.length>0 ? checkProducts : fallbackProducts;
+    const productsToDisplay = checkProducts?.length>0 ? checkProducts : [];
 
     return (
         <div className='mb-10 mt-10'>

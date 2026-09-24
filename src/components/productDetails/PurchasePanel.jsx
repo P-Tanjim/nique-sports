@@ -23,6 +23,7 @@ export default function PurchasePanel({ product, slug }) {
     fontEnabled: false,
     name: '',
     number: '',
+    font: '',
     patch: '',
   });
 
@@ -42,7 +43,7 @@ export default function PurchasePanel({ product, slug }) {
       originalPrice: product.discount ? product.beforePrice : undefined,
       image: product.imagesLink?.[0],
       customization: customization.fontEnabled
-        ? { name: customization.name, number: customization.number }
+        ? { name: customization.name, number: customization.number, font: customization.font || undefined }
         : undefined,
       patch: customization.patch || undefined,
     }),
@@ -83,6 +84,7 @@ export default function PurchasePanel({ product, slug }) {
       />
       <CustomizationOptions
         font={product.font}
+        fontImages={product.font ? product.fontsImg : []}
         patches={product.patch ? product.patchsImg : []}
         onChange={setCustomization}
       />
