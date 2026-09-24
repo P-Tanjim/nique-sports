@@ -2,16 +2,12 @@ import { formatPrice } from '@/lib/format';
 
 // Server Component — pure presentation, no interactivity, so it costs zero
 // client JS. Every field is read defensively: your schema's `discount` is
-// currently just a boolean, so the strikethrough price only appears once
-// there's an actual `originalPrice` on the document to compare against —
-// add that field whenever you're ready and this activates on its own,
-// nothing else here needs to change.
 export default function ProductInfo({ product }) {
-  const { title, desc, price, originalPrice, discount, team, seassion, stock } = product;
+  const { title, desc, price, beforePrice, discount, team, seassion, stock } = product;
 
-  const hasDiscount = Boolean(discount) && Number(originalPrice) > Number(price);
+  const hasDiscount = Boolean(discount) && Number(beforePrice) > Number(price);
   const discountPercent = hasDiscount
-    ? Math.round(((originalPrice - price) / originalPrice) * 100)
+    ? Math.round(((beforePrice - price) / beforePrice) * 100)
     : 0;
 
   const stockCount = Number(stock) || 0;
@@ -37,7 +33,7 @@ export default function ProductInfo({ product }) {
         {hasDiscount && (
           <>
             <span className="text-base text-text-muted line-through">
-              {formatPrice(originalPrice)}৳
+              {formatPrice(beforePrice)}৳
             </span>
             <span className="rounded-full bg-danger px-2 py-0.5 text-xs font-semibold text-white">
               -{discountPercent}%

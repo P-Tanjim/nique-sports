@@ -30,6 +30,8 @@ const initialState = {
   patch: false,
   font: false,
   featured: false,
+  discount: false,       // NEW
+  beforePrice: '',      // NEW
   imagesLink: [],
   patchsImg: [],
 };
@@ -48,6 +50,12 @@ export default function ProductForm({ categories }) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  // Calculate live discount percentage for UI preview
+  const liveDiscountPercent =
+    form.discount && Number(form.beforePrice) > Number(form.price) && Number(form.price) > 0
+      ? Math.round(((Number(form.beforePrice) - Number(form.price)) / Number(form.beforePrice)) * 100)
+      : 0;
+
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -56,10 +64,22 @@ export default function ProductForm({ categories }) {
       return;
     }
 
-    // NEW: Size validation
+    // Size validation
     if (form.size.length === 0) {
       toast.error('Please select at least one size.');
       return;
+    }
+
+    // Discount validation
+    if (form.discount) {
+      if (!form.beforePrice) {
+        toast.error('Please enter the before price for discount.');
+        return;
+      }
+      if (Number(form.beforePrice) <= Number(form.price)) {
+        toast.error('Before price must be greater than current price.');
+        return;
+      }
     }
 
     if (form.imagesLink.length === 0) {
@@ -75,9 +95,16 @@ export default function ProductForm({ categories }) {
     setSaving(true);
 
     try {
+      const priceNum = Number(form.price);
+      const beforePriceNum = form.discount ? Number(form.beforePrice) : 0;
+      const discountPercent = form.discount ? liveDiscountPercent : 0;
+
       const result = await createProduct({
         ...form,
-        price: Number(form.price),
+        price: priceNum,                             // current/discounted price
+        discount: form.discount,                     // boolean
+        beforePrice: beforePriceNum,                 // original price
+        discountPercent: discountPercent,           // auto calculated percent
         stock: Number(form.stock) || 0,
         patchsImg: form.patch ? form.patchsImg : [],
       });
@@ -102,7 +129,7 @@ export default function ProductForm({ categories }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* BASIC INFO: Added `relative z-30` so dropdown floats above lower sections */}
+      {/* BASIC INFO */}
       <section className="relative z-30 rounded-3xl border border-border bg-white/80 p-6 shadow-[0_1px_2px_rgba(32,36,38,0.04)] sm:p-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">
           Basic information
@@ -137,7 +164,7 @@ export default function ProductForm({ categories }) {
 
           <div>
             <label className="block text-xs font-medium uppercase tracking-wide text-text-muted">
-              Price (৳)
+              {form.discount ? 'Selling / Discounted Price (৳)' : 'Price (৳)'}
             </label>
             <input
               type="number"
@@ -203,7 +230,7 @@ export default function ProductForm({ categories }) {
         </div>
       </section>
 
-      {/* SIZES: Changed to `relative z-20` */}
+      {/* SIZES */}
       <section className="relative z-20 rounded-3xl border border-border bg-white/80 p-6 shadow-[0_1px_2px_rgba(32,36,38,0.04)] sm:p-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">
           Available sizes
@@ -213,8 +240,8 @@ export default function ProductForm({ categories }) {
         </div>
       </section>
 
-      {/* TOGGLES: Added `relative z-10` */}
-      <section className="relative z-10 divide-y divide-border rounded-3xl border border-border bg-white/80 px-6 shadow-[0_1px_2px_rgba(32,36,38,0.04)]   sm:px-8">
+      {/* TOGGLES */}
+      <section className="relative z-10 divide-y divide-border rounded-3xl border border-border bg-white/80 px-6 shadow-[0_1px_2px_rgba(32,36,38,0.04)] sm:px-8">
         <div className="py-4">
           <IOSSwitch
             label="Custom font"
@@ -239,6 +266,53 @@ export default function ProductForm({ categories }) {
             onChange={(v) => set('patch', v)}
           />
         </div>
+
+        {/* DISCOUNT TOGGLE & INPUT */}
+        <div className="py-4">
+          <IOSSwitch
+            label="Discount available"
+            description="Enable promotional pricing with a strike-through original price"
+            checked={form.discount}
+            onChange={(v) => set('discount', v)}
+          />
+
+          <AnimatePresence>
+            {form.discount && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+                className="overflow-hidden"
+              >
+                <div className="pt-4 grid gap-4 sm:grid-cols-2 items-center">
+                  <div>
+                    <label className="block text-xs font-medium uppercase tracking-wide text-text-muted">
+                      Before Price (৳)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.beforePrice}
+                      onChange={(e) => set('beforePrice', e.target.value)}
+                      placeholder="1450"
+                      className="mt-1.5 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition-colors focus:border-primary"
+                    />
+                  </div>
+
+                  {liveDiscountPercent > 0 && (
+                    <div className="sm:mt-5 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-xs font-medium text-emerald-700">
+                      <span>Calculated Discount:</span>
+                      <span className="rounded-lg bg-emerald-600 px-2 py-0.5 font-bold text-white">
+                        {liveDiscountPercent}% OFF
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </section>
 
       {/* IMAGES */}
@@ -250,7 +324,6 @@ export default function ProductForm({ categories }) {
           <ImageUploader label="Product image" value={form.imagesLink} onChange={(v) => set('imagesLink', v)} />
         </div>
 
-        {/* AnimatePresence handles the exit animation before removing the element from the DOM */}
         <AnimatePresence>
           {form.patch && (
             <motion.div
@@ -260,7 +333,6 @@ export default function ProductForm({ categories }) {
               transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
               className="overflow-hidden"
             >
-              {/* Note: Changed mt-6 to pt-6 here to prevent CSS margin-collapse layout jumps during animation */}
               <div className="pt-6">
                 <h3 className="text-xs font-medium uppercase tracking-wide text-text-muted">
                   Patch images

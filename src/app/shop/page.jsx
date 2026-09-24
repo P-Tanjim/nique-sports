@@ -7,7 +7,7 @@ import ProductGridSkeleton from '@/components/shop/ProductGridSkeleton';
 import MobileFilterDrawer from '@/components/shop/MobileFilterDrawer';
 import CategoryList from '@/components/shop/CategoryList';
 import PriceFilter from '@/components/shop/PriceFilter';
-import { getCategories, getPriceBounds } from '@/lib/products';
+import { getShopCategories, getShopPriceBounds } from '@/lib/api/products/products';
 
 export const metadata = {
   title: 'Shop | NIQUE SPORTS',
@@ -29,7 +29,7 @@ export default async function ShopPage({ searchParams }) {
 
   // Cheap and needed immediately by both the desktop sidebar and the mobile
   // drawer, so fetched eagerly rather than behind Suspense.
-  const [categories, priceBounds] = await Promise.all([getCategories(), getPriceBounds()]);
+  const [categories, priceBounds] = await Promise.all([getShopCategories(), getShopPriceBounds()]);
 
   // Re-keying the Suspense boundary on every filter/sort/page change forces
   // just this subtree to re-suspend on a client-side navigation, so the

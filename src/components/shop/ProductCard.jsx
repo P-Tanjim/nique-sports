@@ -19,7 +19,7 @@ export default function ProductCard({
   const [loaded, setLoaded] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
 
-  const {name, price, originalPrice, discountPercent, isNew, stamp, image, slug,} = product || {};
+  const { name, price, originalPrice, discountPercent, isNew, stamp, image, slug } = product || {};
 
   return (
     <>
@@ -61,10 +61,10 @@ export default function ProductCard({
 
         {/* PRODUCT IMAGE */}
         <div className="relative">
-          <Link href={`/product/${slug}`} className="block">
+          <Link href={`/shop/product/${slug}`} className="block">
             <div className="relative aspect-square overflow-hidden bg-white">
               <Image
-                src={ProductImage}
+                src={image}
                 alt={name || 'Product Image'}
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -122,7 +122,7 @@ export default function ProductCard({
 
         {/* PRODUCT INFORMATION */}
         <Link
-          href={`/product/${slug}`}
+          href={`/shop/product/${slug}`}
           className="block border-t border-border/60 bg-white px-4 py-3 transition-colors duration-300 group-hover:bg-surface"
         >
           <h3 className="line-clamp-2 text-sm font-medium leading-relaxed tracking-[-0.01em] text-text">

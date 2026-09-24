@@ -32,7 +32,7 @@ export default function PurchasePanel({ product, slug }) {
       slug,
       name: product.title,
       price: product.price,
-      originalPrice: product.discount ? product.originalPrice : undefined,
+      originalPrice: product.discount ? product.beforePrice : undefined,
       image: product.imagesLink?.[0],
     }),
     [product, slug]

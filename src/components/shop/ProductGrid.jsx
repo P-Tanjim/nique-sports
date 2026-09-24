@@ -8,8 +8,8 @@ import ShopPagination from './ShopPagination';
 export default async function ProductGrid({ category, minPrice, maxPrice, sort, perPage, page }) {
   const { items, totalPages, page: safePage } = await getProducts({
     category,
-    minPrice:0,
-    maxPrice:1000,
+    minPrice,
+    maxPrice,
     sort,
     perPage,
     page,
