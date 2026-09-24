@@ -6,6 +6,7 @@ import { Minus, Plus, ShoppingBasket, Zap } from 'lucide-react';
 import { addToCart } from '@/components/sideCart/SideCart';
 import SizeSelector from './SizeSelector';
 import SizeChartModal from './SizeChartModal';
+import CustomizationOptions from './CustomizationOptions';
 
 // Client Component — this is where all the "what is the person about to
 // buy" state lives: selected size, quantity, and the two purchase actions.
@@ -18,6 +19,12 @@ export default function PurchasePanel({ product, slug }) {
   const [quantity, setQuantity] = useState(1);
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [sizeError, setSizeError] = useState(false);
+  const [customization, setCustomization] = useState({
+    fontEnabled: false,
+    name: '',
+    number: '',
+    patch: '',
+  });
 
   const stock = Number(product.stock) || 0;
   const isOutOfStock = stock <= 0;
@@ -34,8 +41,12 @@ export default function PurchasePanel({ product, slug }) {
       price: product.price,
       originalPrice: product.discount ? product.beforePrice : undefined,
       image: product.imagesLink?.[0],
+      customization: customization.fontEnabled
+        ? { name: customization.name, number: customization.number }
+        : undefined,
+      patch: customization.patch || undefined,
     }),
-    [product, slug]
+    [customization, product, slug]
   );
 
   function handleSelectSize(size) {
@@ -69,6 +80,11 @@ export default function PurchasePanel({ product, slug }) {
         selectedSize={selectedSize}
         onSelect={handleSelectSize}
         onOpenSizeChart={() => setSizeChartOpen(true)}
+      />
+      <CustomizationOptions
+        font={product.font}
+        patches={product.patch ? product.patchsImg : []}
+        onChange={setCustomization}
       />
       {sizeError && (
         <p className="-mt-3 text-xs font-medium text-danger">Please select a size first.</p>

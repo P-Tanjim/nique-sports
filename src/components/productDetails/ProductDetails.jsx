@@ -2,8 +2,6 @@ import { notFound } from 'next/navigation';
 import { getProductById } from '@/lib/api/requests/products';
 import ProductGallery from './ProductGallery';
 import ProductInfo from './ProductInfo';
-import CustomizationInfo from './CustomizationInfo';
-import PatchGallery from './PatchGallery';
 import PurchasePanel from './PurchasePanel';
 
 // Async Server Component — the one piece of this page that actually awaits
@@ -24,9 +22,6 @@ export default async function ProductDetails({ id }) {
       <div className="mt-8 lg:mt-0">
         <ProductInfo product={product} />
         <PurchasePanel product={product} id={id} />
-        <CustomizationInfo font={product.font} patch={product.patch} />
-
-        {product.patch && <PatchGallery images={product.patchsImg} />}
       </div>
     </div>
   );

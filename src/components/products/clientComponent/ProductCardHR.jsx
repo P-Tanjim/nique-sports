@@ -76,20 +76,20 @@ const ProductCard = ({ product }) => {
         <>
             <Link href={`/shop/product/${product._id}`} className='w-full rounded-2xl'>
                 <div className='relative w-full h-full rounded-xl overflow-hidden group'>
-                    <div className='flex flex-col gap-1 absolute top-2 right-2 z-30'>
+                    <div className='flex flex-col gap-1 absolute top-2 right-2 z-30 pointer-events-none'>
                         <button
                             type="button"
-                            onClick={(e) => { e.stopPropagation(); open(); }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); open(); }}
                             title="Quick View"
-                            className='w-9 md:w-10 md:h-10 h-9 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
+                            className='w-9 pointer-events-auto md:w-10 md:h-10 h-9 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
                         >
                             <Scan size={14} />
                         </button>
                         <button
                             type="button"
                             title="Add to Cart"
-                            onClick={() => addToCart(product, 1, 'XL')}
-                            className='w-9 h-9 md:w-10 md:h-10 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(product, 1, 'XL'); }}
+                            className='w-9 pointer-events-auto h-9 md:w-10 md:h-10 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
                         >
                             <ShoppingBasket size={14} />
                         </button>
@@ -164,7 +164,10 @@ const ProductCard = ({ product }) => {
 
                             <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
                                 <button
-                                    onClick={close}
+                                    onClick={() => {
+                                        addToCart(product, 1, 'XL');
+                                        close();
+                                    }}
                                     className="w-full py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
                                 >
                                     <ShoppingBasket size={18} />

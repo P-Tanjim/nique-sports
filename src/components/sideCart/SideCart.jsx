@@ -74,12 +74,19 @@ function writeCart(items) {
  * notifies every mounted SideCart to update immediately.
  */
 export function addToCart(product, quantity = 1, size) {
+  const cartProduct = {
+    ...product,
+    id: product.id ?? product._id,
+    name: product.name ?? product.title,
+    image: product.image ?? product.imagesLink?.[0],
+    originalPrice: product.originalPrice ?? (product.discount ? product.beforePrice : undefined),
+  };
   const cart = readCart();
-  const key = cartKey({ ...product, size });
+  const key = cartKey({ ...cartProduct, size });
   const existing = cart.find((p) => cartKey(p) === key);
   const next = existing
     ? cart.map((p) => (cartKey(p) === key ? { ...p, quantity: p.quantity + quantity } : p))
-    : [...cart, { ...product, size, quantity }];
+    : [...cart, { ...cartProduct, size, quantity }];
 
   writeCart(next);
   if (typeof window !== 'undefined') {

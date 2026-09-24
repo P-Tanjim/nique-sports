@@ -51,6 +51,18 @@ body {
   overflow-x: clip;
 }
 
+@keyframes form-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+.animate-form-shake {
+  animation: form-shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
 .fancyText {
   font-family: var(--font-dancing-script), cursive;
 }

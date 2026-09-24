@@ -40,6 +40,7 @@ export default function ProductForm({ categories }) {
   const router = useRouter();
   const [form, setForm] = useState(initialState);
   const [saving, setSaving] = useState(false);
+  const [shake, setShake] = useState(false);
 
   const categoryOptions =
     categories?.length > 0
@@ -48,6 +49,12 @@ export default function ProductForm({ categories }) {
 
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function showValidationError(message) {
+    toast.error(message);
+    setShake(false);
+    requestAnimationFrame(() => setShake(true));
   }
 
   // Calculate live discount percentage for UI preview
@@ -60,35 +67,35 @@ export default function ProductForm({ categories }) {
     e.preventDefault();
 
     if (!form.title.trim() || !form.price || !form.category) {
-      toast.error('Title, price and category are required.');
+      showValidationError('Title, price and category are required.');
       return;
     }
 
     // Size validation
     if (form.size.length === 0) {
-      toast.error('Please select at least one size.');
+      showValidationError('Please select at least one size.');
       return;
     }
 
     // Discount validation
     if (form.discount) {
       if (!form.beforePrice) {
-        toast.error('Please enter the before price for discount.');
+        showValidationError('Please enter the before price for discount.');
         return;
       }
       if (Number(form.beforePrice) <= Number(form.price)) {
-        toast.error('Before price must be greater than current price.');
+        showValidationError('Before price must be greater than current price.');
         return;
       }
     }
 
     if (form.imagesLink.length === 0) {
-      toast.error('Add at least one product image.');
+      showValidationError('Add at least one product image.');
       return;
     }
 
     if (form.patch && form.patchsImg.length === 0) {
-      toast.error('Please add at least one patch image, or turn off "Patch available".');
+      showValidationError('Please add at least one patch image, or turn off "Patch available".');
       return;
     }
 
@@ -128,7 +135,7 @@ export default function ProductForm({ categories }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className={`space-y-6 ${shake ? 'animate-form-shake' : ''}`} onAnimationEnd={() => setShake(false)}>
       {/* BASIC INFO */}
       <section className="relative z-30 rounded-3xl border border-border bg-white/80 p-6 shadow-[0_1px_2px_rgba(32,36,38,0.04)] sm:p-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">
