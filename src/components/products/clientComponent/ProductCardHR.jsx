@@ -1,5 +1,6 @@
 'use client'
 import Image from 'next/image'
+import Link from 'next/link'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Scan, ShoppingBasket, X } from 'lucide-react'
 import { addToCart } from '@/components/sideCart/SideCart';
@@ -73,7 +74,7 @@ const ProductCard = ({ product }) => {
 
     return (
         <>
-            <div className='w-full rounded-2xl'>
+            <Link href={`/shop/product/${product._id}`} className='w-full rounded-2xl'>
                 <div className='relative w-full h-full rounded-xl overflow-hidden group'>
                     <div className='flex flex-col gap-1 absolute top-2 right-2 z-30'>
                         <button
@@ -105,7 +106,7 @@ const ProductCard = ({ product }) => {
                         <p className='text-text text-xs min-[450px]:text-sm sm:text-base font-bold'>{product.price}৳</p>
                     </div>
                 </div>
-            </div>
+            </Link>
 
             {mounted && (
                 <div
