@@ -170,7 +170,7 @@ export default function SideCart({ open, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-label="Shopping cart"
-        className={`fixed inset-y-0 right-0 z-9999 flex h-dvh w-full flex-col bg-white shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.207,0.473,0.504,0.935)] sm:w-105 ${
+        className={`fixed inset-y-0 right-0 z-9999 flex h-dvh w-full flex-col bg-white transition-transform duration-500 ease-[cubic-bezier(0.207,0.473,0.504,0.935)] sm:w-105 ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >

@@ -15,7 +15,7 @@ const Feature = async () => {
             <h1 className={`text-center text-4xl md:text-6xl lg:text-7xl text-primary ${dancingScript.className}`}>
                 Featured Jersey
             </h1>
-            <div className='px-4 md:px-20 min-h-80 flex items-center overflow-clip'>
+            <div className='px-4 md:px-20 min-h-80 flex items-center overflow-x-clip overflow-y-visible'>
                 <FeatureCard cards={productsToDisplay} />
             </div>
         </div>

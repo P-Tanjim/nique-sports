@@ -36,7 +36,7 @@ const NavLink = ({ heading, href, setIsActive, index }) => (
 
 const SideNavbar = ({ isActive, setIsActive, navItems }) => (
 	<div
-		className={`fixed right-0 top-0 z-70 h-dvh w-screen max-w-screen-sm bg-white shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.207,0.473,0.504,0.935)] ${isActive ? "translate-x-0" : "translate-x-full"
+		className={`fixed right-0 top-0 z-70 h-dvh w-screen max-w-screen-sm bg-white transition-transform duration-500 ease-[cubic-bezier(0.207,0.473,0.504,0.935)] ${isActive ? "translate-x-0" : "translate-x-full"
 			}`}
 	>
 		<div className="h-full pt-11 flex flex-col justify-between">

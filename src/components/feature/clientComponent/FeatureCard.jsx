@@ -136,7 +136,7 @@ export default function FeatureCard({ cards = [] }) {
     if (!container || !totalCards) return;
 
     lastWidthRef.current = window.innerWidth;
-    mults.current = getMultipliers(window.ifnnerWidth);
+    mults.current = getMultipliers(window.innerWidth);
     const cardElements = Array.from(container.querySelectorAll(".fan-card"));
 
     const visibleMap = new Map();

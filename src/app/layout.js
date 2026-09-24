@@ -1,6 +1,7 @@
 import Navbar from "@/components/navbar/Navbar";
 import "./globals.css";
 import Footer from "@/components/footer/Footer";
+import CustomScrollbar from "@/components/layout/CustomScrollbar";
 import { Toaster } from "react-hot-toast";
 
 export const metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({ children }) {
         {children}
         <Footer></Footer>
         <Toaster />
+        <CustomScrollbar />
       </body>
     </html>
   );
