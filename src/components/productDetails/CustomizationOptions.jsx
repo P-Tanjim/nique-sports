@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { useState } from 'react';
 import IOSSwitch from '@/components/dashboard/products/IOSSwitch';
+import { formatPrice } from '@/lib/format';
 
 const IOS_EASE = [0.32, 0.72, 0, 1];
 
@@ -11,7 +12,7 @@ export default function CustomizationOptions({ font = false, fontImages = [], pa
   const [fontEnabled, setFontEnabled] = useState(false);
   const [name, setName] = useState('');
   const [number, setNumber] = useState('');
-  const [selectedFont, setSelectedFont] = useState('');
+  const [selectedFont, setSelectedFont] = useState(null);
   const [selectedPatch, setSelectedPatch] = useState('');
 
   function update(next) {
@@ -27,7 +28,8 @@ export default function CustomizationOptions({ font = false, fontImages = [], pa
 
   function toggleFont(value) {
     setFontEnabled(value);
-    update({ fontEnabled: value });
+    if (!value) setSelectedFont(null);
+    update({ fontEnabled: value, font: value ? selectedFont : null });
   }
 
   function changeName(value) {
@@ -41,14 +43,17 @@ export default function CustomizationOptions({ font = false, fontImages = [], pa
   }
 
   function chooseFont(value) {
-    const nextValue = selectedFont === value ? '' : value;
+    const nextValue = selectedFont?.image === value?.image ? null : value;
+    const nextEnabled = Boolean(nextValue);
     setSelectedFont(nextValue);
-    update({ font: nextValue });
+    setFontEnabled(nextEnabled);
+    update({ font: nextValue, fontEnabled: nextEnabled });
   }
 
   function choosePatch(value) {
-    setSelectedPatch(value);
-    update({ patch: value });
+    const nextValue = selectedPatch?.image === value?.image ? null : value;
+    setSelectedPatch(nextValue);
+    update({ patch: nextValue });
   }
 
   if (!font && !patches.length) return null;
@@ -69,30 +74,39 @@ export default function CustomizationOptions({ font = false, fontImages = [], pa
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Font styles">
-                {fontImages.map((src, index) => (
-                  <button
-                    key={src + index}
-                    type="button"
-                    role="radio"
-                    aria-checked={selectedFont === src}
-                    aria-label={`Choose font reference ${index + 1}`}
-                    onClick={() => chooseFont(src)}
-                    className={`group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-xl border-2 bg-white transition-colors ${
-                      selectedFont === src
-                        ? 'border-primary'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <Image
-                      src={src}
-                      alt={`Font reference ${index + 1}`}
-                      fill
-                      sizes="(max-width: 640px) 50vw, 120px"
-                      className={`object-contain p-2 transition-transform ${selectedFont === src ? 'scale-[0.9]' : 'group-hover:scale-[0.96]'}`}
-                    />
-                    <span className={`absolute right-1.5 top-1.5 h-4 w-4 rounded-full border-2 border-white transition-colors ${selectedFont === src ? 'bg-primary' : 'bg-black/10'}`} />
-                  </button>
-                ))}
+                {fontImages.map((entry, index) => {
+                  const option = typeof entry === 'string' ? { image: entry, price: 0 } : entry;
+                  const src = option.image;
+                  const selected = selectedFont?.image === src;
+                  return (
+                    <div key={src + index} className="min-w-0">
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        aria-label={`Choose font reference ${index + 1}`}
+                        onClick={() => chooseFont(option)}
+                        className={`group relative block w-full aspect-[4/3] cursor-pointer overflow-hidden rounded-xl border-2 bg-white transition-colors ${
+                          selected
+                            ? 'border-primary'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <Image
+                          src={src}
+                          alt={`Font reference ${index + 1}`}
+                          fill
+                          sizes="(max-width: 640px) 50vw, 120px"
+                          className={`object-contain p-2 transition-transform ${selected ? 'scale-[0.9]' : 'group-hover:scale-[0.96]'}`}
+                        />
+                        <span className={`absolute right-1.5 top-1.5 h-4 w-4 rounded-full border-2 border-white transition-colors ${selected ? 'bg-primary' : 'bg-black/10'}`} />
+                      </button>
+                      <p className="mt-1 text-center text-xs font-semibold text-text">
+                        {formatPrice(Number(option.price) || 0)}৳
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -148,24 +162,30 @@ export default function CustomizationOptions({ font = false, fontImages = [], pa
             <span className="text-xs text-text-muted">Optional</span>
           </div>
           <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
-            {patches.map((src, index) => {
-              const selected = selectedPatch === src;
+            {patches.map((entry, index) => {
+              const option = typeof entry === 'string' ? { image: entry, price: 0 } : entry;
+              const src = option.image;
+              const selected = selectedPatch?.image === src;
               return (
-                <button
-                  key={src + index}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => choosePatch(selected ? '' : src)}
-                  className={`relative bg-primary-light aspect-square cursor-pointer overflow-hidden rounded-2xl p-1.5 transition-all duration-300 ${
+                <div key={src + index} className="min-w-0">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => choosePatch(option)}
+                    className={`relative block w-full bg-primary-light aspect-square cursor-pointer overflow-hidden rounded-2xl p-1.5 transition-all duration-300 ${
                     selected
                       ? ' '
                       : 'border-border hover:border-primary/50'
                   }`}
-                >
-                  <Image src={src} alt={`Patch option ${index + 1}`} fill sizes="80px" className={`rounded-2xl object-cover transition-all  ${selected ? 'scale-[0.89]' : 'scale-100'}`} />
-                  <span className={`absolute right-1.5 top-1.5 h-4 w-4 rounded-full border-2 border-white transition-colors ${selected ? 'bg-primary' : 'bg-black/10'}`} />
-                </button>
+                  >
+                    <Image src={src} alt={`Patch option ${index + 1}`} fill sizes="80px" className={`rounded-2xl object-cover transition-all ${selected ? 'scale-[0.89]' : 'scale-100'}`} />
+                    <span className={`absolute right-1.5 top-1.5 h-4 w-4 rounded-full border-2 border-white transition-colors ${selected ? 'bg-primary' : 'bg-black/10'}`} />
+                  </button>
+                  <p className="mt-1 text-center text-xs font-semibold text-text">
+                    {formatPrice(Number(option.price) || 0)}৳
+                  </p>
+                </div>
               );
             })}
           </div>

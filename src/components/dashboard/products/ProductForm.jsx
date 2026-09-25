@@ -373,6 +373,7 @@ export default function ProductForm({ categories }) {
                     onChange={(v) => set('patchsImg', v)}
                     onUploadingChange={handleUploadingChange}
                     max={4}
+                    withPrice
                   />
                 </div>
               </div>
@@ -400,6 +401,7 @@ export default function ProductForm({ categories }) {
                     onChange={(v) => set('fontsImg', v)}
                     onUploadingChange={handleUploadingChange}
                     max={4}
+                    withPrice
                   />
                 </div>
               </div>

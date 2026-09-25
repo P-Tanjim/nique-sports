@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Minus, Plus, ShoppingBasket, Zap } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { addToCart } from '@/components/sideCart/SideCart';
+import { formatPrice } from '@/lib/format';
 import SizeSelector from './SizeSelector';
 import SizeChartModal from './SizeChartModal';
 import CustomizationOptions from './CustomizationOptions';
@@ -30,6 +32,17 @@ export default function PurchasePanel({ product, slug }) {
   const stock = Number(product.stock) || 0;
   const isOutOfStock = stock <= 0;
   const requiresSize = Array.isArray(product.size) && product.size.length > 0;
+  const basePrice = Number(product.price) || 0;
+  const fontPrice = customization.fontEnabled ? Number(customization.font?.price) || 0 : 0;
+  const patchPrice = Number(customization.patch?.price) || 0;
+  const selectedOptionsPrice = fontPrice + patchPrice;
+  const totalPrice = basePrice + selectedOptionsPrice;
+  const hasSelectedOptions = Boolean(
+    (customization.fontEnabled && customization.font) || customization.patch
+  );
+  const originalPrice = product.discount && Number(product.beforePrice) > basePrice
+    ? Number(product.beforePrice) + selectedOptionsPrice
+    : null;
 
   // The cart (SideCart.jsx) expects `name` / `image`; your document has
   // `title` / `imagesLink[]` — mapped here once rather than changing either
@@ -39,15 +52,20 @@ export default function PurchasePanel({ product, slug }) {
       id: product._id ?? slug,
       slug,
       name: product.title,
-      price: product.price,
-      originalPrice: product.discount ? product.beforePrice : undefined,
+      basePrice,
+      price: totalPrice,
+      originalPrice: originalPrice ?? undefined,
       image: product.imagesLink?.[0],
       customization: customization.fontEnabled
-        ? { name: customization.name, number: customization.number, font: customization.font || undefined }
+        ? {
+            name: customization.name,
+            number: customization.number,
+            font: customization.font || undefined,
+          }
         : undefined,
       patch: customization.patch || undefined,
     }),
-    [customization, product, slug]
+    [basePrice, customization, originalPrice, product, slug, totalPrice]
   );
 
   function handleSelectSize(size) {
@@ -76,6 +94,47 @@ export default function PurchasePanel({ product, slug }) {
 
   return (
     <div className="mt-6 space-y-5">
+      <motion.div
+        layout
+        transition={{ layout: { type: 'spring', stiffness: 520, damping: 42 } }}
+      >
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-2xl font-bold text-text sm:text-3xl">
+            {formatPrice(totalPrice)}৳
+          </span>
+          {originalPrice && (
+            <>
+              <span className="text-base text-text-muted line-through">
+                {formatPrice(originalPrice)}৳
+              </span>
+              <span className="rounded-full bg-danger px-2 py-0.5 text-xs font-semibold text-white">
+                -{Math.round(((Number(product.beforePrice) - basePrice) / Number(product.beforePrice)) * 100)}%
+              </span>
+            </>
+          )}
+        </div>
+        <AnimatePresence initial={false}>
+          {hasSelectedOptions && (
+            <motion.p
+              initial={{ height: 0, opacity: 0, y: -4 }}
+              animate={{ height: 'auto', opacity: 1, y: 0 }}
+              exit={{ height: 0, opacity: 0, y: -4 }}
+              transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
+              className="overflow-hidden pt-1 text-xs font-medium text-text-muted"
+            >
+              <span className="inline-flex flex-wrap items-center gap-x-1.5">
+                <span>Product {formatPrice(basePrice)}৳</span>
+                {customization.fontEnabled && customization.font && (
+                  <span>+ Font {formatPrice(fontPrice)}৳</span>
+                )}
+                {customization.patch && (
+                  <span>+ Patch {formatPrice(patchPrice)}৳</span>
+                )}
+              </span>
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </motion.div>
       <SizeSelector
         sizes={product.size}
         selectedSize={selectedSize}

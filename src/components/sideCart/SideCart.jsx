@@ -42,7 +42,15 @@ export const CART_STORAGE_KEY = 'nique-sports:cart';
 // need this instead — that's what was missing before.
 export const CART_UPDATED_EVENT = 'nique-sports:cart-updated';
 
-const cartKey = (item) => `${item.id ?? item._id}__${item.size ?? 'default'}`;
+const optionImage = (option) => (typeof option === 'string' ? option : option?.image ?? '');
+const cartKey = (item) => JSON.stringify([
+  item.id ?? item._id,
+  item.size ?? 'default',
+  optionImage(item.customization?.font),
+  optionImage(item.patch),
+  item.customization?.name ?? '',
+  item.customization?.number ?? '',
+]);
 
 export function readCart() {
   if (typeof window === 'undefined') return [];
@@ -280,20 +288,19 @@ export default function SideCart({ open, onClose }) {
               <Link
                 href="/checkout"
                 onClick={onClose}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-white shadow-[0_10px_25px_-8px_rgba(48,136,152,0.5)] transition-colors hover:bg-primary-dark"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark/20"
               >
                 Checkout
                 <ArrowRight size={16} />
               </Link>
             </div>
 
-            <Link
-              href="/shop"
+            <p
               onClick={onClose}
               className="mt-3 flex w-full items-center justify-center text-sm font-medium text-text-muted transition-colors hover:text-primary"
             >
               Continue Shopping
-            </Link>
+            </p>
           </div>
         )}
       </aside>

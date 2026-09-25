@@ -118,6 +118,13 @@ export default function SideCartProducts({
 
   const hasDiscount =
     item.originalPrice && item.originalPrice > item.price;
+  const selectedFont = item.customization?.font;
+  const fontImage = typeof selectedFont === 'string' ? selectedFont : selectedFont?.image;
+  const fontPrice = Number(selectedFont?.price) || 0;
+  const selectedPatch = item.patch;
+  const patchImage = typeof selectedPatch === 'string' ? selectedPatch : selectedPatch?.image;
+  const patchPrice = Number(selectedPatch?.price) || 0;
+  const basePrice = Number(item.basePrice ?? item.price) || 0;
 
   const discountPercentage = hasDiscount
     ? Math.round(
@@ -280,10 +287,20 @@ export default function SideCartProducts({
                   {item.name}
                 </h3>
 
-                {item.size && (
-                  <p className="mt-1 text-[11px] font-medium text-text-muted">
-                    Size: <span className="text-text">{item.size}</span>
-                  </p>
+                {(item.size || fontImage || patchImage) && (
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-text-muted">
+                    {item.size && <span>Size: <span className="text-text">{item.size}</span></span>}
+                    {fontImage && (
+                      <span title="Selected font" aria-label="Selected font" className="relative h-6 w-6 overflow-hidden rounded border border-border bg-white">
+                        <Image src={fontImage} alt="Selected font" fill sizes="24px" unoptimized className="object-contain p-0.5" />
+                      </span>
+                    )}
+                    {patchImage && (
+                      <span title="Selected patch" aria-label="Selected patch" className="relative h-6 w-6 overflow-hidden rounded border border-border bg-white">
+                        <Image src={patchImage} alt="Selected patch" fill sizes="24px" unoptimized className="object-contain p-0.5" />
+                      </span>
+                    )}
+                  </div>
                 )}
 
                 <div className="mt-1.5 flex items-center gap-2">
@@ -296,6 +313,13 @@ export default function SideCartProducts({
                     </span>
                   )}
                 </div>
+                {(fontPrice > 0 || patchPrice > 0) && (
+                  <p className="mt-0.5 text-[10px] leading-tight text-text-muted">
+                    Base {formatPrice(basePrice)}৳
+                    {fontPrice > 0 && ` + Font ${formatPrice(fontPrice)}৳`}
+                    {patchPrice > 0 && ` + Patch ${formatPrice(patchPrice)}৳`}
+                  </p>
+                )}
 
                 {/* QUANTITY + LINE TOTAL — both always visible, mobile included */}
                 <div className="mt-2.5 flex items-center justify-between gap-2">
