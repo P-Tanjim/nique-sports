@@ -35,7 +35,22 @@ export async function uploadToCloudinary(formData) {
     });
 
     if (result && result.secure_url) {
-      return { success: true, url: result.secure_url };
+      const shouldWatermark = formData.get("watermark") === "true";
+      const url = shouldWatermark
+        ? cloudinary.url(result.public_id, {
+            secure: true,
+            version: result.version,
+            transformation: [{
+              overlay: { public_id: process.env.CLOUDINARY_WATERMARK_PUBLIC_ID },
+              width: 150,
+              opacity: 100,
+              gravity: "south",
+              x: 0,
+              y: 100,
+            }],
+          })
+        : result.secure_url;
+      return { success: true, url };
     } else {
       return { success: false, error: "Upload failed" };
     }
@@ -51,18 +66,15 @@ export async function deleteFromCloudinary(imageUrl) {
       return { success: false, error: "Invalid URL" };
     }
 
-    // 1. Split the URL to get everything after "/upload/"
-    const urlParts = imageUrl.split('/upload/');
-    if (urlParts.length < 2) {
+    const uploadPath = new URL(imageUrl).pathname.split('/upload/')[1];
+    if (!uploadPath) {
       return { success: false, error: "Could not parse the image URL to delete" };
     }
 
-    let publicId = urlParts[1];
-
-    // 2. Remove the version string (e.g., v1790201086/) if it exists
-    publicId = publicId.replace(/^v\d+\//, '');
-
-    // 3. Remove the file extension (.jpg, .png, etc.)
+    const pathParts = uploadPath.split('/');
+    const versionIndex = pathParts.findIndex((part) => /^v\d+$/.test(part));
+    const publicIdParts = versionIndex >= 0 ? pathParts.slice(versionIndex + 1) : pathParts;
+    let publicId = decodeURIComponent(publicIdParts.join('/'));
     const extensionIndex = publicId.lastIndexOf('.');
     if (extensionIndex !== -1) {
       publicId = publicId.substring(0, extensionIndex);

@@ -26,7 +26,7 @@ const PRICED_IMAGE_MODAL_KEYFRAMES = `
   }
 `;
 
-export default function ImageUploader({ label, value = [], onChange, onUploadingChange, max = 10, withPrice = false }) {
+export default function ImageUploader({ label, value = [], onChange, onUploadingChange, max = 10, withPrice = false, watermark = false }) {
   const inputRef = useRef(null);
   const [uploadingCount, setUploadingCount] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
@@ -88,6 +88,7 @@ export default function ImageUploader({ label, value = [], onChange, onUploading
       try {
         const data = new FormData();
         data.append('image', file);
+        if (watermark) data.append('watermark', 'true');
         const result = await uploadToCloudinary(data);
         if (!result.success) {
           toast.error(result.error || 'Image upload failed.');
@@ -130,6 +131,7 @@ export default function ImageUploader({ label, value = [], onChange, onUploading
       for (const file of toUpload) {
         const data = new FormData();
         data.append('image', file);
+        if (watermark) data.append('watermark', 'true');
         const result = await uploadToCloudinary(data);
         if (result.success) {
           uploaded.push(result.url);

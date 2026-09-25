@@ -350,6 +350,7 @@ export default function ProductForm({ categories }) {
             value={form.imagesLink}
             onChange={(v) => set('imagesLink', v)}
             onUploadingChange={handleUploadingChange}
+            watermark
           />
         </div>
 
