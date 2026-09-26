@@ -20,7 +20,7 @@ export async function uploadToCloudinary(formData) {
     // 10 MB size limit
     const MAX_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      return { success: false, error: "Image upload size limit is 8 MB" };
+      return { success: false, error: "Image upload size limit is 10 MB" };
     }
 
     // Convert file object to a Data URI string for Cloudinary

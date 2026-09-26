@@ -73,9 +73,9 @@ function getSlotConfig(visibleSlots, slot) {
 // closest a single curve can get to a lightly-damped spring, with no JS
 // tween engine required at runtime.
 const EASE_ELASTIC = "cubic-bezier(0.34, 1.56, 0.64, 1)";
-const EASE_HOVER    = "cubic-bezier(0.34, 1.7, 0.64, 1)";
-const EASE_OUT       = "cubic-bezier(0.25, 0.46, 0.45, 0.94)"; // ~ GSAP power2.out
-const EASE_IN        = "cubic-bezier(0.55, 0.06, 0.68, 0.19)"; // ~ GSAP power2.in
+const EASE_HOVER = "cubic-bezier(0.34, 1.7, 0.64, 1)";
+const EASE_OUT = "cubic-bezier(0.25, 0.46, 0.45, 0.94)"; // ~ GSAP power2.out
+const EASE_IN = "cubic-bezier(0.55, 0.06, 0.68, 0.19)"; // ~ GSAP power2.in
 
 const ARROW_CLASSES = "relative flex items-center justify-center rounded-full shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,1),inset_0_-8px_8px_-8px_rgba(255,255,255,1)] backdrop-blur-sm text-accent cursor-pointer shrink-0 z-30 outline-none hover:text-primary/70 active:opacity-70 transition-colors duration-300 before:content-[''] ";
 
@@ -161,8 +161,8 @@ export default function FeatureCard({ cards = [] }) {
     setDesiredVisible(getDesiredVisibleSlots(window.innerWidth));
   }, []);
 
-  const needsPagination = totalCards > desiredVisible;
-  const visibleSlots = needsPagination ? desiredVisible : totalCards;
+  const needsPagination = totalCards > 1;
+  const visibleSlots = needsPagination ? Math.min(totalCards - 1, desiredVisible) : totalCards;
   const half = Math.floor(visibleSlots / 2);
 
   const [centerIndex, setCenterIndex] = useState(needsPagination ? half : totalCards >> 1);
@@ -203,11 +203,12 @@ export default function FeatureCard({ cards = [] }) {
     mults.current = getMultipliers(window.innerWidth);
     const cardElements = Array.from(container.querySelectorAll(".fan-card"));
 
+    // Always build the map through the rotating window (even a "fits already"
+    // set gets one card held back above), so cycling always has a genuinely
+    // hidden neighbor sliding in/out — never a card teleporting across the fan.
     const visibleMap = new Map();
-    if (!needsPagination) cards.forEach((_, i) => visibleMap.set(i, i));
-    else
-      for (let slot = 0; slot < visibleSlots; slot++)
-        visibleMap.set(((centerIndex + slot - half) % totalCards + totalCards) % totalCards, slot);
+    for (let slot = 0; slot < visibleSlots; slot++)
+      visibleMap.set(((centerIndex + slot - half) % totalCards + totalCards) % totalCards, slot);
 
     const previouslyVisible = prevVisible.current;
     const direction = directionRef.current;
@@ -323,9 +324,9 @@ export default function FeatureCard({ cards = [] }) {
             const norm = (slot - centerSlot) / (centerSlot || 1);
             const push = 8 * (1 - Math.abs(norm)) * (1 + 0.2 * Math.max(0, 3 - dist));
             if (slot < hoveredSlot) { tx -= push * currM; tr -= 3 / (dist + 1); }
-            else                    { tx += push * currM; tr += 3 / (dist + 1); }
+            else { tx += push * currM; tr += 3 / (dist + 1); }
             if ((slot === visibleEntries.length - 1 && hoveredSlot < centerSlot) ||
-                (slot === 0 && hoveredSlot > centerSlot)) ty -= currH;
+              (slot === 0 && hoveredSlot > centerSlot)) ty -= currH;
           }
         }
         el.style.zIndex = base.zIndex;
