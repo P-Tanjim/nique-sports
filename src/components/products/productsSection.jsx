@@ -5,6 +5,7 @@ import ProductCardVR from './clientComponent/ProductCardVR';
 import { Button } from '@heroui/react';
 import { ArrowRight } from 'lucide-react';
 import { getProducts } from '@/lib/api/products/products';
+import Link from 'next/link';
 
 const ProductsSection = async () => {
     const products = await getProducts(10);
@@ -25,7 +26,7 @@ const ProductsSection = async () => {
                 ))}
             </div>
 
-            <Button variant='ghost' className='mt-6 mx-auto flex items-center justify-center gap-2 bg-primary text-white'>See More <ArrowRight size={20} /></Button>
+            <Link href='/shop'><Button variant='ghost' className='mt-6 mx-auto flex items-center justify-center gap-2 bg-primary text-white'>See More <ArrowRight size={20} /></Button></Link>
         </div>
     )
 }

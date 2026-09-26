@@ -21,19 +21,19 @@ const shopItems = [
   },
   {
     name: 'BD Premium',
-    href: '/bd-premium',
+    href: '/shop?category=bd-premium',
   },
   {
     name: 'Manufactured Retro',
-    href: '/manufactured-retro',
+    href: '/shop?category=manufactured-retro',
   },
   {
     name: 'Player Edition Replica',
-    href: '/player-edition-replica',
+    href: '/shop?category=player-edition-replica',
   },
   {
     name: 'Player Edition',
-    href: '/player-edition',
+    href: '/shop?category=player-edition',
   },
 ]
 

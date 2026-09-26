@@ -2,7 +2,6 @@
 
 import { useId } from "react";
 import { Switch } from "@heroui/react";
-import { Check, X } from "lucide-react";
 
 export default function IOSSwitch({ checked, onChange, label, description }) {
   const switchId = useId();
@@ -35,11 +34,6 @@ export default function IOSSwitch({ checked, onChange, label, description }) {
             <Switch.Control className={isSelected ? "bg-green-500" : ""}>
               <Switch.Thumb>
                 <Switch.Icon>
-                  {isSelected ? (
-                    <Check className="size-3 text-gray-500" />
-                  ) : (
-                    <X className="size-3 text-gray-500" />
-                  )}
                 </Switch.Icon>
               </Switch.Thumb>
             </Switch.Control>

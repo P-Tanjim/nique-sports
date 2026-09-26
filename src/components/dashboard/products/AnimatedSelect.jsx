@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, ChevronDown } from 'lucide-react';
 
+const menuVariants = {
+  closed: { opacity: 0, scale: 0.88, y: -8 },
+  open: { opacity: 1, scale: 1, y: 0 },
+};
+
 export default function AnimatedSelect({
   id = 'select',
   label,
@@ -11,6 +16,9 @@ export default function AnimatedSelect({
   value,
   onChange,
   placeholder = 'Select…',
+  className = '',
+  listClassName = 'max-h-64 overflow-auto',
+  textColor = 'text-primary-dark',
 }) {
   const [open, setOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -19,6 +27,8 @@ export default function AnimatedSelect({
   const listRef = useRef(null); // 1. Added ref to track the menu's boundaries
 
   const current = options.find((o) => o.value === value);
+  const selectedIndex = options.findIndex((o) => o.value === value);
+  const indicatorIndex = hoveredIndex ?? (selectedIndex >= 0 ? selectedIndex : open ? 0 : -1);
 
   useEffect(() => {
     function handleClick(e) {
@@ -76,7 +86,7 @@ export default function AnimatedSelect({
   };
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className={`relative ${className}`}>
       {label && (
         <label className="block text-xs font-medium uppercase tracking-wide text-text-muted">
           {label}
@@ -86,7 +96,15 @@ export default function AnimatedSelect({
       {/* Trigger Button */}
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (open) {
+            setOpen(false);
+            setHoveredIndex(null);
+          } else {
+            setHoveredIndex(selectedIndex >= 0 ? selectedIndex : 0);
+            setOpen(true);
+          }
+        }}
         aria-haspopup="listbox"
         aria-expanded={open}
         className="mt-1.5 flex w-full cursor-pointer items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3 text-left text-sm text-text outline-none transition-colors focus:border-primary"
@@ -125,7 +143,7 @@ export default function AnimatedSelect({
               }}
               className="group/item relative flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left text-sm font-medium text-primary-dark"
             >
-              {hoveredIndex === index && (
+              {indicatorIndex === index && (
                 <motion.div
                   layoutId={`${id}-pill`}
                   className="absolute inset-0 rounded-2xl border border-white/20 bg-white/15 shadow-inner"
@@ -133,12 +151,12 @@ export default function AnimatedSelect({
                 />
               )}
 
-              <span className="relative z-10 transition-transform duration-200 group-hover/item:translate-x-1">
+              <span className={`relative z-10 ${textColor} transition-transform duration-200 group-hover/item:translate-x-1`}>
                 {option.label}
               </span>
 
               {option.value === value && (
-                <Check size={16} className="relative z-10 text-primary-dark shrink-0" />
+                <Check size={16} className={`relative z-10 ${textColor} shrink-0`} />
               )}
             </button>
           </li>
