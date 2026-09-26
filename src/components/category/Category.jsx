@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import React from 'react'
-import catImg from '../../../public/heroImg/hero.jpg'
+import catImg from '../../../public/categoryImg/catImg.webp'
 
 const Category = () => {
   return (

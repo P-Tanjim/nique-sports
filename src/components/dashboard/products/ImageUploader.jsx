@@ -233,7 +233,7 @@ export default function ImageUploader({ label, value = [], onChange, onUploading
                   type="button"
                   onClick={() => removeAt(i)}
                   aria-label="Remove image"
-                  className="cursor-pointer absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100"
+                  className="absolute inset-0 flex h-full w-full cursor-pointer items-center justify-center rounded-2xl text-white opacity-0 transition-opacity sm:inset-auto sm:right-1 sm:top-1 sm:h-5 sm:w-5 sm:rounded-full sm:bg-black/60 sm:backdrop-blur-sm sm:group-hover:opacity-100"
                 >
                   <X size={11} />
                 </button>
