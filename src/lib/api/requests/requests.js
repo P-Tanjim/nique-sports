@@ -42,11 +42,11 @@ export async function uploadToCloudinary(formData) {
             version: result.version,
             transformation: [{
               overlay: { public_id: process.env.CLOUDINARY_WATERMARK_PUBLIC_ID },
-              width: 150,
+              width: 250,
               opacity: 50,
               gravity: "center",
               x: 0,
-              y: 100,
+              y: 200,
             }],
           })
         : result.secure_url;
