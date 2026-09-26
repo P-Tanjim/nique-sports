@@ -8,7 +8,6 @@ import Link from "next/link";
 // lever for mobile perf — fewer mounted <Image>/transition targets, not
 // just smaller spacing.
 function getDesiredVisibleSlots(width) {
-  if (width < 480) return 3;
   if (width < 768) return 5;
   return 7;
 }
