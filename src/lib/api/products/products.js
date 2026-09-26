@@ -13,6 +13,11 @@ export async function createProduct(product) {
   return result;
 }
 
+export async function getFeaturedProductCount() {
+  const result = await serverFetch('/admin/feature-count');
+  return typeof result?.data === 'number' ? result.data : null;
+}
+
 function toSlug(value) {
   return String(value ?? '')
     .trim()

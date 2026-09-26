@@ -38,7 +38,7 @@ export default async function ShopPage({ searchParams }) {
   const suspenseKey = [category, minPrice, maxPrice, sort, page].join('|');
 
   return (
-    <main className="min-h-screen bg-surface text-text">
+    <main className="min-h-screen text-text">
       <div className="mx-auto max-w-350 px-4 pb-16 pt-6 sm:px-6 lg:px-8">
         <ShopBreadcrumb page={page} />
 

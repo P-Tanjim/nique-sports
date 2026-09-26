@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const MAX_VISIBLE = 7;
-const HALF = 3;
+// How many cards sit in the fan at once, per breakpoint. This is the real
+// lever for mobile perf — fewer mounted <Image>/transition targets, not
+// just smaller spacing.
+function getDesiredVisibleSlots(width) {
+  if (width < 480) return 3;
+  if (width < 768) return 5;
+  return 7;
+}
 
-const FAN_POSITIONS = [
-  { rot: -21, scale: 0.7756, x: -30, y: 7.3, zIndex: 1 },
-  { rot: -14, scale: 0.8498, x: -22, y: 4.0, zIndex: 2 },
-  { rot: -7,  scale: 0.9346, x: -11, y: 1.3, zIndex: 3 },
-  { rot: 0,   scale: 1.0,    x: 0,   y: 0.0, zIndex: 10 },
-  { rot: 7,   scale: 0.9346, x: 11,  y: 1.3, zIndex: 3 },
-  { rot: 14,  scale: 0.8498, x: 22,  y: 4.0, zIndex: 2 },
-  { rot: 21,  scale: 0.7756, x: 30,  y: 7.3, zIndex: 1 },
-];
+// One extra card mounted (but hidden) on each side of the visible window so
+// it's already loaded and ready the instant it needs to slide in.
+const PRELOAD_MARGIN = 1;
 
 function getMultipliers(width) {
   let m = 1.0;
@@ -34,17 +34,37 @@ function getMultipliers(width) {
   return { m, hMult };
 }
 
-function getSlotConfig(totalCards, slot) {
-  if (totalCards >= MAX_VISIBLE) return FAN_POSITIONS[slot];
-  const center = totalCards >> 1;
-  const distance = totalCards > 1 ? (slot - center) / center : 0;
-  const absDistance = Math.abs(distance);
+// The fan's shape as a curve over normalized distance from center
+// (-1 = far left edge, 0 = center, 1 = far right edge), sampled from the
+// original hand-tuned 7-card layout at |distance| = 0, 1/3, 2/3, 1.
+// Any other card count just interpolates between these same anchor points,
+// so 3, 5, 7 (or anything) all read as "the same fan" — this is also what
+// fixes the lopsided distribution bug for counts under 7, since distance is
+// now always computed from a float center and always spans exactly -1..1.
+const CURVE_ROT = [0, 7, 14, 21];
+const CURVE_SCALE = [1, 0.9346, 0.8498, 0.7756];
+const CURVE_X = [0, 11, 22, 30];
+const CURVE_Y = [0, 1.3, 4.0, 7.3];
+
+function sampleCurve(points, t) {
+  const scaled = Math.min(1, t) * (points.length - 1);
+  const i = Math.min(points.length - 2, Math.floor(scaled));
+  const frac = scaled - i;
+  return points[i] + (points[i + 1] - points[i]) * frac;
+}
+
+function getSlotConfig(visibleSlots, slot) {
+  const center = (visibleSlots - 1) / 2;
+  const distance = center > 0 ? (slot - center) / center : 0;
+  const absDistance = Math.min(1, Math.abs(distance));
+  const sign = Math.sign(distance);
+
   return {
-    rot: distance * 21,
-    scale: 1.0 - 0.2244 * absDistance * absDistance,
-    x: distance * 30,
-    y: absDistance * absDistance * 7.3,
-    zIndex: 10 - Math.abs(slot - center),
+    rot: sampleCurve(CURVE_ROT, absDistance) * sign,
+    scale: sampleCurve(CURVE_SCALE, absDistance),
+    x: sampleCurve(CURVE_X, absDistance) * sign,
+    y: sampleCurve(CURVE_Y, absDistance),
+    zIndex: Math.round((1 - absDistance) * 9) + 1,
   };
 }
 
@@ -74,18 +94,30 @@ function applyTransform(el, { x = 0, y = 0, rot = 0, scale = 1 }) {
   el.style.transform = `translate(${x}rem, ${y}rem) rotate(${rot}deg) scale(${scale})`;
 }
 
-// Instantly writes a style with transitions switched off — the CSS
-// equivalent of gsap.set()/animate(..., {duration:0}).
 function setInstant(el, props) {
   el.style.transitionProperty = "none";
   applyTransform(el, props);
   el.style.opacity = props.opacity ?? 1;
 }
 
-// Starts (or retargets) a transition toward `props`. `willChange` is toggled
-// on only for the lifetime of the transition, not left on permanently.
-// Any previous listener from an interrupted transition is swapped out so
-// rapid hover changes can't leak `transitionend` listeners.
+// Schedules a card's z-index for its next transition. Rising happens
+// immediately — a card becoming more prominent should render on top right
+// away. Dropping is deferred: the card keeps its OLD (higher) z-index for
+// the whole transition and only settles to the real, lower value once it's
+// actually finished moving. Without this, a card leaving the center slot
+// drops behind the incoming one immediately — while it's still big and
+// centered — so the incoming card visually punches through it instead of
+// the front card gracefully scaling down and sliding aside.
+function scheduleZIndex(el, targetZ) {
+  const currentZ = Number(el.style.zIndex) || 0;
+  if (targetZ >= currentZ) {
+    el.style.zIndex = targetZ;
+    return null;
+  }
+  el.style.zIndex = currentZ + 1000;
+  return targetZ;
+}
+
 function animateCard(el, props, { duration, ease, delay = 0 }, onDone) {
   if (el.__transitionEndHandler) {
     el.removeEventListener("transitionend", el.__transitionEndHandler);
@@ -121,15 +153,47 @@ export default function FeatureCard({ cards = [] }) {
   const lastWidthRef = useRef(0);
 
   const totalCards = cards.length;
-  const needsPagination = totalCards > MAX_VISIBLE;
-  const [centerIndex, setCenterIndex] = useState(needsPagination ? HALF : totalCards >> 1);
+
+  // SSR-safe default (desktop count); corrected to the real viewport right
+  // after mount so the very first paint never mismatches server HTML.
+  const [desiredVisible, setDesiredVisible] = useState(7);
+  useEffect(() => {
+    setDesiredVisible(getDesiredVisibleSlots(window.innerWidth));
+  }, []);
+
+  const needsPagination = totalCards > desiredVisible;
+  const visibleSlots = needsPagination ? desiredVisible : totalCards;
+  const half = Math.floor(visibleSlots / 2);
+
+  const [centerIndex, setCenterIndex] = useState(needsPagination ? half : totalCards >> 1);
 
   const cycle = (direction) => {
     if (isAnimating.current || !needsPagination) return;
     isAnimating.current = true;
     directionRef.current = direction;
-    setCenterIndex(prev => direction === "right" ? (prev + 1) % totalCards : (prev - 1 + totalCards) % totalCards);
+    setCenterIndex(prev =>
+      direction === "right" ? (prev + 1) % totalCards : (prev - 1 + totalCards) % totalCards
+    );
   };
+
+  // Which original card indices actually get a DOM node this render: the
+  // visible fan window plus one preload ring on each side. Everything else
+  // stays unmounted entirely — that's the actual mobile perf win.
+  const mountedIndices = useMemo(() => {
+    if (totalCards === 0) return [];
+    if (!needsPagination) return Array.from({ length: totalCards }, (_, i) => i);
+    const radius = half + PRELOAD_MARGIN;
+    const seen = new Set();
+    const list = [];
+    for (let d = -radius; d <= radius; d++) {
+      const idx = ((centerIndex + d) % totalCards + totalCards) % totalCards;
+      if (!seen.has(idx)) {
+        seen.add(idx);
+        list.push(idx);
+      }
+    }
+    return list;
+  }, [needsPagination, totalCards, centerIndex, half]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -141,14 +205,14 @@ export default function FeatureCard({ cards = [] }) {
 
     const visibleMap = new Map();
     if (!needsPagination) cards.forEach((_, i) => visibleMap.set(i, i));
-    else for (let slot = 0; slot < MAX_VISIBLE; slot++)
-      visibleMap.set(((centerIndex + slot - HALF) % totalCards + totalCards) % totalCards, slot);
+    else
+      for (let slot = 0; slot < visibleSlots; slot++)
+        visibleMap.set(((centerIndex + slot - half) % totalCards + totalCards) % totalCards, slot);
 
     const previouslyVisible = prevVisible.current;
     const direction = directionRef.current;
     const isFirstMount = !hasEntered.current;
     const { m, hMult } = mults.current;
-    const slotCount = needsPagination ? MAX_VISIBLE : totalCards;
     const isMobile = window.innerWidth < 768;
     const isTouchDevice = window.matchMedia("(hover: none)").matches;
 
@@ -162,24 +226,26 @@ export default function FeatureCard({ cards = [] }) {
       }
     };
 
-    // Cards that need a fake "from" state written before they can transition
-    // in (first mount + cards newly entering during pagination). Batched so
-    // we force exactly one reflow for the whole group, not one per card.
     const pendingEntrances = [];
-    // Cards that are simply moving from wherever they already are, or
-    // leaving — no fake state needed, just retarget straight from "now".
     const directRetargets = [];
     const visibleEntries = [];
 
-    cardElements.forEach((card, cardIndex) => {
+    // Cards are matched to their original index via data-card-index, since
+    // windowing means DOM position no longer equals the card's real index.
+    cardElements.forEach((card) => {
+      const cardIndex = Number(card.dataset.cardIndex);
       const slot = visibleMap.get(cardIndex);
       const wasVisible = previouslyVisible.has(cardIndex);
 
       if (slot !== undefined) {
         visibleEntries.push({ el: card, slot });
-        const { x, y, rot, scale, zIndex } = getSlotConfig(slotCount, slot);
-        card.style.zIndex = zIndex; // not transitioned — instant, same as before
+        const { x, y, rot, scale, zIndex } = getSlotConfig(visibleSlots, slot);
+        const deferredZ = scheduleZIndex(card, zIndex);
         const target = { x: x * m, y: y * hMult, rot, scale, opacity: 1 };
+        const finishDone = () => {
+          if (deferredZ !== null) card.style.zIndex = deferredZ;
+          onCardDone();
+        };
 
         if (isFirstMount) {
           pendingEntrances.push({
@@ -189,50 +255,48 @@ export default function FeatureCard({ cards = [] }) {
             timing: isMobile
               ? { duration: 0.4, ease: EASE_OUT, delay: 0.08 + slot * 0.04 }
               : { duration: 0.9, ease: EASE_ELASTIC, delay: 0.2 + slot * 0.06 },
-            onDone: onCardDone,
+            onDone: finishDone,
           });
         } else if (!wasVisible) {
-          const enterX = direction === "right" ? 40 : -40;
+          const enterX = (direction === "right" ? 40 : -40) * m;
           pendingEntrances.push({
             el: card,
             from: { x: enterX, y: y * hMult, rot: direction === "right" ? 30 : -30, scale: 0.5, opacity: 0 },
             to: target,
             timing: { duration: isMobile ? 0.35 : 0.6, ease: EASE_OUT },
-            onDone: onCardDone,
+            onDone: finishDone,
           });
         } else {
           directRetargets.push({
             el: card,
             to: target,
             timing: { duration: isMobile ? 0.3 : 0.5, ease: EASE_OUT },
-            onDone: onCardDone,
+            onDone: finishDone,
           });
         }
       } else if (wasVisible) {
-        card.style.zIndex = 0;
         const exitX = direction === "right" ? -40 : 40;
+        const deferredZ = scheduleZIndex(card, 0);
         directRetargets.push({
           el: card,
           to: { x: exitX, opacity: 0, scale: 0.5, rot: direction === "right" ? -30 : 30 },
           timing: { duration: 0.4, ease: EASE_IN },
+          onDone: deferredZ !== null ? () => { card.style.zIndex = deferredZ; } : undefined,
         });
-      } else if (isFirstMount) {
+      } else {
+        // Preload-only (or first-paint off-screen) card: hide it instantly.
+        // It gets a real entrance animation the moment it actually enters a slot.
         card.style.zIndex = 0;
-        setInstant(card, { opacity: 0, scale: 0.3, x: 0, y: 0 });
+        setInstant(card, { opacity: 0, scale: 0.5, x: 0, y: 0 });
       }
     });
 
-    // Phase 1: write every fake "from" state with transitions off, then
-    // force exactly one reflow so the browser commits them...
     if (pendingEntrances.length) {
       pendingEntrances.forEach(({ el, from }) => setInstant(el, from));
       void container.offsetHeight;
-      // ...phase 2: kick off the real transition toward each target slot.
       pendingEntrances.forEach(({ el, to, timing, onDone }) => animateCard(el, to, timing, onDone));
     }
 
-    // Plain retargets never needed the reflow trick — they animate from
-    // whatever was already committed on screen.
     directRetargets.forEach(({ el, to, timing, onDone }) => animateCard(el, to, timing, onDone));
 
     prevVisible.current = new Set(visibleMap.keys());
@@ -246,7 +310,7 @@ export default function FeatureCard({ cards = [] }) {
       const { m: currM, hMult: currH } = mults.current;
 
       visibleEntries.forEach(({ el, slot }) => {
-        const base = getSlotConfig(slotCount, slot);
+        const base = getSlotConfig(visibleSlots, slot);
         let tx = base.x * currM, ty = base.y * currH, tr = base.rot, ts = base.scale;
         let d = Math.abs(slot - centerSlot) * 0.02;
 
@@ -269,7 +333,6 @@ export default function FeatureCard({ cards = [] }) {
       });
     };
 
-    // Touch devices never wire up hover at all — no listeners, no cost.
     const listeners = isTouchDevice ? [] : visibleEntries.map(({ el, slot }) => {
       const handler = () => {
         if (!isAnimating.current) {
@@ -287,17 +350,18 @@ export default function FeatureCard({ cards = [] }) {
     };
     if (!isTouchDevice) container.addEventListener("mouseleave", onMouseLeave);
 
-    // Fix: mobile browsers fire `resize` when the URL bar hides/shows during
-    // a scroll gesture, which only ever changes innerHeight. That used to
-    // re-run updateHoverLayout() (a full re-animate of every visible card)
-    // on every one of those ticks — the actual cause of the scroll lag.
-    // Only do any work when the width genuinely changes (rotation, an
-    // actual window resize) — height-only churn is ignored outright.
+    // Width-gated: mobile toolbar collapse fires `resize` on height changes
+    // only, so this ignores those and only reacts to real width changes.
     const onResize = () => {
       const w = window.innerWidth;
       if (w === lastWidthRef.current) return;
       lastWidthRef.current = w;
       mults.current = getMultipliers(w);
+      const nextDesired = getDesiredVisibleSlots(w);
+      if (nextDesired !== desiredVisible) {
+        setDesiredVisible(nextDesired); // crosses a breakpoint — let the effect fully re-run
+        return;
+      }
       if (!isAnimating.current) updateHoverLayout(activeSlot);
     };
     window.addEventListener("resize", onResize);
@@ -308,7 +372,7 @@ export default function FeatureCard({ cards = [] }) {
       window.removeEventListener("resize", onResize);
       if (leaveTimer) clearTimeout(leaveTimer);
     };
-  }, [centerIndex, totalCards, needsPagination, cards]);
+  }, [centerIndex, totalCards, needsPagination, visibleSlots, half, mountedIndices, cards, desiredVisible]);
 
   if (!totalCards) return null;
 
@@ -316,17 +380,19 @@ export default function FeatureCard({ cards = [] }) {
     <section className="flex flex-col items-center w-full py-4 lg:py-8 px-4 md:px-8 relative z-20">
       <div className="flex items-center justify-center w-full max-w-360">
         <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full h-96 sm:h-112 md:h-136 max-w-7xl">
-          {cards.map((card, index) => {
+          {mountedIndices.map((idx) => {
+            const card = cards[idx];
             return (
               <Link
-                key={index}
+                key={card._id ?? idx}
+                data-card-index={idx}
                 href={`/shop/product/${card._id || "#"}`}
                 className="fan-card absolute w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-2xl overflow-hidden cursor-pointer"
               >
                 <div className="relative w-full h-full overflow-hidden">
                   <Image
                     src={card.imageLink}
-                    alt={card.alt || `Card ${index}`}
+                    alt={card.alt || `Card ${idx}`}
                     fill
                     sizes="(max-width: 640px) 192px, (max-width: 768px) 224px, 256px"
                     className="object-cover z-10"

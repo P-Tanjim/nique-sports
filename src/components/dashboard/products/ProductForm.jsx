@@ -8,7 +8,7 @@ import IOSSwitch from './IOSSwitch';
 import AnimatedSelect from './AnimatedSelect';
 import SizeSelector from './SizeSelector';
 import ImageUploader from './ImageUploader';
-import { createProduct } from '@/lib/api/products/products';
+import { createProduct, getFeaturedProductCount } from '@/lib/api/products/products';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CATEGORY_FALLBACK = [
@@ -41,6 +41,7 @@ export default function ProductForm({ categories }) {
   const router = useRouter();
   const [form, setForm] = useState(initialState);
   const [saving, setSaving] = useState(false);
+  const [showFeaturedLimitModal, setShowFeaturedLimitModal] = useState(false);
   const [shake, setShake] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(0);
 
@@ -61,6 +62,39 @@ export default function ProductForm({ categories }) {
 
   function handleUploadingChange(isUploading) {
     setUploadingImages((count) => Math.max(0, count + (isUploading ? 1 : -1)));
+  }
+
+  async function saveProduct(productForm) {
+    setSaving(true);
+
+    try {
+      const priceNum = Number(productForm.price);
+      const beforePriceNum = productForm.discount ? Number(productForm.beforePrice) : 0;
+      const discountPercent = productForm.discount ? liveDiscountPercent : 0;
+      const result = await createProduct({
+        ...productForm,
+        price: priceNum,
+        beforePrice: beforePriceNum,
+        discountPercent,
+        stock: Number(productForm.stock) || 0,
+        patchsImg: productForm.patch ? productForm.patchsImg : [],
+        fontsImg: productForm.font ? productForm.fontsImg : [],
+      });
+
+      if (!result?.success) {
+        toast.error(result?.error || 'Could not add the product.');
+        return;
+      }
+
+      toast.success('Product added.');
+      setForm(initialState);
+      router.refresh();
+    } catch (error) {
+      toast.error('Network or server error occurred.');
+      console.error('Submission error:', error);
+    } finally {
+      setSaving(false);
+    }
   }
 
   // Calculate live discount percentage for UI preview
@@ -115,40 +149,30 @@ export default function ProductForm({ categories }) {
       return;
     }
 
-    setSaving(true);
+    if (form.featured) {
+      setSaving(true);
+      let featuredCount;
+      try {
+        featuredCount = await getFeaturedProductCount();
+      } catch {
+        toast.error('Could not check featured products. Please try again.');
+        return;
+      } finally {
+        setSaving(false);
+      }
 
-    try {
-      const priceNum = Number(form.price);
-      const beforePriceNum = form.discount ? Number(form.beforePrice) : 0;
-      const discountPercent = form.discount ? liveDiscountPercent : 0;
-
-      const result = await createProduct({
-        ...form,
-        price: priceNum,                             // current/discounted price
-        discount: form.discount,                     // boolean
-        beforePrice: beforePriceNum,                 // original price
-        discountPercent: discountPercent,           // auto calculated percent
-        stock: Number(form.stock) || 0,
-        patchsImg: form.patch ? form.patchsImg : [],
-        fontsImg: form.font ? form.fontsImg : [],
-      });
-
-      setSaving(false);
-
-      if (!result?.success) {
-        toast.error(result?.error || 'Could not add the product.');
+      if (featuredCount === null) {
+        toast.error('Could not check featured products. Please try again.');
         return;
       }
 
-      toast.success('Product added.');
-      setForm(initialState);
-      router.refresh();
-
-    } catch (error) {
-      setSaving(false);
-      toast.error("Network or server error occurred.");
-      console.error("Submission error:", error);
+      if (featuredCount >= 9) {
+        setShowFeaturedLimitModal(true);
+        return;
+      }
     }
+
+    await saveProduct(form);
   }
 
   return (
@@ -420,6 +444,58 @@ export default function ProductForm({ categories }) {
         {saving || uploadingImages > 0 ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
         {saving ? 'Saving…' : uploadingImages > 0 ? 'Uploading images…' : 'Add product'}
       </button>
+
+      <AnimatePresence>
+        {showFeaturedLimitModal && (
+          <motion.div
+            className="fixed inset-0 z-100 flex items-center justify-center bg-black/30 px-5 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowFeaturedLimitModal(false)}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="featured-limit-title"
+              className="w-full max-w-85 overflow-hidden rounded-[22px] bg-white/95 text-center shadow-[0_20px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl"
+              initial={{ opacity: 0, scale: 0.88, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 8 }}
+              transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="px-6 pb-5 pt-6">
+                <h2 id="featured-limit-title" className="text-base font-semibold text-gray-900">
+                  Featured products are full (limit 9).
+                </h2>
+                <p className="mt-1.5 text-sm text-gray-600">
+                  Add this product without featuring it?
+                </p>
+              </div>
+              <div className="grid grid-cols-2 border-t border-gray-200/80">
+                <button
+                  type="button"
+                  onClick={() => setShowFeaturedLimitModal(false)}
+                  className="border-r cursor-pointer border-gray-200/80 py-3.5 text-[15px] font-medium text-blue-600 transition-colors hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowFeaturedLimitModal(false);
+                    saveProduct({ ...form, featured: false });
+                  }}
+                  className="py-3.5 cursor-pointer text-[15px] font-semibold text-blue-600 transition-colors hover:bg-gray-200"
+                >
+                  Continue
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </form>
   );
 }
