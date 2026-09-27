@@ -113,8 +113,8 @@ export default function AnimatedSelect({
         aria-expanded={open}
         aria-label={triggerLabel || undefined}
         className={iconOnly
-          ? 'flex size-10 cursor-pointer items-center justify-center rounded-full border border-border bg-white text-text shadow-sm outline-none transition-colors hover:bg-surface focus:border-primary'
-          : 'mt-1.5 flex w-full cursor-pointer items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3 text-left text-sm text-text outline-none transition-colors focus:border-primary'}
+          ? 'flex size-8 cursor-pointer items-center justify-center rounded-full backdrop-blur-sm text-text shadow-sm outline-none transition-all hover:scale-[1.1] focus:border-primary'
+          : 'mt-1.5 flex w-full cursor-pointer items-center justify-between rounded-2xl bg-surface px-4 py-3 text-left text-sm text-text outline-none transition-colors focus:border-primary'}
       >
         {iconOnly ? (
           <span className="sr-only">{triggerLabel || placeholder}</span>
@@ -125,7 +125,7 @@ export default function AnimatedSelect({
         )}
         <TriggerIcon
           size={iconOnly ? 18 : 15}
-          className={`shrink-0 text-text-muted transition-transform duration-300 ${TriggerIcon === ChevronDown && open ? 'rotate-180' : ''}`}
+          className={`shrink-0 text-primary transition-transform duration-300 ${TriggerIcon === ChevronDown && open ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -142,7 +142,7 @@ export default function AnimatedSelect({
             onMouseLeave={() => setHoveredIndex(null)}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className={`touch-none absolute ${listAlignment === 'right' ? 'right-0 w-48' : 'left-0 right-0'} z-50 mt-2 origin-top rounded-[24px] border border-white/10 bg-primary-dark/20 p-2 shadow-2xl backdrop-blur-sm backdrop-saturate-150 ${listClassName}`}
+            className={`touch-none absolute ${listAlignment === 'right' ? 'right-0 w-36' : 'left-0 right-0'} z-50 mt-2 origin-top rounded-[24px] border border-white/10 bg-primary-dark/20 p-2 shadow-2xl backdrop-blur-sm backdrop-saturate-150 ${listClassName}`}
           >
             {options.map((option, index) => (
               <li key={option.value} role="option" aria-selected={option.value === value}>

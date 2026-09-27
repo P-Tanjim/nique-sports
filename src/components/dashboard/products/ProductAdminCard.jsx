@@ -83,7 +83,7 @@ export default function ProductAdminCard({ product }) {
       <div className="absolute right-3 top-3 z-30">
         <AnimatedSelect
           id={`product-actions-${productId}`}
-          className="w-10"
+          className="w-8"
           options={ACTION_OPTIONS}
           value=""
           onChange={handleAction}
