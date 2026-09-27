@@ -33,7 +33,7 @@ export default async function ShopPage({ searchParams }) {
 
   return (
     <main className="min-h-screen text-text">
-      <div className="mx-auto max-w-350 px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-350 px-4 pb-32 pt-6 sm:px-6 sm:pb-24 lg:px-8 lg:pb-16">
         <ShopBreadcrumb page={page} />
 
         <div className="mt-6 flex gap-10">

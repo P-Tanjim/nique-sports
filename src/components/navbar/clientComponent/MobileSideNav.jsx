@@ -10,10 +10,10 @@ import { useNav } from "./NavStateContext";
 
 const defaultNavItems = [
 	{ heading: "Home", href: "/" },
-	{ heading: "BD Premium", href: "/bd-premium" },
-	{ heading: "Manufactured Retro", href: "/manufactured-retro" },
-	{ heading: "Player Edition Replica", href: "/player-edition-replica" },
-	{ heading: "Player Edition", href: "/player-edition" },
+	{ heading: "BD Premium", href: "/shop?category=bd-premium" },
+	{ heading: "Manufactured Retro", href: "/shop?category=manufactured-retro" },
+	{ heading: "Player Edition Replica", href: "/shop?category=player-edition-replica" },
+	{ heading: "Player Edition", href: "/shop?category=player-edition" },
 ];
 
 const NavLink = ({ heading, href, setIsActive, index }) => (
