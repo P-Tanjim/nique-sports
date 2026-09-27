@@ -55,7 +55,7 @@ const footerLinks = [
     title: "LEGAL",
     links: [
       { name: "Terms & Conditions", href: "#" },
-      { name: "Privacy Policy", href: "#" },
+      { name: "Privacy Policy", href: "/privacy-policy" },
       { name: "Refund Policy", href: "#" },
     ],
   },
@@ -137,11 +137,11 @@ export default function Footer() {
         <div className="flex flex-col items-start justify-between gap-6 text-[#F2F0E6] md:flex-row md:items-end">
           <div className="flex flex-wrap items-center gap-6">
             <a href="#" className="inline-block text-base transition-all hover:text-white active:scale-[0.96]">Terms</a>
-            <a href="#" className="inline-block text-base transition-all hover:text-white active:scale-[0.96]">Privacy Policy</a>
+            <a href="/privacy-policy" className="inline-block text-base transition-all hover:text-white active:scale-[0.96]">Privacy Policy</a>
             <a href="#" className="inline-block text-base transition-all hover:text-white active:scale-[0.96]">Shipping</a>
           </div>
           
-          <div className="text-left md:text-right">
+          <div className="text-left flex gap-3 md:text-right">
             <p className="text-base">© {new Date().getFullYear()} APANIQUE Sports.</p>
             <p className="text-base">All rights reserved.</p>
           </div>

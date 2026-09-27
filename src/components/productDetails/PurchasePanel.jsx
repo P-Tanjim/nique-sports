@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Minus, Plus, ShoppingBasket, Zap } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { addToCart } from '@/components/sideCart/SideCart';
 import { formatPrice } from '@/lib/format';
 import SizeSelector from './SizeSelector';
@@ -21,6 +21,7 @@ export default function PurchasePanel({ product, slug }) {
   const [quantity, setQuantity] = useState(1);
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [sizeError, setSizeError] = useState(false);
+  const [fontError, setFontError] = useState(false);
   const [customization, setCustomization] = useState({
     fontEnabled: false,
     name: '',
@@ -74,11 +75,18 @@ export default function PurchasePanel({ product, slug }) {
   }
 
   function validate() {
-    if (requiresSize && !selectedSize) {
-      setSizeError(true);
-      return false;
+    const missingSize = requiresSize && !selectedSize;
+    const missingFont = customization.fontEnabled && !customization.font;
+    setSizeError(missingSize);
+    setFontError(missingFont);
+    return !missingSize && !missingFont;
+  }
+
+  function handleCustomizationChange(nextCustomization) {
+    setCustomization(nextCustomization);
+    if (!nextCustomization.fontEnabled || nextCustomization.font) {
+      setFontError(false);
     }
-    return true;
   }
 
   function handleAddToCart() {
@@ -113,27 +121,20 @@ export default function PurchasePanel({ product, slug }) {
             </>
           )}
         </div>
-        <AnimatePresence initial={false}>
-          {hasSelectedOptions && (
-            <motion.p
-              initial={{ height: 0, opacity: 0, y: -4 }}
-              animate={{ height: 'auto', opacity: 1, y: 0 }}
-              exit={{ height: 0, opacity: 0, y: -4 }}
-              transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
-              className="overflow-hidden pt-1 text-xs font-medium text-text-muted"
-            >
-              <span className="inline-flex flex-wrap items-center gap-x-1.5">
-                <span>Product {formatPrice(basePrice)}৳</span>
-                {customization.fontEnabled && customization.font && (
-                  <span>+ Font {formatPrice(fontPrice)}৳</span>
-                )}
-                {customization.patch && (
-                  <span>+ Patch {formatPrice(patchPrice)}৳</span>
-                )}
+        <p
+          aria-hidden={!hasSelectedOptions}
+          className={`min-h-9 pt-1 text-xs font-medium text-text-muted ${hasSelectedOptions ? 'visible' : 'invisible'}`}
+        >
+          <span className="inline-flex flex-wrap items-center gap-x-1.5">
+            <span>Product {formatPrice(basePrice)}৳</span>
+            {customization.fontEnabled && customization.font && (
+              <span>+ Font {formatPrice(fontPrice)}৳</span>
+            )}
+            {customization.patch && (
+              <span>+ Patch {formatPrice(patchPrice)}৳</span>
+            )}
               </span>
-            </motion.p>
-          )}
-        </AnimatePresence>
+        </p>
       </motion.div>
       <SizeSelector
         sizes={product.size}
@@ -145,10 +146,13 @@ export default function PurchasePanel({ product, slug }) {
         font={product.font}
         fontImages={product.font ? product.fontsImg : []}
         patches={product.patch ? product.patchsImg : []}
-        onChange={setCustomization}
+        onChange={handleCustomizationChange}
       />
       {sizeError && (
         <p className="-mt-3 text-xs font-medium text-danger">Please select a size first.</p>
+      )}
+      {fontError && (
+        <p className="-mt-3 text-xs font-medium text-danger">Please select a font style first.</p>
       )}
 
       <div>

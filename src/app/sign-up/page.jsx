@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
+import { Checkbox } from "@heroui/react";
 import {
   Lock,
   Mail,
@@ -29,6 +30,8 @@ export default function SignUpForm() {
   const [uploading, setUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [error, setError] = useState("");
+  const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(false);
+  const [privacyPolicyError, setPrivacyPolicyError] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -81,6 +84,12 @@ export default function SignUpForm() {
     e.preventDefault();
     setError("");
 
+    if (!privacyPolicyAccepted) {
+      setPrivacyPolicyError(true);
+      return;
+    }
+    setPrivacyPolicyError(false);
+
     if (uploading) {
       setError("Please wait until the photo finishes uploading.");
       return;
@@ -96,6 +105,7 @@ export default function SignUpForm() {
         phone: formData.phone,
         address: formData.address,
         image: formData.image,
+        privacyPolicyAccepted: true,
       });
 
       if (signUpError) {
@@ -359,6 +369,40 @@ export default function SignUpForm() {
               {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
           </div>
+        </div>
+
+        <div>
+          <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+            <Checkbox
+              aria-required="true"
+              isSelected={privacyPolicyAccepted}
+              onChange={(accepted) => {
+                setPrivacyPolicyAccepted(accepted);
+                if (accepted) setPrivacyPolicyError(false);
+              }}
+            >
+              <Checkbox.Content className="text-sm text-text">
+                <Checkbox.Control>
+                  <Checkbox.Indicator />
+                </Checkbox.Control>
+                <span className="min-w-0">
+                  I have read and agree to the Privacy Policy.
+                </span>
+              </Checkbox.Content>
+            </Checkbox>
+            <Link
+              href="/privacy-policy"
+              target="_blank"
+              className="ml-6 text-sm font-semibold text-primary underline underline-offset-4 sm:ml-0"
+            >
+              Privacy policy
+            </Link>
+          </div>
+          {privacyPolicyError && (
+            <p role="alert" className="mt-2 text-xs font-medium text-danger">
+              Please accept the Privacy Policy before creating an account.
+            </p>
+          )}
         </div>
 
         {/* SUBMIT BUTTON */}
