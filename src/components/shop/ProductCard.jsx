@@ -1,14 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Heart, QrCode, ShoppingBasket } from 'lucide-react';
+import { Check, Heart, QrCode, ShoppingBasket } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
 import ProductQrModal from './ProductQrModal';
+import AddToCartFlyClone from './AddToCartFlyClone';
 // import ProductImage from '../../../public/products/1.jpg';
 import { addToCart } from '../sideCart/SideCart';
+
+// SideCartButton.jsx carries this as a data attribute. Looked up fresh at
+// click time rather than via a ref/context, since this card can render far
+// from the navbar in the tree and a one-off target lookup doesn't need more.
+const CART_TARGET_SELECTOR = '[data-cart-fly-target]';
+const ADDED_FEEDBACK_MS = 1400;
 
 export default function ProductCard({
   product,
@@ -18,8 +26,66 @@ export default function ProductCard({
   const [wishlisted, setWishlisted] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [flight, setFlight] = useState(null); // { from, to } | null
+  const [justAdded, setJustAdded] = useState(false);
+
+  const imageBoxRef = useRef(null);
+  const addedTimerRef = useRef(null);
 
   const { name, price, originalPrice, discountPercent, isNew, stamp, image, slug } = product || {};
+
+  // Belt-and-braces: locks the page while the clone is mid-flight. The
+  // real reason it can't drift is that the target is a `sticky top-0`
+  // nav icon (see SideCartButton), so its viewport position never moves
+  // under scroll the way GalleryFlyClone's in-flow target did.
+  useEffect(() => {
+    if (!flight) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [flight]);
+
+  useEffect(() => () => {
+    if (addedTimerRef.current) clearTimeout(addedTimerRef.current);
+  }, []);
+
+  function markAdded() {
+    setJustAdded(true);
+    if (addedTimerRef.current) clearTimeout(addedTimerRef.current);
+    addedTimerRef.current = setTimeout(() => setJustAdded(false), ADDED_FEEDBACK_MS);
+  }
+
+  function handleAddToCart() {
+    const imageEl = imageBoxRef.current;
+    const sourceImage = imageEl?.querySelector('img');
+    const targetEl = document.querySelector(CART_TARGET_SELECTOR);
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    if (!imageEl || !targetEl || reduceMotion || !sourceImage?.complete || !sourceImage.naturalWidth) {
+      if (!targetEl && process.env.NODE_ENV !== 'production') {
+        // If you see this in the console, SideCartButton.jsx is missing its
+        // data-cart-fly-target attribute (or hasn't mounted yet).
+        console.warn('[ProductCard] No [data-cart-fly-target] element found — the fly animation is being skipped.');
+      }
+      addToCart(product, 1, 'M');
+      markAdded();
+      return;
+    }
+
+    setFlight({
+      src: sourceImage.currentSrc || image,
+      from: imageEl.getBoundingClientRect(),
+      to: targetEl.getBoundingClientRect(),
+    });
+  }
+
+  function handleFlightDone() {
+    setFlight(null);
+    addToCart(product, 1, 'M');
+    markAdded();
+  }
 
   return (
     <>
@@ -62,7 +128,7 @@ export default function ProductCard({
         {/* PRODUCT IMAGE */}
         <div className="relative">
           <Link href={`/shop/product/${slug}`} className="block">
-            <div className="relative aspect-square overflow-hidden bg-white">
+            <div ref={imageBoxRef} className="relative aspect-square overflow-hidden bg-white">
               <Image
                 src={image}
                 alt={name || 'Product Image'}
@@ -111,11 +177,25 @@ export default function ProductCard({
             {/* Cart - Shopping Basket */}
             <button
               type="button"
-              onClick={() => addToCart(product, 1, 'M')}
-              aria-label="Add to cart"
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/50 text-white shadow-sm backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-black/70 md:h-9 md:w-9"
+              onClick={handleAddToCart}
+              disabled={Boolean(flight)}
+              aria-label={justAdded ? 'Added to cart' : 'Add to cart'}
+              className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border shadow-sm backdrop-blur-md transition-all duration-300 hover:scale-110 disabled:pointer-events-none disabled:opacity-70 md:h-9 md:w-9 ${
+                justAdded
+                  ? 'border-success/40 bg-success text-white'
+                  : 'border-white/20 bg-black/50 text-white hover:bg-black/70'
+              }`}
             >
-              <ShoppingBasket size={15} strokeWidth={1.8} />
+              <span
+                key={justAdded ? 'check' : 'basket'}
+                className="flex animate-[cart-badge-pop_0.3s_cubic-bezier(0.34,1.56,0.64,1)_both]"
+              >
+                {justAdded ? (
+                  <Check size={15} strokeWidth={2.2} />
+                ) : (
+                  <ShoppingBasket size={15} strokeWidth={1.8} />
+                )}
+              </span>
             </button>
           </div>
         </div>
@@ -148,6 +228,17 @@ export default function ProductCard({
         open={qrOpen}
         onClose={() => setQrOpen(false)}
       />
+
+      {flight &&
+        createPortal(
+          <AddToCartFlyClone
+            src={flight.src}
+            from={flight.from}
+            to={flight.to}
+            onDone={handleFlightDone}
+          />,
+          document.body
+        )}
     </>
   );
 }

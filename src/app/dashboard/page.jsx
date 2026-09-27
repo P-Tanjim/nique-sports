@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Package } from 'lucide-react';
 import StatsGrid from '@/components/dashboard/StatsGrid';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import RecentOrders from '@/components/dashboard/RecentOrders';
@@ -58,13 +58,12 @@ export default async function DashboardPage() {
           <p className="mt-1 text-sm text-text-muted">Here's what's happening with your store today.</p>
         </div>
 
-        {/* TODO: point at your real "add product" page once it exists */}
         <Link
-          href="/dashboard/products/add"
+          href="/dashboard/products"
           className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
         >
-          <Plus size={16} />
-          Add Product
+          <Package size={16} />
+          Manage Products
         </Link>
       </div>
 

@@ -19,6 +19,10 @@ export default function AnimatedSelect({
   className = '',
   listClassName = 'max-h-64 overflow-auto',
   textColor = 'text-primary-dark',
+  triggerIcon: TriggerIcon = ChevronDown,
+  triggerLabel,
+  iconOnly = false,
+  listAlignment = 'left',
 }) {
   const [open, setOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -107,15 +111,21 @@ export default function AnimatedSelect({
         }}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="mt-1.5 flex w-full cursor-pointer items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3 text-left text-sm text-text outline-none transition-colors focus:border-primary"
+        aria-label={triggerLabel || undefined}
+        className={iconOnly
+          ? 'flex size-10 cursor-pointer items-center justify-center rounded-full border border-border bg-white text-text shadow-sm outline-none transition-colors hover:bg-surface focus:border-primary'
+          : 'mt-1.5 flex w-full cursor-pointer items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3 text-left text-sm text-text outline-none transition-colors focus:border-primary'}
       >
-        <span className={current ? 'text-text' : 'text-text-muted'}>
-          {current ? current.label : placeholder}
-        </span>
-        <ChevronDown
-          size={15}
-          className={`shrink-0 text-text-muted transition-transform duration-300 ${open ? 'rotate-180' : ''
-            }`}
+        {iconOnly ? (
+          <span className="sr-only">{triggerLabel || placeholder}</span>
+        ) : (
+          <span className={current ? 'text-text' : 'text-text-muted'}>
+            {current ? current.label : placeholder}
+          </span>
+        )}
+        <TriggerIcon
+          size={iconOnly ? 18 : 15}
+          className={`shrink-0 text-text-muted transition-transform duration-300 ${TriggerIcon === ChevronDown && open ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -132,7 +142,7 @@ export default function AnimatedSelect({
             onMouseLeave={() => setHoveredIndex(null)}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className={`touch-none absolute left-0 right-0 z-50 mt-2 origin-top rounded-[24px] border border-white/10 bg-primary-dark/20 p-2 shadow-2xl backdrop-blur-sm backdrop-saturate-150 ${listClassName}`}
+            className={`touch-none absolute ${listAlignment === 'right' ? 'right-0 w-48' : 'left-0 right-0'} z-50 mt-2 origin-top rounded-[24px] border border-white/10 bg-primary-dark/20 p-2 shadow-2xl backdrop-blur-sm backdrop-saturate-150 ${listClassName}`}
           >
             {options.map((option, index) => (
               <li key={option.value} role="option" aria-selected={option.value === value}>
@@ -155,12 +165,12 @@ export default function AnimatedSelect({
                     />
                   )}
 
-                  <span className={`relative z-10 ${textColor} transition-transform duration-200 group-hover/item:translate-x-1`}>
+                  <span className={`relative z-10 ${option.textColor || textColor} transition-transform duration-200 group-hover/item:translate-x-1`}>
                     {option.label}
                   </span>
 
                   {option.value === value && (
-                    <Check size={16} className={`relative z-10 ${textColor} shrink-0`} />
+                    <Check size={16} className={`relative z-10 ${option.textColor || textColor} shrink-0`} />
                   )}
                 </button>
               </li>

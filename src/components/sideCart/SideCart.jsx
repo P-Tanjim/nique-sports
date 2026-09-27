@@ -106,6 +106,30 @@ export function addToCart(product, quantity = 1, size) {
   return next;
 }
 
+/**
+ * Live item count for anywhere that just needs a badge/number (e.g. the
+ * navbar cart button) without mounting the whole drawer. Same event +
+ * storage subscription SideCart itself uses to stay in sync.
+ */
+export function useCartCount() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    function refresh() {
+      setCount(readCart().reduce((sum, item) => sum + item.quantity, 0));
+    }
+    refresh();
+    window.addEventListener(CART_UPDATED_EVENT, refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener(CART_UPDATED_EVENT, refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
+
+  return count;
+}
+
 export default function SideCart({ open, onClose }) {
   const [items, setItems] = useState([]);
   const [hydrated, setHydrated] = useState(false);

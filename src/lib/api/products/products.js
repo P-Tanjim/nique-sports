@@ -1,13 +1,15 @@
 'use server'
 
 import { revalidatePath } from 'next/cache';
-import { serverFetch, serverPost } from '../core/core';
+import { serverDelete, serverFetch, serverPost, serverPut } from '../core/core';
 
 export async function createProduct(product) {
   const result = await serverPost('/admin/products', product);
 
   if (result?.success) {
     revalidatePath('/', 'page');
+    revalidatePath('/shop');
+    revalidatePath('/dashboard/products');
   }
 
   return result;
@@ -118,4 +120,34 @@ export async function getShopPriceBounds() {
     min: prices.length ? Math.min(...prices) : 0,
     max: prices.length ? Math.max(...prices) : 0,
   };
+}
+
+export async function updateProduct(id, product) {
+  const result = await serverPut(`/admin/products/${encodeURIComponent(id)}`, product);
+
+  if (result?.success) {
+    revalidatePath('/', 'page');
+    revalidatePath('/shop');
+    revalidatePath('/dashboard/products');
+    revalidatePath(`/dashboard/products/${encodeURIComponent(id)}/edit`);
+  }
+
+  return result;
+}
+
+export async function deleteProduct(id) {
+  const result = await serverDelete(`/admin/products/${encodeURIComponent(id)}`);
+
+  if (result?.success) {
+    revalidatePath('/', 'page');
+    revalidatePath('/shop');
+    revalidatePath('/dashboard/products');
+  }
+
+  return result;
+}
+
+export async function getProductById(id) {
+  const result = await serverFetch(`/products/${encodeURIComponent(id)}`);
+  return result?.data ? normalizeProduct(result.data) : null;
 }

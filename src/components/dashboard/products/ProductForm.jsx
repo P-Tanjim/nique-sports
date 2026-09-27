@@ -8,7 +8,7 @@ import IOSSwitch from './IOSSwitch';
 import AnimatedSelect from './AnimatedSelect';
 import SizeSelector from './SizeSelector';
 import ImageUploader from './ImageUploader';
-import { createProduct, getFeaturedProductCount } from '@/lib/api/products/products';
+import { createProduct, getFeaturedProductCount, updateProduct } from '@/lib/api/products/products';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CATEGORY_FALLBACK = [
@@ -37,11 +37,63 @@ const initialState = {
   fontsImg: [],
 };
 
-export default function ProductForm({ categories }) {
+function getFormState(product) {
+  if (!product) return initialState;
+
+  return {
+    ...initialState,
+    title: product.title ?? '',
+    desc: product.desc ?? '',
+    price: String(product.price ?? ''),
+    stock: String(product.stock ?? ''),
+    team: product.team ?? '',
+    seassion: product.seassion ?? '',
+    category: product.category ?? '',
+    size: Array.isArray(product.size) ? product.size : [],
+    patch: Boolean(product.patch),
+    font: Boolean(product.font),
+    featured: Boolean(product.featured),
+    discount: Boolean(product.discount),
+    beforePrice: String(product.beforePrice ?? ''),
+    imagesLink: Array.isArray(product.imagesLink) ? product.imagesLink : [],
+    patchsImg: Array.isArray(product.patchsImg) ? product.patchsImg : [],
+    fontsImg: Array.isArray(product.fontsImg) ? product.fontsImg : [],
+  };
+}
+
+function getComparableForm(form) {
+  const normalizePricedImages = (items) => items.map((item) =>
+    typeof item === 'string'
+      ? { image: item, price: 0 }
+      : { image: item?.image ?? '', price: Number(item?.price) || 0 }
+  );
+
+  return JSON.stringify({
+    title: form.title.trim(),
+    desc: form.desc,
+    price: Number(form.price) || 0,
+    stock: Number(form.stock) || 0,
+    team: form.team,
+    seassion: form.seassion,
+    category: form.category,
+    size: [...form.size].sort(),
+    patch: form.patch,
+    font: form.font,
+    featured: form.featured,
+    discount: form.discount,
+    beforePrice: form.discount ? Number(form.beforePrice) || 0 : 0,
+    imagesLink: form.imagesLink,
+    patchsImg: form.patch ? normalizePricedImages(form.patchsImg) : [],
+    fontsImg: form.font ? normalizePricedImages(form.fontsImg) : [],
+  });
+}
+
+export default function ProductForm({ categories, product: initialProduct, productId }) {
   const router = useRouter();
-  const [form, setForm] = useState(initialState);
+  const [form, setForm] = useState(() => getFormState(initialProduct));
   const [saving, setSaving] = useState(false);
   const [showFeaturedLimitModal, setShowFeaturedLimitModal] = useState(false);
+  const [showNoChangesModal, setShowNoChangesModal] = useState(false);
   const [shake, setShake] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(0);
 
@@ -71,7 +123,7 @@ export default function ProductForm({ categories }) {
       const priceNum = Number(productForm.price);
       const beforePriceNum = productForm.discount ? Number(productForm.beforePrice) : 0;
       const discountPercent = productForm.discount ? liveDiscountPercent : 0;
-      const result = await createProduct({
+      const payload = {
         ...productForm,
         price: priceNum,
         beforePrice: beforePriceNum,
@@ -79,15 +131,19 @@ export default function ProductForm({ categories }) {
         stock: Number(productForm.stock) || 0,
         patchsImg: productForm.patch ? productForm.patchsImg : [],
         fontsImg: productForm.font ? productForm.fontsImg : [],
-      });
+      };
+      const result = productId
+        ? await updateProduct(productId, payload)
+        : await createProduct(payload);
 
       if (!result?.success) {
-        toast.error(result?.error || 'Could not add the product.');
+        toast.error(result?.error || `Could not ${productId ? 'update' : 'add'} the product.`);
         return;
       }
 
-      toast.success('Product added.');
-      setForm(initialState);
+      toast.success(productId ? 'Product updated.' : 'Product added.');
+      if (!productId) setForm(initialState);
+      router.push('/dashboard/products');
       router.refresh();
     } catch (error) {
       toast.error('Network or server error occurred.');
@@ -108,6 +164,14 @@ export default function ProductForm({ categories }) {
 
     if (uploadingImages > 0) {
       toast.error('Please wait for all images to finish uploading.');
+      return;
+    }
+
+    if (
+      productId &&
+      getComparableForm(form) === getComparableForm(getFormState(initialProduct))
+    ) {
+      setShowNoChangesModal(true);
       return;
     }
 
@@ -149,7 +213,7 @@ export default function ProductForm({ categories }) {
       return;
     }
 
-    if (form.featured) {
+    if (form.featured && !initialProduct?.featured) {
       setSaving(true);
       let featuredCount;
       try {
@@ -442,8 +506,50 @@ export default function ProductForm({ categories }) {
         className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark disabled:opacity-70 sm:w-auto sm:px-10"
       >
         {saving || uploadingImages > 0 ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-        {saving ? 'Saving…' : uploadingImages > 0 ? 'Uploading images…' : 'Add product'}
+        {saving ? 'Saving…' : uploadingImages > 0 ? 'Uploading images…' : productId ? 'Edit product' : 'Add product'}
       </button>
+
+      <AnimatePresence>
+        {showNoChangesModal && (
+          <motion.div
+            className="fixed inset-0 z-100 flex items-center justify-center bg-black/30 px-5 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowNoChangesModal(false)}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="no-changes-title"
+              className="w-full max-w-80 overflow-hidden rounded-[22px] border border-white/70 bg-white/95 text-center shadow-[0_20px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl"
+              initial={{ opacity: 0, scale: 0.88, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 8 }}
+              transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="px-6 pb-5 pt-6">
+                <h2 id="no-changes-title" className="text-base font-semibold text-text">
+                  Nothing changed
+                </h2>
+                <p className="mt-1.5 text-sm text-text-muted">
+                  This product is already up to date.
+                </p>
+              </div>
+              <div className="border-t border-border/80">
+                <button
+                  type="button"
+                  onClick={() => setShowNoChangesModal(false)}
+                  className="w-full cursor-pointer py-3.5 text-[15px] font-semibold text-primary transition-colors hover:bg-surface"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showFeaturedLimitModal && (

@@ -17,14 +17,16 @@ export const serverFetch = async (path, other={}) => {
   }
 }
 
-// POST counterpart to serverFetch — same base URL, JSON body, normalized
-// {success, data|error} shape so callers don't need their own try/catch.
-export const serverPost = async (path, body) => {
+async function serverMutation(method, path, body) {
   try {
     const res = await fetch(`${API}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      method,
+      ...(body === undefined
+        ? {}
+        : {
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          }),
     });
  
     const data = await res.json();
@@ -39,3 +41,8 @@ export const serverPost = async (path, body) => {
     return { success: false, error: 'Network error. Please try again.' };
   }
 }
+
+// Mutation helpers share the same normalized {success, data|error} response.
+export const serverPost = async (path, body) => serverMutation('POST', path, body);
+export const serverPut = async (path, body) => serverMutation('PUT', path, body);
+export const serverDelete = async (path) => serverMutation('DELETE', path);

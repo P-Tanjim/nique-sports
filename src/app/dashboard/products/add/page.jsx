@@ -1,5 +1,7 @@
 import { getCategories } from '@/lib/products';
 import ProductForm from '@/components/dashboard/products/ProductForm';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 export const metadata = {
   title: 'Add Product | Dashboard',
@@ -14,6 +16,13 @@ export default async function AddProductPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
+        <Link
+          href="/dashboard/products"
+          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-text-muted transition-colors hover:text-primary"
+        >
+          <ArrowLeft size={16} />
+          Back to products
+        </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-text sm:text-4xl">
           Add a product
         </h1>
