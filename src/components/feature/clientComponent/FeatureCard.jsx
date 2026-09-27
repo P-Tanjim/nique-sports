@@ -8,8 +8,8 @@ import Link from "next/link";
 // lever for mobile perf — fewer mounted <Image>/transition targets, not
 // just smaller spacing.
 function getDesiredVisibleSlots(width) {
-  if (width < 768) return 5;
-  return 7;
+  if (width < 1024) return 5;
+  return 9;
 }
 
 // One extra card mounted (but hidden) on each side of the visible window so
@@ -161,7 +161,7 @@ export default function FeatureCard({ cards = [] }) {
   }, []);
 
   const needsPagination = totalCards > 1;
-  const visibleSlots = needsPagination ? Math.min(totalCards - 1, desiredVisible) : totalCards;
+  const visibleSlots = needsPagination ? Math.min(totalCards, desiredVisible) : totalCards;
   const half = Math.floor(visibleSlots / 2);
 
   const [centerIndex, setCenterIndex] = useState(needsPagination ? half : totalCards >> 1);
