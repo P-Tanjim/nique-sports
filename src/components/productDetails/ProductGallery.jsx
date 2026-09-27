@@ -1,9 +1,34 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { getImageProps } from 'next/image';
 import Image from 'next/image';
 import GalleryFlyClone from './GalleryFlyClone';
+
+const MAIN_SIZES = '(max-width: 1024px) 100vw, 50vw';
+
+// Renders nothing visible — just <link rel="preload"> tags. React 19 hoists
+// these straight into <head> no matter where in the tree they're rendered.
+// Built with getImageProps so the generated URL/srcset is byte-for-byte
+// what the real <Image> below will request — that's what makes it land in
+// the SAME browser cache slot instead of triggering its own cold fetch.
+function GalleryPreloadLinks({ images }) {
+  return images.map((src) => {
+    if (!src || src.startsWith('data:')) return null; // already inline, nothing to fetch
+    const { props } = getImageProps({ src, alt: '', fill: true, sizes: MAIN_SIZES });
+    return (
+      <link
+        key={src}
+        rel="preload"
+        as="image"
+        href={props.src}
+        imageSrcSet={props.srcSet}
+        imageSizes={props.sizes}
+      />
+    );
+  });
+}
 
 export default function ProductGallery({ images, title }) {
   const gallery = images ?? [];
@@ -13,6 +38,20 @@ export default function ProductGallery({ images, title }) {
   const thumbRefs = useRef([]);
 
   const activeImage = gallery[activeIndex];
+
+  // A fixed-position clone is anchored to the viewport, not the page — if
+  // the user scrolls mid-flight, the from/to rects captured at click time
+  // go stale and it visibly lands in the wrong spot. Locking scroll for the
+  // brief flight avoids that entirely, and matches how this app's other
+  // overlays (drawers, modals) already behave while open.
+  useEffect(() => {
+    if (!flying) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [flying]);
 
   if (gallery.length === 0) {
     return (
@@ -39,7 +78,6 @@ export default function ProductGallery({ images, title }) {
     const from = thumbEl.getBoundingClientRect();
     const to = mainEl.getBoundingClientRect();
 
-    // Nothing meaningful to animate — just swap.
     if (
       Math.abs(from.left - to.left) < 1 &&
       Math.abs(from.top - to.top) < 1 &&
@@ -49,10 +87,6 @@ export default function ProductGallery({ images, title }) {
       return;
     }
 
-    // activeIndex deliberately does NOT change yet — the main div keeps
-    // showing the previous image until the clone reports it has fully
-    // grown (onGrown), which is what keeps the old picture visible for
-    // the whole flight instead of swapping out early.
     setFlying({
       src: gallery[index],
       from,
@@ -64,6 +98,8 @@ export default function ProductGallery({ images, title }) {
 
   return (
     <div>
+      <GalleryPreloadLinks images={gallery} />
+
       <div
         ref={mainRef}
         className="relative aspect-square w-full overflow-hidden rounded-3xl border border-border bg-white"
@@ -74,7 +110,7 @@ export default function ProductGallery({ images, title }) {
           src={activeImage}
           alt={title || 'Product image'}
           fill
-          sizes="(max-width: 1024px) 100vw, 50vw"
+          sizes={MAIN_SIZES}
           priority
           unoptimized={activeImage?.startsWith('data:')}
           className="object-cover"
@@ -93,7 +129,7 @@ export default function ProductGallery({ images, title }) {
               onClick={() => handleThumbClick(index)}
               aria-label={`Show image ${index + 1}`}
               aria-current={index === activeIndex}
-              className={`relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 transition-colors sm:h-20 sm:w-20 ${
+              className={`relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 transition-all duration-200 active:scale-90 sm:h-20 sm:w-20 ${
                 index === activeIndex ? 'border-primary' : 'border-border hover:border-primary/40'
               }`}
             >
