@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import QRCode from 'react-qr-code';
+import Image from 'next/image';
 import { X } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
 
@@ -28,8 +29,8 @@ export default function ProductQrModal({ product, open, onClose }) {
 
   const url =
     typeof window !== 'undefined'
-      ? `${window.location.origin}/product/${product?.slug}`
-      : `/product/${product?.slug}`;
+      ? `${window.location.origin}/shop/product/${product?.slug}`
+      : `/shop/product/${product?.slug}`;
 
   return createPortal(
     <div
@@ -56,7 +57,7 @@ export default function ProductQrModal({ product, open, onClose }) {
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface hover:text-text"
+          className="absolute cursor-pointer right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface hover:text-text"
         >
           <X size={16} />
         </button>
@@ -81,8 +82,17 @@ export default function ProductQrModal({ product, open, onClose }) {
             size={168}
             bgColor="transparent"
             fgColor="#252a2c"
-            level="M"
+            level="H"
           />
+          <span className="absolute left-1/2 top-1/2 size-11 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-white p-4 shadow-sm">
+            <Image
+              src="/logo.jpg"
+              alt="NIQUE SPORTS logo"
+              fill
+              sizes="35px"
+              className="rounded-full object-cover"
+            />
+          </span>
         </div>
 
         <p className="mt-6 text-base font-semibold text-text">

@@ -2,7 +2,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Scan, ShoppingBasket, X } from 'lucide-react'
+import { Scan, ShoppingBasket, X, Zap } from 'lucide-react'
 import { addToCart } from '@/components/sideCart/SideCart';
 
 const TRANSITION_MS = 300;
@@ -118,16 +118,14 @@ const ProductCard = ({ product }) => {
                     {/* Backdrop */}
                     <div
                         onClick={close}
-                        className={`absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-300 ${
-                            visible ? 'opacity-100' : 'opacity-0'
-                        }`}
+                        className={`absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'
+                            }`}
                     />
 
                     {/* Popover panel — simple fade + scale, no shared-element measurement */}
                     <div
-                        className={`relative w-full max-w-3xl h-[80svh] md:h-125 bg-white rounded-2xl overflow-hidden border border-gray-100 z-10 flex flex-col md:flex-row shadow-2xl transition duration-300 ease-out ${
-                            visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                        }`}
+                        className={`relative w-full max-w-3xl h-[80svh] md:h-125 bg-white rounded-2xl overflow-hidden border border-gray-100 z-10 flex flex-col md:flex-row shadow-2xl transition duration-300 ease-out ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                            }`}
                     >
                         <button
                             onClick={close}
