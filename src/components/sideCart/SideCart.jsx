@@ -42,7 +42,10 @@ export const CART_STORAGE_KEY = 'nique-sports:cart';
 // need this instead — that's what was missing before.
 export const CART_UPDATED_EVENT = 'nique-sports:cart-updated';
 
-const optionImage = (option) => (typeof option === 'string' ? option : option?.image ?? '');
+const optionImage = (option) => {
+  if (Array.isArray(option)) return option.map(optionImage).filter(Boolean).sort();
+  return typeof option === 'string' ? option : option?.image ?? '';
+};
 const cartKey = (item) => JSON.stringify([
   item.id ?? item._id,
   item.size ?? 'default',

@@ -31,12 +31,6 @@ export default async function ShopPage({ searchParams }) {
   // drawer, so fetched eagerly rather than behind Suspense.
   const [categories, priceBounds] = await Promise.all([getShopCategories(), getShopPriceBounds()]);
 
-  // Re-keying the Suspense boundary on every filter/sort/page change forces
-  // just this subtree to re-suspend on a client-side navigation, so the
-  // sidebar and toolbar never unmount or flicker while a new page of
-  // products streams in behind the skeleton.
-  const suspenseKey = [category, minPrice, maxPrice, sort, page].join('|');
-
   return (
     <main className="min-h-screen text-text">
       <div className="mx-auto max-w-350 px-4 pb-16 pt-6 sm:px-6 lg:px-8">
@@ -61,7 +55,7 @@ export default async function ShopPage({ searchParams }) {
             </div>
 
             <div className="mt-8">
-              <Suspense key={suspenseKey} fallback={<ProductGridSkeleton count={PER_PAGE} />}>
+              <Suspense fallback={<ProductGridSkeleton count={PER_PAGE} />}>
                 <ProductGrid
                   category={category}
                   minPrice={minPrice}

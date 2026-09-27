@@ -13,7 +13,7 @@ export default function CustomizationOptions({ font = false, fontImages = [], pa
   const [name, setName] = useState('');
   const [number, setNumber] = useState('');
   const [selectedFont, setSelectedFont] = useState(null);
-  const [selectedPatch, setSelectedPatch] = useState('');
+  const [selectedPatch, setSelectedPatch] = useState([]);
 
   function update(next) {
     onChange?.({
@@ -51,7 +51,10 @@ export default function CustomizationOptions({ font = false, fontImages = [], pa
   }
 
   function choosePatch(value) {
-    const nextValue = selectedPatch?.image === value?.image ? null : value;
+    const isSelected = selectedPatch.some((patch) => patch?.image === value?.image);
+    const nextValue = isSelected
+      ? selectedPatch.filter((patch) => patch?.image !== value?.image)
+      : [...selectedPatch, value];
     setSelectedPatch(nextValue);
     update({ patch: nextValue });
   }
@@ -86,7 +89,7 @@ export default function CustomizationOptions({ font = false, fontImages = [], pa
                         aria-checked={selected}
                         aria-label={`Choose font reference ${index + 1}`}
                         onClick={() => chooseFont(option)}
-                        className={`group relative block w-full aspect-[4/3] cursor-pointer overflow-hidden rounded-xl border-2 bg-white transition-colors ${
+                        className={`group relative block w-full aspect-4/3 cursor-pointer overflow-hidden rounded-xl border-2 bg-white transition-colors ${
                           selected
                             ? 'border-primary'
                             : 'border-border hover:border-primary/50'
@@ -158,20 +161,20 @@ export default function CustomizationOptions({ font = false, fontImages = [], pa
       {patches.length > 0 && (
         <div className={font ? 'border-t border-border pt-4' : ''}>
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-semibold text-text">Choose a patch</span>
+            <span className="text-sm font-semibold text-text">Choose patches</span>
             <span className="text-xs text-text-muted">Optional</span>
           </div>
-          <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
+          <div className="grid grid-cols-4 gap-3 sm:grid-cols-5" role="group" aria-label="Choose patches">
             {patches.map((entry, index) => {
               const option = typeof entry === 'string' ? { image: entry, price: 0 } : entry;
               const src = option.image;
-              const selected = selectedPatch?.image === src;
+              const selected = selectedPatch.some((patch) => patch?.image === src);
               return (
                 <div key={src + index} className="min-w-0">
                   <button
                     type="button"
-                    role="radio"
-                    aria-checked={selected}
+                    aria-pressed={selected}
+                    aria-label={`${selected ? 'Remove' : 'Add'} patch option ${index + 1}`}
                     onClick={() => choosePatch(option)}
                     className={`relative block w-full bg-primary-light aspect-square cursor-pointer overflow-hidden rounded-2xl p-1.5 transition-all duration-300 ${
                     selected

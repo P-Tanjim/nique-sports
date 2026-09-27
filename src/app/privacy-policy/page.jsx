@@ -238,7 +238,7 @@ const sections = [
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="w-full bg-surface">
+    <main className="w-full">
       <div className="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
         <Link href="/" className="text-sm font-semibold text-primary hover:underline">
           NIQUE SPORTS

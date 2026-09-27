@@ -121,9 +121,18 @@ export default function SideCartProducts({
   const selectedFont = item.customization?.font;
   const fontImage = typeof selectedFont === 'string' ? selectedFont : selectedFont?.image;
   const fontPrice = Number(selectedFont?.price) || 0;
-  const selectedPatch = item.patch;
-  const patchImage = typeof selectedPatch === 'string' ? selectedPatch : selectedPatch?.image;
-  const patchPrice = Number(selectedPatch?.price) || 0;
+  const selectedPatches = Array.isArray(item.patch)
+    ? item.patch
+    : item.patch
+    ? [item.patch]
+    : [];
+  const patchImages = selectedPatches
+    .map((patch) => (typeof patch === 'string' ? patch : patch?.image))
+    .filter(Boolean);
+  const patchPrice = selectedPatches.reduce(
+    (total, patch) => total + (typeof patch === 'string' ? 0 : Number(patch?.price) || 0),
+    0
+  );
   const basePrice = Number(item.basePrice ?? item.price) || 0;
 
   const discountPercentage = hasDiscount
@@ -166,7 +175,7 @@ export default function SideCartProducts({
         border border-border/80
         bg-white
         transition-[color,opacity,transform]
-        duration-[280ms]
+        duration-280
         hover:border-primary/30
         focus-within:border-primary/40
         ${isExiting ? 'translate-x-4 opacity-0' : ''}
@@ -287,7 +296,7 @@ export default function SideCartProducts({
                   {item.name}
                 </h3>
 
-                {(item.size || fontImage || patchImage) && (
+                {(item.size || fontImage || patchImages.length > 0) && (
                   <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-text-muted">
                     {item.size && <span>Size: <span className="text-text">{item.size}</span></span>}
                     {fontImage && (
@@ -295,11 +304,11 @@ export default function SideCartProducts({
                         <Image src={fontImage} alt="Selected font" fill sizes="24px" unoptimized className="object-contain p-0.5" />
                       </span>
                     )}
-                    {patchImage && (
-                      <span title="Selected patch" aria-label="Selected patch" className="relative h-6 w-6 overflow-hidden rounded border border-border bg-white">
-                        <Image src={patchImage} alt="Selected patch" fill sizes="24px" unoptimized className="object-contain p-0.5" />
+                    {patchImages.map((patchImage, patchIndex) => (
+                      <span key={`${patchImage}-${patchIndex}`} title={`Selected patch ${patchIndex + 1}`} aria-label={`Selected patch ${patchIndex + 1}`} className="relative h-6 w-6 overflow-hidden rounded border border-border bg-white">
+                        <Image src={patchImage} alt={`Selected patch ${patchIndex + 1}`} fill sizes="24px" unoptimized className="object-contain p-0.5" />
                       </span>
-                    )}
+                    ))}
                   </div>
                 )}
 

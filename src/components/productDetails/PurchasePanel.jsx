@@ -27,7 +27,7 @@ export default function PurchasePanel({ product, slug }) {
     name: '',
     number: '',
     font: '',
-    patch: '',
+    patch: [],
   });
 
   const stock = Number(product.stock) || 0;
@@ -35,11 +35,14 @@ export default function PurchasePanel({ product, slug }) {
   const requiresSize = Array.isArray(product.size) && product.size.length > 0;
   const basePrice = Number(product.price) || 0;
   const fontPrice = customization.fontEnabled ? Number(customization.font?.price) || 0 : 0;
-  const patchPrice = Number(customization.patch?.price) || 0;
+  const patchPrice = customization.patch.reduce(
+    (total, patch) => total + (Number(patch?.price) || 0),
+    0
+  );
   const selectedOptionsPrice = fontPrice + patchPrice;
   const totalPrice = basePrice + selectedOptionsPrice;
   const hasSelectedOptions = Boolean(
-    (customization.fontEnabled && customization.font) || customization.patch
+    (customization.fontEnabled && customization.font) || customization.patch.length > 0
   );
   const originalPrice = product.discount && Number(product.beforePrice) > basePrice
     ? Number(product.beforePrice) + selectedOptionsPrice
@@ -64,7 +67,7 @@ export default function PurchasePanel({ product, slug }) {
             font: customization.font || undefined,
           }
         : undefined,
-      patch: customization.patch || undefined,
+      patch: customization.patch.length > 0 ? customization.patch : undefined,
     }),
     [basePrice, customization, originalPrice, product, slug, totalPrice]
   );
@@ -130,7 +133,7 @@ export default function PurchasePanel({ product, slug }) {
             {customization.fontEnabled && customization.font && (
               <span>+ Font {formatPrice(fontPrice)}৳</span>
             )}
-            {customization.patch && (
+            {customization.patch.length > 0 && (
               <span>+ Patch {formatPrice(patchPrice)}৳</span>
             )}
               </span>

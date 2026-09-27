@@ -150,7 +150,7 @@ export default function AnimatedSelect({
                   {indicatorIndex === index && (
                     <motion.div
                       layoutId={`${id}-pill`}
-                      className="absolute inset-0 rounded-2xl border border-white/20 bg-white/15 shadow-inner"
+                      className="absolute inset-0 rounded-2xl border border-white/20 bg-primary-soft/15 shadow-inner"
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}
