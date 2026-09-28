@@ -28,7 +28,7 @@ const ProductCard = ({ product }) => {
         const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
         if (!sourceImage?.complete || !sourceImage.naturalWidth || !target || reduceMotion) {
-            addToCart(product, 1, 'XL');
+            addToCart(product, 1);
             return;
         }
 
@@ -41,7 +41,7 @@ const ProductCard = ({ product }) => {
 
     function handleFlightDone() {
         setFlight(null);
-        addToCart(product, 1, 'XL');
+        addToCart(product, 1);
     }
 
     const open = useCallback(() => {
@@ -195,7 +195,7 @@ const ProductCard = ({ product }) => {
                             <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
                                 <button
                                     onClick={() => {
-                                        addToCart(product, 1, 'XL');
+                                        addToCart(product, 1);
                                         close();
                                     }}
                                     className="w-full py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"

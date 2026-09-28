@@ -9,7 +9,6 @@ import { CART_STORAGE_KEY, CART_UPDATED_EVENT, readCart } from '@/components/sid
 import { DELIVERY_OPTIONS, getCartSubtotal, getDeliveryFee, getDeliveryLabel } from '@/lib/checkout/pricing';
 import { submitOrder } from '@/lib/api/requests/orders';
 import CheckoutForm from './CheckoutForm';
-import ProductTabs from './ProductTabs';
 import ProductTabPanel from './ProductTabPanel';
 import OrderSummary from './OrderSummary';
 import CheckoutBottomSheet from './CheckoutBottomSheet';
@@ -36,6 +35,11 @@ function writeCart(items) {
   }
 }
 
+function getOptionPrice(option) {
+  if (Array.isArray(option)) return option.reduce((total, entry) => total + getOptionPrice(entry), 0);
+  return typeof option === 'string' ? 0 : Number(option?.price) || 0;
+}
+
 function PlaceOrderButton({ submitting, onClick, children }) {
   return (
     <button
@@ -55,7 +59,6 @@ export default function CheckoutClient() {
   const [items, setItems] = useState([]);
   const [customer, setCustomer] = useState(INITIAL_CUSTOMER);
   const [errors, setErrors] = useState({});
-  const [activeTab, setActiveTab] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [shake, setShake] = useState(false);
   const [placedOrder, setPlacedOrder] = useState(null); // { orderId } | null
@@ -87,6 +90,50 @@ export default function CheckoutClient() {
     writeCart(next); // persist so a refresh mid-checkout keeps the change
   }
 
+  function changeItemCustomization(index, customization) {
+    const next = items.map((item, i) => {
+      if (i !== index) return item;
+
+      const currentFontPrice = Number(item.customization?.font?.price) || 0;
+      const nextFontPrice = Number(customization.font?.price) || 0;
+      const priceDelta = nextFontPrice - currentFontPrice;
+      const updated = {
+        ...item,
+        customization,
+        price: (Number(item.price) || 0) + priceDelta,
+      };
+
+      if (item.originalPrice != null) {
+        updated.originalPrice = (Number(item.originalPrice) || 0) + priceDelta;
+      }
+
+      return updated;
+    });
+    setItems(next);
+    writeCart(next);
+  }
+
+  function changeItemPatches(index, patches) {
+    const next = items.map((item, i) => {
+      if (i !== index) return item;
+
+      const priceDelta = getOptionPrice(patches) - getOptionPrice(item.patch);
+      const updated = {
+        ...item,
+        patch: patches,
+        price: (Number(item.price) || 0) + priceDelta,
+      };
+
+      if (item.originalPrice != null) {
+        updated.originalPrice = (Number(item.originalPrice) || 0) + priceDelta;
+      }
+
+      return updated;
+    });
+    setItems(next);
+    writeCart(next);
+  }
+
   function validate() {
     const nextErrors = {};
     if (!customer.name.trim()) nextErrors.name = 'Please enter your name.';
@@ -100,6 +147,12 @@ export default function CheckoutClient() {
 
   async function handlePlaceOrder() {
     if (submitting || !items.length) return;
+
+    if (items.some((item) => !String(item.size ?? '').trim())) {
+      toast.error('Please select a size for each jersey before checkout.');
+      document.querySelector('[data-checkout-products]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
 
     if (!validate()) {
       toast.error('Please check the highlighted fields.');
@@ -177,8 +230,6 @@ export default function CheckoutClient() {
     );
   }
 
-  const activeItem = items[Math.min(activeTab, items.length - 1)];
-
   return (
     // pb-44 on mobile leaves room for the bottom nav + the sheet's handle
     // row, so the last thing on the page never sits underneath them.
@@ -187,7 +238,7 @@ export default function CheckoutClient() {
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-8">
-          <section>
+          <section data-checkout-products>
             <h2 className="mb-3 text-sm font-semibold text-text">Delivery details</h2>
             <div className={shake ? 'animate-form-shake' : ''} onAnimationEnd={() => setShake(false)}>
               <CheckoutForm value={customer} errors={errors} onChange={updateCustomer} />
@@ -196,13 +247,16 @@ export default function CheckoutClient() {
 
           <section>
             <h2 className="mb-3 text-sm font-semibold text-text">Your items</h2>
-            <ProductTabs items={items} activeIndex={activeTab} onSelect={setActiveTab} />
-            <div className={items.length > 1 ? 'mt-4' : ''}>
-              <ProductTabPanel
-                key={activeTab}
-                item={activeItem}
-                onSizeChange={(size) => changeItemSize(activeTab, size)}
-              />
+            <div className="mt-4 space-y-4">
+              {items.map((item, index) => (
+                <ProductTabPanel
+                  key={`${item.id ?? item._id ?? item.name}-${index}`}
+                  item={item}
+                  onSizeChange={(size) => changeItemSize(index, size)}
+                  onCustomizationChange={(customization) => changeItemCustomization(index, customization)}
+                  onPatchChange={(patches) => changeItemPatches(index, patches)}
+                />
+              ))}
             </div>
           </section>
         </div>

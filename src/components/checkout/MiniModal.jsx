@@ -9,8 +9,9 @@ import { X } from 'lucide-react';
 // Small centered modal for things that don't fit inline (a bigger look at a
 // patch/font thumbnail, etc.) — styled like an iOS action sheet, same
 // language as the "featured limit" dialog in ProductForm.jsx.
-export default function MiniModal({ open, title, onClose, children }) {
+export default function MiniModal({ open, title, onClose, children, size = 'compact' }) {
   const [mounted, setMounted] = useState(false);
+  const adminStyle = size === 'admin';
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
@@ -32,7 +33,9 @@ export default function MiniModal({ open, title, onClose, children }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-9998 flex items-center justify-center bg-ink/40 p-5 backdrop-blur-sm"
+          className={`fixed inset-0 z-9998 flex items-center justify-center backdrop-blur-sm ${
+            adminStyle ? 'bg-black/20 p-3' : 'bg-ink/40 p-5'
+          }`}
           onClick={onClose}
         >
           <motion.div
@@ -43,20 +46,28 @@ export default function MiniModal({ open, title, onClose, children }) {
             exit={{ opacity: 0, scale: 0.92, y: 6 }}
             transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-70 overflow-hidden rounded-[26px] bg-white/95 text-center shadow-[0_20px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl"
+            className={`w-full overflow-hidden ${
+              adminStyle
+                ? 'max-w-xs rounded-3xl border border-border bg-white'
+                : `rounded-[26px] bg-white/95 shadow-[0_20px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl ${
+                    size === 'wide' ? 'max-w-2xl text-left' : 'max-w-70 text-center'
+                  }`
+            }`}
           >
-            <div className="flex items-center justify-between px-5 pt-4">
+            <div className={`flex items-center justify-between ${adminStyle ? 'px-3 pt-3' : 'px-5 pt-4'}`}>
               <span className="text-sm font-semibold text-text">{title}</span>
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Close"
-                className="flex h-7 w-7 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface hover:text-text"
+                className={`flex h-7 w-7 items-center justify-center text-text-muted transition-colors hover:bg-surface hover:text-text ${
+                  adminStyle ? 'rounded-md' : 'rounded-full'
+                }`}
               >
-                <X size={15} />
+                <X size={adminStyle ? 16 : 15} />
               </button>
             </div>
-            <div className="px-5 pb-5 pt-4">{children}</div>
+            <div className={adminStyle ? 'px-3 pb-3 pt-3' : 'px-5 pb-5 pt-4'}>{children}</div>
           </motion.div>
         </motion.div>
       )}

@@ -60,6 +60,9 @@ export default function PurchasePanel({ product, slug }) {
       price: totalPrice,
       originalPrice: originalPrice ?? undefined,
       image: product.imagesLink?.[0],
+      availableSizes: product.size ?? [],
+      fontsImg: product.fontsImg ?? [],
+      patchsImg: product.patchsImg ?? [],
       customization: customization.fontEnabled
         ? {
             name: customization.name,

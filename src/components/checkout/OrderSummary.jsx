@@ -1,8 +1,12 @@
 // →  src/components/checkout/OrderSummary.jsx
+import Image from 'next/image';
 import { formatPrice } from '@/lib/format';
 import { getItemLineTotal } from '@/lib/checkout/pricing';
 
-const optionPrice = (option) => (typeof option === 'string' ? 0 : Number(option?.price) || 0);
+const optionPrice = (option) => {
+  if (Array.isArray(option)) return option.reduce((total, entry) => total + optionPrice(entry), 0);
+  return typeof option === 'string' ? 0 : Number(option?.price) || 0;
+};
 
 // Pure presentation, no state or effects — the same markup is used in the
 // desktop side column and inside the mobile bottom sheet.
@@ -14,6 +18,10 @@ export default function OrderSummary({ items, deliveryLabel, deliveryFee, subtot
           const name = item.name ?? item.title;
           const fontPrice = optionPrice(item.customization?.font);
           const patchPrice = optionPrice(item.patch);
+          const selectedPatches = (Array.isArray(item.patch) ? item.patch : item.patch ? [item.patch] : [])
+            .map((patch) => typeof patch === 'string' ? { image: patch } : patch)
+            .filter((patch) => patch?.image);
+          const hasPatchOptions = Array.isArray(item.patchsImg) && item.patchsImg.length > 0;
 
           return (
             <div key={index} className="flex items-start justify-between gap-3 text-sm">
@@ -28,6 +36,20 @@ export default function OrderSummary({ items, deliveryLabel, deliveryFee, subtot
                     {fontPrice > 0 && <span>+ Font {formatPrice(fontPrice)}৳ </span>}
                     {patchPrice > 0 && <span>+ Patch {formatPrice(patchPrice)}৳</span>}
                   </p>
+                )}
+                {(selectedPatches.length > 0 || hasPatchOptions) && (
+                  <div className="mt-1 flex items-center gap-1.5">
+                    {selectedPatches.map((patch, patchIndex) => (
+                      <span key={`${patch.image}-${patchIndex}`} className="relative h-6 w-6 overflow-hidden rounded border border-border bg-white">
+                        <Image src={patch.image} alt="Selected patch" fill sizes="24px" unoptimized className="object-contain p-0.5" />
+                      </span>
+                    ))}
+                    <span className="text-[11px] text-text-muted">
+                      {selectedPatches.length > 0
+                        ? `${selectedPatches.length} patch${selectedPatches.length === 1 ? '' : 'es'} selected`
+                        : 'No patch selected'}
+                    </span>
+                  </div>
                 )}
               </div>
               <span className="shrink-0 font-semibold text-text">

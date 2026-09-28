@@ -66,9 +66,8 @@ export function readCart() {
   }
 }
 
-// Used internally by SideCart's own persistence effect — its React state is
-// already the source of truth when this runs, so it just saves, no need to
-// tell anyone.
+// Persist cart updates before broadcasting them so listeners always read
+// the latest cart state.
 function writeCart(items) {
   if (typeof window === 'undefined') return;
   try {
@@ -90,6 +89,7 @@ export function addToCart(product, quantity = 1, size) {
     id: product.id ?? product._id,
     name: product.name ?? product.title,
     image: product.image ?? product.imagesLink?.[0],
+    availableSizes: product.availableSizes ?? product.size ?? [],
     originalPrice: product.originalPrice ?? (product.discount ? product.beforePrice : undefined),
   };
   const cart = readCart();
@@ -178,15 +178,16 @@ export default function SideCart({ open, onClose }) {
   }, []);
 
   const handleQuantityChange = useCallback((item, nextQuantity) => {
+    const currentItems = readCart();
     const nextItems = nextQuantity < 1
-      ? items.filter((p) => cartKey(p) !== cartKey(item))
-      : items.map((p) => (cartKey(p) === cartKey(item) ? { ...p, quantity: nextQuantity } : p));
+      ? currentItems.filter((p) => cartKey(p) !== cartKey(item))
+      : currentItems.map((p) => (cartKey(p) === cartKey(item) ? { ...p, quantity: nextQuantity } : p));
     commitItems(nextItems);
-  }, [commitItems, items]);
+  }, [commitItems]);
 
   const handleRemove = useCallback((item) => {
-    commitItems(items.filter((p) => cartKey(p) !== cartKey(item)));
-  }, [commitItems, items]);
+    commitItems(readCart().filter((p) => cartKey(p) !== cartKey(item)));
+  }, [commitItems]);
 
   const itemCount = useMemo(() => items.reduce((sum, i) => sum + i.quantity, 0), [items]);
   const subtotal = useMemo(() => items.reduce((sum, i) => sum + i.price * i.quantity, 0), [items]);
@@ -304,7 +305,7 @@ export default function SideCart({ open, onClose }) {
               </div>
             )}
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm text-text-muted">Subtotal</span>
+              <span className="text-sm text-text/85">Subtotal</span>
               <span className="text-xl font-semibold text-text">{formatPrice(subtotal)}৳</span>
             </div>
             <p className="mb-4 text-xs text-text-muted">Shipping and taxes calculated at checkout.</p>
@@ -313,7 +314,7 @@ export default function SideCart({ open, onClose }) {
               <Link
                 href="/checkout"
                 onClick={onClose}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark/20"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark/70"
               >
                 Checkout
                 <ArrowRight size={16} />

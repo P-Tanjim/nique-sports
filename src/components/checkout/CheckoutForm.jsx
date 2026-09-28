@@ -1,14 +1,8 @@
 // →  src/components/checkout/CheckoutForm.jsx
 'use client';
 
-import { MapPin, MessageSquare, Phone, User } from 'lucide-react';
-import AnimatedSelect from '@/components/dashboard/products/AnimatedSelect';
+import { ChevronDown, MapPin, MessageSquare, Phone, User } from 'lucide-react';
 import { DELIVERY_OPTIONS } from '@/lib/checkout/pricing';
-
-const deliverySelectOptions = DELIVERY_OPTIONS.map((option) => ({
-  value: option.value,
-  label: `${option.label} — ${option.fee}৳`,
-}));
 
 // This form is the same for every product in the cart — one address, one
 // phone number, one delivery slot, regardless of how many jerseys are in it.
@@ -107,12 +101,25 @@ export default function CheckoutForm({ value, errors, onChange }) {
       </div>
 
       <div className="sm:col-span-2">
-        <AnimatedSelect
-          label="Delivery Area"
-          options={deliverySelectOptions}
-          value={value.deliveryArea}
-          onChange={(v) => onChange('deliveryArea', v)}
-        />
+        <label htmlFor="checkout-delivery-area" className="block text-xs font-medium uppercase tracking-wide text-text-muted">
+          Delivery Area
+        </label>
+        <div className="relative mt-1.5">
+          <MapPin size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-primary" />
+          <select
+            id="checkout-delivery-area"
+            value={value.deliveryArea}
+            onChange={(event) => onChange('deliveryArea', event.target.value)}
+            className="w-full appearance-none rounded-2xl border border-border bg-surface py-3 pl-10 pr-11 text-sm font-medium text-text outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/10"
+          >
+            {DELIVERY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} · {option.fee}৳
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={17} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+        </div>
       </div>
 
       {/* Locked to COD for now — the bKash slot is already here, wired up

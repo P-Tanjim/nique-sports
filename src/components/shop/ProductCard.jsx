@@ -69,7 +69,7 @@ export default function ProductCard({
         // data-cart-fly-target attribute (or hasn't mounted yet).
         console.warn('[ProductCard] No [data-cart-fly-target] element found — the fly animation is being skipped.');
       }
-      addToCart(product, 1, 'M');
+      addToCart(product, 1);
       markAdded();
       return;
     }
@@ -83,7 +83,7 @@ export default function ProductCard({
 
   function handleFlightDone() {
     setFlight(null);
-    addToCart(product, 1, 'M');
+    addToCart(product, 1);
     markAdded();
   }
 
