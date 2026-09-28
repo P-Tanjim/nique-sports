@@ -48,6 +48,9 @@ export default function CheckoutOrderButton({ onSubmit, onSuccess, onFlowStart, 
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     try {
+      // pin the truck's pose while it's still invisible, so nothing snaps later
+      await animate(truck, { x: 4, y: 0 }, { duration: 0 });
+
       if (!reducedMotion) {
         await Promise.all([
           animate(defaultText, { opacity: 0 }, { duration: 0.3 }),
@@ -61,14 +64,13 @@ export default function CheckoutOrderButton({ onSubmit, onSuccess, onFlowStart, 
           animate(stage, { '--box-x': 0 }, { duration: 0.4, delay: 0.25, ease: 'easeOut' }),
           animate(stage, { '--hx': -5, '--bx': 50 }, { duration: 0.18, delay: 0.47, ease: 'easeOut' }),
           animate(stage, { '--box-y': 0 }, { duration: 0.1, delay: 0.7, ease: 'easeOut' }),
-          animate(truck, { y: -2 }, { duration: 0.2, delay: 1.25, ease: 'easeOut' }),
         ]);
 
         await Promise.all([
-          animate(truck, { x: [4, 4, 44, 24, travelDistance], y: [0, 0, -2, 0, 0] }, {
+          animate(truck, { x: [4, 4, 44, 24, travelDistance] }, {
             duration: 2.4,
             times: [0, 1 / 6, 7 / 12, 5 / 6, 1],
-            ease: 'linear',
+            ease: ['linear', 'easeInOut', 'easeInOut', 'easeIn'],
           }),
           animate(stage, { '--progress': 1 }, { duration: 2.4, ease: 'easeIn' }),
         ]);
