@@ -108,7 +108,7 @@ export default function CheckoutBottomSheet({ total, itemCount, children }) {
           transition: isDragging ? 'none' : `transform 0.38s ${SETTLE_EASE}`,
           bottom: NAV_CLEARANCE,
         }}
-        className="fixed inset-x-0 z-70 mx-3 overflow-hidden rounded-3xl border border-border/70 bg-white/95 shadow-[0_-12px_40px_rgba(32,36,38,0.18)] backdrop-blur-xl will-change-transform lg:hidden"
+        className={`fixed inset-x-0 z-70 mx-3 overflow-hidden rounded-3xl border border-border/70 ${expanded ? 'bg-white/95' : 'bg-white/30'} transition-all shadow-[0_-12px_40px_rgba(32,36,38,0.18)] backdrop-blur-xl will-change-transform lg:hidden`}
       >
         {/* Handle + peek row — always visible; drag it or tap it */}
         <div

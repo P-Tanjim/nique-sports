@@ -1,5 +1,5 @@
 // →  src/app/checkout/page.jsx
-import CheckoutClient from './CheckoutClient';
+import CheckoutClient from '../../components/checkout/CheckoutClient';
 
 export const metadata = {
   title: 'Checkout | NIQUE SPORTS',
