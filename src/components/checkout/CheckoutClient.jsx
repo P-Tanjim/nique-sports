@@ -1,11 +1,12 @@
 // →  src/app/checkout/CheckoutClient.jsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { CheckCircle2, Loader2, ShoppingBag } from 'lucide-react';
-import { CART_STORAGE_KEY, CART_UPDATED_EVENT, readCart } from '@/components/sideCart/SideCart';
+import { CART_STORAGE_KEY, CART_UPDATED_EVENT, mergeCartItems, readCart } from '@/components/sideCart/SideCart';
 import { DELIVERY_OPTIONS, getCartSubtotal, getDeliveryFee, getDeliveryLabel } from '@/lib/checkout/pricing';
 import { submitOrder } from '@/lib/api/requests/orders';
 import CheckoutForm from './CheckoutForm';
@@ -57,18 +58,24 @@ function PlaceOrderButton({ submitting, onClick, children }) {
 export default function CheckoutClient() {
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState([]);
+  const [emptyCartReady, setEmptyCartReady] = useState(false);
   const [customer, setCustomer] = useState(INITIAL_CUSTOMER);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [shake, setShake] = useState(false);
   const [placedOrder, setPlacedOrder] = useState(null); // { orderId } | null
+  const emptyCartTimerRef = useRef(null);
 
   // localStorage only exists in the browser, so the cart is read once here
   // after mount — same approach SideCart.jsx takes.
   useEffect(() => {
-    setItems(readCart());
+    const initialItems = readCart();
+    setItems(initialItems);
+    setEmptyCartReady(initialItems.length === 0);
     setHydrated(true);
   }, []);
+
+  useEffect(() => () => window.clearTimeout(emptyCartTimerRef.current), []);
 
   const deliveryFee = getDeliveryFee(customer.deliveryArea);
   const deliveryLabel = getDeliveryLabel(customer.deliveryArea);
@@ -85,9 +92,20 @@ export default function CheckoutClient() {
   }
 
   function changeItemSize(index, size) {
-    const next = items.map((item, i) => (i === index ? { ...item, size } : item));
+    const changedItems = items.map((item, i) => (i === index ? { ...item, size } : item));
+    const next = mergeCartItems(changedItems, changedItems[index]);
     setItems(next);
     writeCart(next); // persist so a refresh mid-checkout keeps the change
+  }
+
+  function removeCheckoutItem(index) {
+    const next = items.filter((_, itemIndex) => itemIndex !== index);
+    setItems(next);
+    writeCart(next);
+    if (next.length === 0) {
+      window.clearTimeout(emptyCartTimerRef.current);
+      emptyCartTimerRef.current = window.setTimeout(() => setEmptyCartReady(true), 350);
+    }
   }
 
   function changeItemCustomization(index, customization) {
@@ -212,7 +230,7 @@ export default function CheckoutClient() {
     );
   }
 
-  if (items.length === 0) {
+  if (items.length === 0 && emptyCartReady) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center px-4 py-24 text-center">
         <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface text-text-muted">
@@ -248,15 +266,31 @@ export default function CheckoutClient() {
           <section>
             <h2 className="mb-3 text-sm font-semibold text-text">Your items</h2>
             <div className="mt-4 space-y-4">
-              {items.map((item, index) => (
-                <ProductTabPanel
-                  key={`${item.id ?? item._id ?? item.name}-${index}`}
-                  item={item}
-                  onSizeChange={(size) => changeItemSize(index, size)}
-                  onCustomizationChange={(customization) => changeItemCustomization(index, customization)}
-                  onPatchChange={(patches) => changeItemPatches(index, patches)}
-                />
-              ))}
+              <AnimatePresence initial={false}>
+                {items.map((item, index) => (
+                  <motion.div
+                    key={`${item.id ?? item._id ?? item.name}-${index}`}
+                    layout
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    transition={{
+                      height: { duration: 0.35, ease: [0.32, 0.72, 0, 1] },
+                      opacity: { duration: 0.2 },
+                      layout: { duration: 0.35, ease: [0.32, 0.72, 0, 1] },
+                    }}
+                    className="overflow-hidden"
+                  >
+                    <ProductTabPanel
+                      item={item}
+                      onSizeChange={(size) => changeItemSize(index, size)}
+                      onCustomizationChange={(customization) => changeItemCustomization(index, customization)}
+                      onPatchChange={(patches) => changeItemPatches(index, patches)}
+                      onRemove={() => removeCheckoutItem(index)}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </section>
         </div>

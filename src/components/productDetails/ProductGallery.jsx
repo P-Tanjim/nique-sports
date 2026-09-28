@@ -36,6 +36,8 @@ export default function ProductGallery({ images, title }) {
   const [flying, setFlying] = useState(null); // { src, from, to, onGrown, onDone } | null
   const mainRef = useRef(null);
   const thumbRefs = useRef([]);
+  const thumbsRef = useRef(null);  // the thumbnail strip
+  const swipeRef = useRef(null);   // tracks the swipe in progress
 
   const activeImage = gallery[activeIndex];
 
@@ -75,6 +77,8 @@ export default function ProductGallery({ images, title }) {
       return;
     }
 
+    revealThumb(index);
+
     const from = thumbEl.getBoundingClientRect();
     const to = mainEl.getBoundingClientRect();
 
@@ -96,12 +100,49 @@ export default function ProductGallery({ images, title }) {
     });
   }
 
+  // If the incoming thumbnail is scrolled out of the strip, bring it into
+  // view first so the fly animation always starts from a visible spot.
+  function revealThumb(index) {
+    const box = thumbsRef.current;
+    const el = thumbRefs.current[index];
+    if (!box || !el) return;
+    const boxRect = box.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    if (elRect.left < boxRect.left || elRect.right > boxRect.right) {
+      box.scrollLeft += elRect.left - boxRect.left - (boxRect.width - elRect.width) / 2;
+    }
+  }
+
+  function goRelative(step) {
+    if (gallery.length < 2) return;
+    const next = (activeIndex + step + gallery.length) % gallery.length; // wraps around
+    handleThumbClick(next); // same animation as a click
+  }
+
+  function handleSwipeStart(e) {
+    swipeRef.current = { x: e.clientX, y: e.clientY };
+  }
+
+  function handleSwipeEnd(e) {
+    const start = swipeRef.current;
+    swipeRef.current = null;
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    // Must be a clearly horizontal gesture, not a tap or a vertical scroll.
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    goRelative(dx < 0 ? 1 : -1); // swipe left → next, swipe right → previous
+  }
+
   return (
     <div>
       <GalleryPreloadLinks images={gallery} />
 
       <div
         ref={mainRef}
+        onPointerDown={handleSwipeStart}
+        onPointerUp={handleSwipeEnd}
+        onPointerCancel={() => (swipeRef.current = null)}
         className="relative aspect-square w-full overflow-hidden rounded-3xl border border-border bg-white"
       >
         <Image
@@ -118,7 +159,7 @@ export default function ProductGallery({ images, title }) {
       </div>
 
       {gallery.length > 1 && (
-        <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
+        <div ref={thumbsRef} className="mt-3 flex gap-3 overflow-x-auto pb-1">
           {gallery.map((src, index) => (
             <button
               key={src + index}
@@ -129,9 +170,8 @@ export default function ProductGallery({ images, title }) {
               onClick={() => handleThumbClick(index)}
               aria-label={`Show image ${index + 1}`}
               aria-current={index === activeIndex}
-              className={`relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 transition-all duration-200 active:scale-90 sm:h-20 sm:w-20 ${
-                index === activeIndex ? 'border-primary' : 'border-border hover:border-primary/40'
-              }`}
+              className={`relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 transition-all duration-200 active:scale-90 sm:h-20 sm:w-20 ${index === activeIndex ? 'border-primary' : 'border-border hover:border-primary/40'
+                }`}
             >
               <Image
                 loading="eager"

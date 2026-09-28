@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Check, Save } from 'lucide-react';
+import { Check, Save, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
 import MiniModal from './MiniModal';
 
@@ -26,7 +26,7 @@ function FieldLabel({ children }) {
   );
 }
 
-export default function ProductTabPanel({ item, onSizeChange, onCustomizationChange, onPatchChange }) {
+export default function ProductTabPanel({ item, onSizeChange, onCustomizationChange, onPatchChange, onRemove }) {
   const [patchModalOpen, setPatchModalOpen] = useState(false);
   const [fontEditorOpen, setFontEditorOpen] = useState(false);
   const [draftName, setDraftName] = useState('');
@@ -82,7 +82,15 @@ export default function ProductTabPanel({ item, onSizeChange, onCustomizationCha
   }
 
   return (
-    <div className="flex gap-4 rounded-3xl border border-border bg-white p-4 shadow-[0_1px_2px_rgba(32,36,38,0.04)] sm:gap-5 sm:p-5">
+    <div className="relative flex gap-4 rounded-3xl border border-border bg-white p-4 shadow-[0_1px_2px_rgba(32,36,38,0.04)] sm:gap-5 sm:p-5">
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${name} from checkout`}
+        className="absolute -right-2 -top-2 z-10 rotate-25 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-text-muted/70 transition-[color,background-color,transform] duration-200 hover:bg-danger/8 hover:text-danger active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/30"
+      >
+        <Trash2 size={14} strokeWidth={1.8} />
+      </button>
       {/* LEFT — product image */}
       <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-surface sm:h-40 sm:w-40">
         {image ? (

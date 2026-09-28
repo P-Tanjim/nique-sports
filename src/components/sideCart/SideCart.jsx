@@ -54,6 +54,37 @@ const cartKey = (item) => JSON.stringify([
   item.customization?.name ?? '',
   item.customization?.number ?? '',
 ]);
+const cartVariantKey = (item) => JSON.stringify([
+  item.id ?? item._id,
+  optionImage(item.customization?.font),
+  optionImage(item.patch),
+  item.customization?.name ?? '',
+  item.customization?.number ?? '',
+]);
+
+export function mergeCartItems(items, preferredItem) {
+  const merged = [];
+  const indexes = new Map();
+
+  for (const item of items) {
+    const key = cartKey(item);
+    const existingIndex = indexes.get(key);
+    if (existingIndex === undefined) {
+      indexes.set(key, merged.length);
+      merged.push(item);
+      continue;
+    }
+
+    const existing = merged[existingIndex];
+    const quantity = (Number(existing.quantity) || 1) + (Number(item.quantity) || 1);
+    merged[existingIndex] = {
+      ...(item === preferredItem ? item : existing),
+      quantity,
+    };
+  }
+
+  return merged;
+}
 
 export function readCart() {
   if (typeof window === 'undefined') return [];
@@ -93,11 +124,22 @@ export function addToCart(product, quantity = 1, size) {
     originalPrice: product.originalPrice ?? (product.discount ? product.beforePrice : undefined),
   };
   const cart = readCart();
-  const key = cartKey({ ...cartProduct, size });
-  const existing = cart.find((p) => cartKey(p) === key);
-  const next = existing
-    ? cart.map((p) => (cartKey(p) === key ? { ...p, quantity: p.quantity + quantity } : p))
-    : [...cart, { ...cartProduct, size, quantity }];
+  const nextItem = { ...cartProduct, size, quantity };
+  const key = cartKey(nextItem);
+  const variantKey = cartVariantKey(nextItem);
+  const matchingItems = cart.filter((item) =>
+    cartKey(item) === key || (size && !item.size && cartVariantKey(item) === variantKey)
+  );
+  const matchingQuantity = matchingItems.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+  const existingSizedItem = matchingItems.find((item) => cartKey(item) === key);
+  const next = mergeCartItems([
+    ...cart.filter((item) => !matchingItems.includes(item)),
+    {
+      ...(existingSizedItem ?? matchingItems[0] ?? {}),
+      ...nextItem,
+      quantity: matchingQuantity + quantity,
+    },
+  ]);
 
   writeCart(next);
   if (typeof window !== 'undefined') {
