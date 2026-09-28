@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
+import { Check } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import IOSSwitch from '@/components/dashboard/products/IOSSwitch';
@@ -173,17 +174,23 @@ export default function CustomizationOptions({ font = false, fontImages = [], pa
                 <div key={src + index} className="min-w-0">
                   <button
                     type="button"
-                    aria-pressed={selected}
-                    aria-label={`${selected ? 'Remove' : 'Add'} patch option ${index + 1}`}
+                    role="checkbox"
+                    aria-checked={selected}
+                    aria-label={`Patch option ${index + 1}`}
                     onClick={() => choosePatch(option)}
-                    className={`relative block w-full bg-primary-light aspect-square cursor-pointer overflow-hidden rounded-2xl p-1.5 transition-all duration-300 ${
-                    selected
-                      ? ' '
-                      : 'border-border hover:border-primary/50'
-                  }`}
+                    className={`relative block w-full aspect-square cursor-pointer overflow-hidden rounded-2xl border-2 bg-primary-light p-1.5 transition-all duration-300 ${
+                      selected ? 'border-primary' : 'border-transparent hover:border-primary/50'
+                    }`}
                   >
                     <Image src={src} alt={`Patch option ${index + 1}`} fill sizes="80px" className={`rounded-2xl object-cover transition-all ${selected ? 'scale-[0.89]' : 'scale-100'}`} />
-                    <span className={`absolute right-1.5 top-1.5 h-4 w-4 rounded-full border-2 border-white transition-colors ${selected ? 'bg-primary' : 'bg-black/10'}`} />
+                    <span
+                      aria-hidden="true"
+                      className={`absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded border-2 border-white shadow-sm transition-colors ${
+                        selected ? 'bg-primary text-white' : 'bg-white/90 text-transparent'
+                      }`}
+                    >
+                      <Check size={12} strokeWidth={3} />
+                    </span>
                   </button>
                   <p className="mt-1 text-center text-xs font-semibold text-text">
                     {formatPrice(Number(option.price) || 0)}৳

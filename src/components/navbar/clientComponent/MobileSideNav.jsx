@@ -17,11 +17,10 @@ const defaultNavItems = [
 ];
 
 const NavLink = ({ heading, href, setIsActive, index }) => (
-	<div
+	<Link href={href}
 		onClick={() => setIsActive(false)}
 		className="group relative flex items-center justify-between border-b border-black/30 py-4 transition-colors duration-500 md:py-8 cursor-pointer"
 	>
-		<Link href={href}>
 			<div className="relative flex items-start">
 				<span className="text-black transition-colors duration-500 text-xl font-thin mr-2">
 					{index}.
@@ -30,8 +29,7 @@ const NavLink = ({ heading, href, setIsActive, index }) => (
 					{heading}
 				</span>
 			</div>
-		</Link>
-	</div>
+	</Link>
 );
 
 const SideNavbar = ({ isActive, setIsActive, navItems }) => (

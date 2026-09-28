@@ -156,13 +156,6 @@ export default function SideCart({ open, onClose }) {
     };
   }, []);
 
-  // Persist every change — skipped until the initial read has happened,
-  // so we never overwrite real saved data with an empty array.
-  useEffect(() => {
-    if (!hydrated) return;
-    writeCart(items);
-  }, [items, hydrated]);
-
   // Lock background scroll + close on Escape, matching the other
   // drawers/modals already in this app.
   useEffect(() => {
@@ -178,17 +171,22 @@ export default function SideCart({ open, onClose }) {
     };
   }, [open, onClose]);
 
-  const handleQuantityChange = useCallback((item, nextQuantity) => {
-    setItems((prev) =>
-      nextQuantity < 1
-        ? prev.filter((p) => cartKey(p) !== cartKey(item))
-        : prev.map((p) => (cartKey(p) === cartKey(item) ? { ...p, quantity: nextQuantity } : p))
-    );
+  const commitItems = useCallback((nextItems) => {
+    setItems(nextItems);
+    writeCart(nextItems);
+    window.dispatchEvent(new Event(CART_UPDATED_EVENT));
   }, []);
 
+  const handleQuantityChange = useCallback((item, nextQuantity) => {
+    const nextItems = nextQuantity < 1
+      ? items.filter((p) => cartKey(p) !== cartKey(item))
+      : items.map((p) => (cartKey(p) === cartKey(item) ? { ...p, quantity: nextQuantity } : p));
+    commitItems(nextItems);
+  }, [commitItems, items]);
+
   const handleRemove = useCallback((item) => {
-    setItems((prev) => prev.filter((p) => cartKey(p) !== cartKey(item)));
-  }, []);
+    commitItems(items.filter((p) => cartKey(p) !== cartKey(item)));
+  }, [commitItems, items]);
 
   const itemCount = useMemo(() => items.reduce((sum, i) => sum + i.quantity, 0), [items]);
   const subtotal = useMemo(() => items.reduce((sum, i) => sum + i.price * i.quantity, 0), [items]);
@@ -232,7 +230,7 @@ export default function SideCart({ open, onClose }) {
                   <span className="text-text-muted/40">•</span>
                   <button
                     type="button"
-                    onClick={() => setItems([])}
+                    onClick={() => commitItems([])}
                     className="text-xs cursor-pointer font-medium text-danger transition-colors hover:underline"
                   >
                     Clear cart

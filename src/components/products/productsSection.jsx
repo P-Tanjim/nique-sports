@@ -7,6 +7,15 @@ import { ArrowRight } from 'lucide-react';
 import { getProducts } from '@/lib/api/products/products';
 import Link from 'next/link';
 
+const getProductLimit = (width ) => {
+    if (width < 1280){
+        return 8;
+    }
+    else {
+        return 6;
+    }
+}
+
 const ProductsSection = async () => {
     const products = await getProducts(10);
     const productList = Array.isArray(products) ? products : [];

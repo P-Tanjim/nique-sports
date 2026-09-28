@@ -1,18 +1,48 @@
 'use client'
 import Image from 'next/image'
 import Link from 'next/link'
+import { createPortal } from 'react-dom'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Scan, ShoppingBasket, X, Zap } from 'lucide-react'
 import { addToCart } from '@/components/sideCart/SideCart';
+import AddToCartFlyClone from '@/components/shop/AddToCartFlyClone';
 
 const TRANSITION_MS = 300;
+const CART_TARGET_SELECTOR = '[data-cart-fly-target]';
 
 const ProductCard = ({ product }) => {
     const [isOpen, setIsOpen] = useState(false);   // did the user ask to open it
     const [mounted, setMounted] = useState(false); // is the modal in the DOM at all
     const [visible, setVisible] = useState(false); // has it transitioned in
+    const [flight, setFlight] = useState(null);
     const mountedRef = useRef(false);
     const closeTimerRef = useRef(null);
+    const imageRef = useRef(null);
+
+    function handleAddToCart(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const sourceImage = imageRef.current;
+        const target = document.querySelector(CART_TARGET_SELECTOR);
+        const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+        if (!sourceImage?.complete || !sourceImage.naturalWidth || !target || reduceMotion) {
+            addToCart(product, 1, 'XL');
+            return;
+        }
+
+        setFlight({
+            src: sourceImage.currentSrc || sourceImage.src,
+            from: sourceImage.getBoundingClientRect(),
+            to: target.getBoundingClientRect(),
+        });
+    }
+
+    function handleFlightDone() {
+        setFlight(null);
+        addToCart(product, 1, 'XL');
+    }
 
     const open = useCallback(() => {
         if (closeTimerRef.current) {
@@ -88,13 +118,15 @@ const ProductCard = ({ product }) => {
                         <button
                             type="button"
                             title="Add to Cart"
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(product, 1, 'XL'); }}
-                            className='w-9 pointer-events-auto h-9 md:w-10 md:h-10 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
+                            disabled={Boolean(flight)}
+                            onClick={handleAddToCart}
+                            className='w-9 pointer-events-auto h-9 md:w-10 md:h-10 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium disabled:pointer-events-none disabled:opacity-70'
                         >
                             <ShoppingBasket size={14} />
                         </button>
                     </div>
                     <Image
+                        ref={imageRef}
                         src={product.imagesLink[0]}
                         alt={product.title}
                         width={150}
@@ -176,6 +208,17 @@ const ProductCard = ({ product }) => {
                     </div>
                 </div>
             )}
+
+            {flight &&
+                createPortal(
+                    <AddToCartFlyClone
+                        src={flight.src}
+                        from={flight.from}
+                        to={flight.to}
+                        onDone={handleFlightDone}
+                    />,
+                    document.body
+                )}
         </>
     )
 }
