@@ -10,7 +10,7 @@ export const metadata = {
 // everything interactive sits in <CheckoutClient />.
 export default function CheckoutPage() {
   return (
-    <main className="min-h-screen bg-surface text-text">
+    <main className="min-h-screen text-text">
       <CheckoutClient />
     </main>
   );

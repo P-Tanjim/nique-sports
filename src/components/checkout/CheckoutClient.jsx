@@ -185,10 +185,7 @@ export default function CheckoutClient() {
       const result = await submitOrder({
         customer,
         items,
-        deliveryArea: deliveryLabel,
-        deliveryFee,
-        subtotal,
-        total,
+        deliveryArea: customer.deliveryArea,
       });
 
       if (!result?.success) {
