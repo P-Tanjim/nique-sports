@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { CheckCircle2, Loader2, ShoppingBag } from 'lucide-react';
+import { CheckCircle2, ShoppingBag } from 'lucide-react';
 import { CART_STORAGE_KEY, CART_UPDATED_EVENT, mergeCartItems, readCart } from '@/components/sideCart/SideCart';
 import { DELIVERY_OPTIONS, getCartSubtotal, getDeliveryFee, getDeliveryLabel } from '@/lib/checkout/pricing';
 import { submitOrder } from '@/lib/api/requests/orders';
@@ -13,6 +13,7 @@ import CheckoutForm from './CheckoutForm';
 import ProductTabPanel from './ProductTabPanel';
 import OrderSummary from './OrderSummary';
 import CheckoutBottomSheet from './CheckoutBottomSheet';
+import CheckoutOrderButton from './CheckoutOrderButton';
 
 const INITIAL_CUSTOMER = {
   name: '',
@@ -41,20 +42,6 @@ function getOptionPrice(option) {
   return typeof option === 'string' ? 0 : Number(option?.price) || 0;
 }
 
-function PlaceOrderButton({ submitting, onClick, children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={submitting}
-      className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
-    >
-      {submitting && <Loader2 size={17} className="animate-spin" />}
-      {submitting ? 'Placing order…' : children}
-    </button>
-  );
-}
-
 export default function CheckoutClient() {
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState([]);
@@ -62,6 +49,7 @@ export default function CheckoutClient() {
   const [customer, setCustomer] = useState(INITIAL_CUSTOMER);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [orderFlowActive, setOrderFlowActive] = useState(false);
   const [shake, setShake] = useState(false);
   const [placedOrder, setPlacedOrder] = useState(null); // { orderId } | null
   const emptyCartTimerRef = useRef(null);
@@ -164,12 +152,12 @@ export default function CheckoutClient() {
   }
 
   async function handlePlaceOrder() {
-    if (submitting || !items.length) return;
+    if (submitting || !items.length) return { success: false };
 
     if (items.some((item) => !String(item.size ?? '').trim())) {
       toast.error('Please select a size for each jersey before checkout.');
       document.querySelector('[data-checkout-products]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
+      return { success: false };
     }
 
     if (!validate()) {
@@ -177,7 +165,7 @@ export default function CheckoutClient() {
       setShake(false);
       requestAnimationFrame(() => setShake(true));
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+      return { success: false };
     }
 
     setSubmitting(true);
@@ -190,18 +178,33 @@ export default function CheckoutClient() {
 
       if (!result?.success) {
         toast.error(result?.error || 'Could not place your order. Please try again.');
-        return;
+        return { success: false };
       }
 
-      writeCart([]); // order is in — empty the cart
-      setItems([]);
-      setPlacedOrder({ orderId: result.orderId });
+      return { success: true, orderId: result.orderId };
     } catch (error) {
       console.error('Checkout submission error:', error);
       toast.error('Something went wrong. Please try again.');
+      return { success: false };
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function beginOrderFlow() {
+    if (orderFlowActive || submitting) return false;
+    setOrderFlowActive(true);
+    return true;
+  }
+
+  function finishOrderFlow() {
+    setOrderFlowActive(false);
+  }
+
+  function completeOrder(result) {
+    writeCart([]);
+    setItems([]);
+    setPlacedOrder({ orderId: result.orderId });
   }
 
   if (!hydrated) return null;
@@ -304,9 +307,13 @@ export default function CheckoutClient() {
               total={total}
             />
             <div className="mt-6">
-              <PlaceOrderButton submitting={submitting} onClick={handlePlaceOrder}>
-                Place Order · Cash on Delivery
-              </PlaceOrderButton>
+              <CheckoutOrderButton
+                disabled={submitting || orderFlowActive}
+                onSubmit={handlePlaceOrder}
+                onSuccess={completeOrder}
+                onFlowStart={beginOrderFlow}
+                onFlowEnd={finishOrderFlow}
+              />
             </div>
           </div>
         </aside>
@@ -322,9 +329,13 @@ export default function CheckoutClient() {
           total={total}
         />
         <div className="mt-5">
-          <PlaceOrderButton submitting={submitting} onClick={handlePlaceOrder}>
-            Place Order · COD
-          </PlaceOrderButton>
+          <CheckoutOrderButton
+            disabled={submitting || orderFlowActive}
+            onSubmit={handlePlaceOrder}
+            onSuccess={completeOrder}
+            onFlowStart={beginOrderFlow}
+            onFlowEnd={finishOrderFlow}
+          />
         </div>
       </CheckoutBottomSheet>
     </div>
