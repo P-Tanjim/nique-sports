@@ -1,6 +1,7 @@
 'use server'
 
-import { serverFetch } from '../core/core';
+import { revalidatePath } from 'next/cache';
+import { serverFetch, serverPut } from '../core/core';
 
 // ---------------------------------------------------------------
 // Admin dashboard data. Each function is a thin wrapper around your
@@ -40,6 +41,17 @@ export const getRecentOrders = async () => {
 export const getAllOrders = async () => {
   const res = await serverFetch('/admin/orders', { signal: AbortSignal.timeout(8000) });
   return res?.data ?? null;
+};
+
+export const updateOrderStatus = async (id, status) => {
+  const result = await serverPut(`/admin/orders/${encodeURIComponent(id)}/status`, { status });
+
+  if (result?.success) {
+    revalidatePath('/dashboard/orders');
+    revalidatePath('/dashboard');
+  }
+
+  return result;
 };
 
 // GET /admin/products/top-selling?limit=5

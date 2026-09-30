@@ -15,8 +15,9 @@ const STATUS_LABELS = {
 };
 
 export default function OrderStatusBadge({ status }) {
-  const style = STATUS_STYLES[status] ?? 'bg-surface text-text-muted';
-  const label = STATUS_LABELS[status] ?? status;
+  const normalizedStatus = String(status ?? '').toLowerCase();
+  const style = STATUS_STYLES[normalizedStatus] ?? 'bg-surface text-text-muted';
+  const label = STATUS_LABELS[normalizedStatus] ?? status;
 
   return <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${style}`}>{label}</span>;
 }

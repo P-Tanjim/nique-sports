@@ -2,9 +2,10 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { CalendarDays, MapPin, Package, Phone, X } from 'lucide-react';
+import { CalendarDays, Check, MapPin, MoreVertical, Package, Phone, X } from 'lucide-react';
 import OrderStatusBadge from './OrderStatusBadge';
 import { formatPrice } from '@/lib/format';
+import { updateOrderStatus } from '@/lib/api/requests/dashboard';
 
 function getOrderItems(order) {
   return Array.isArray(order?.items) ? order.items : [];
@@ -304,39 +305,118 @@ function OrderDetailsModal({ order, onClose }) {
   );
 }
 
-function OrderCard({ order, index, onSelect }) {
+function OrderCard({ order, index, onSelect, onStatusChange, statusSaving }) {
   const images = getOrderImages(order);
   const status = String(order?.status ?? 'pending').toLowerCase();
+  const orderId = getOrderId(order, index);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [customStatus, setCustomStatus] = useState('');
+  const [statusError, setStatusError] = useState('');
+
+  async function changeStatus(nextStatus) {
+    setStatusError('');
+    const result = await onStatusChange(orderId, nextStatus);
+    if (!result?.success) {
+      setStatusError(result?.error ?? 'Could not update this order.');
+      return;
+    }
+    setMenuOpen(false);
+    setCustomStatus('');
+  }
 
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-[#dfe5df] bg-white text-left shadow-[0_2px_8px_rgba(29,47,35,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-[#b9c8bb] hover:shadow-[0_8px_24px_rgba(29,47,35,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34865b] focus-visible:ring-offset-2"
-    >
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
-        <span className="truncate text-xs font-semibold text-[#435149]">{getOrderId(order, index)}</span>
+    <article className="relative flex min-w-0 flex-col rounded-xl border border-[#dfe5df] bg-white shadow-[0_2px_8px_rgba(29,47,35,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-[#b9c8bb] hover:shadow-[0_8px_24px_rgba(29,47,35,0.12)]">
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5">
         <OrderStatusBadge status={status} />
-      </div>
-      <ImageGrid images={images} className="w-full transition-transform duration-300 group-hover:scale-[1.01]" />
-      <div className="space-y-2.5 p-4">
-        <p className="truncate text-base font-semibold text-[#1b2921]">{getCustomerName(order)}</p>
-        <p className="flex items-center gap-2 text-sm text-[#435149]"><Phone size={14} className="shrink-0 text-[#76827a]" />{getPhone(order) || 'Phone not provided'}</p>
-        <p className="flex items-start gap-2 text-sm leading-5 text-[#59645d]">
-          <MapPin size={14} className="mt-0.5 shrink-0 text-[#76827a]" />
-          <span className="line-clamp-2">{getAddress(order) || 'Address not provided'}</span>
-        </p>
-        <div className="flex items-center justify-between gap-3 border-t border-[#edf0ec] pt-2.5 text-xs text-[#737c76]">
-          <span className="truncate">Size: {getSizeSummary(order)}</span>
-          <span className="shrink-0">{getOrderItems(order).length} {getOrderItems(order).length === 1 ? 'item' : 'items'}</span>
+        <div className="relative" onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false);
+        }}>
+          <button
+            type="button"
+            aria-label={`Update status for order ${orderId}`}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#59645d] transition-colors hover:bg-[#edf1ec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34865b]"
+          >
+            <MoreVertical size={19} />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-10 z-20 w-56 rounded-lg border border-[#dfe5df] bg-white p-2 shadow-xl">
+              <div className="space-y-1">
+                <button type="button" disabled={statusSaving} onClick={() => changeStatus('shipped')} className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-sm text-[#37433b] hover:bg-[#edf1ec] disabled:cursor-not-allowed disabled:opacity-50">Mark On the way</button>
+                <button type="button" disabled={statusSaving} onClick={() => changeStatus('delivered')} className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-sm text-[#37433b] hover:bg-[#edf1ec] disabled:cursor-not-allowed disabled:opacity-50">Mark Delivered</button>
+                <button type="button" disabled={statusSaving} onClick={() => changeStatus('cancelled')} className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-sm text-[#a44242] hover:bg-[#fbefef] disabled:cursor-not-allowed disabled:opacity-50">Canceled</button>
+              </div>
+              <form
+                className="mt-2 flex gap-1.5 border-t border-[#edf0ec] pt-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (customStatus.trim()) changeStatus(customStatus.trim());
+                }}
+              >
+                <input
+                  aria-label="Custom order status"
+                  maxLength={40}
+                  value={customStatus}
+                  onChange={(event) => setCustomStatus(event.target.value)}
+                  placeholder="Custom status"
+                  className="min-w-0 flex-1 cursor-text rounded-md border border-[#dfe5df] px-2 py-1.5 text-sm text-[#1b2921] outline-none focus:border-[#34865b]"
+                />
+                <button type="submit" disabled={statusSaving || !customStatus.trim()} aria-label="Apply custom status" className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md bg-[#34865b] text-white hover:bg-[#286b47] disabled:cursor-not-allowed disabled:opacity-50">
+                  <Check size={16} />
+                </button>
+              </form>
+              {statusError && <p role="alert" className="px-2 pt-2 text-xs text-[#a44242]">{statusError}</p>}
+            </div>
+          )}
         </div>
       </div>
-    </button>
+      <button
+        type="button"
+        onClick={onSelect}
+        className="flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-b-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#34865b]"
+      >
+        <ImageGrid images={images} className="w-full" />
+        <div className="space-y-2.5 p-4">
+          <p className="truncate text-base font-semibold text-[#1b2921]">{getCustomerName(order)}</p>
+          <p className="flex items-center gap-2 text-sm text-[#435149]"><Phone size={14} className="shrink-0 text-[#76827a]" />{getPhone(order) || 'Phone not provided'}</p>
+          <p className="flex items-start gap-2 text-sm leading-5 text-[#59645d]">
+            <MapPin size={14} className="mt-0.5 shrink-0 text-[#76827a]" />
+            <span className="line-clamp-2">{getAddress(order) || 'Address not provided'}</span>
+          </p>
+          <div className="flex items-center justify-between gap-3 border-t border-[#edf0ec] pt-2.5 text-xs text-[#737c76]">
+            <span className="truncate">Size: {getSizeSummary(order)}</span>
+            <span className="shrink-0">{getOrderItems(order).length} {getOrderItems(order).length === 1 ? 'item' : 'items'}</span>
+          </div>
+        </div>
+      </button>
+    </article>
   );
 }
 
 export default function OrdersClient({ orders, unavailable }) {
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [currentOrders, setCurrentOrders] = useState(orders);
+  const [savingOrderId, setSavingOrderId] = useState(null);
+
+  async function handleStatusChange(orderId, status) {
+    setSavingOrderId(String(orderId));
+    const result = await updateOrderStatus(orderId, status);
+    setSavingOrderId(null);
+
+    if (!result?.success) return result;
+
+    const updatedStatus = result.data?.status ?? status;
+    setCurrentOrders((current) => current.map((order) => (
+      String(getOrderId(order)) === String(orderId) ? { ...order, status: updatedStatus } : order
+    )));
+    setSelectedOrder((current) => (
+      current && String(getOrderId(current)) === String(orderId)
+        ? { ...current, status: updatedStatus }
+        : current
+    ));
+    return result;
+  }
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-6 px-1 py-2 sm:px-3">
@@ -345,17 +425,19 @@ export default function OrdersClient({ orders, unavailable }) {
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#64806c]">Order management</p>
           <h1 className="mt-1 text-2xl font-semibold text-[#1b2921] sm:text-3xl">All orders</h1>
         </div>
-        <p className="text-sm text-[#737c76]">{orders.length} {orders.length === 1 ? 'order' : 'orders'}</p>
+        <p className="text-sm text-[#737c76]">{currentOrders.length} {currentOrders.length === 1 ? 'order' : 'orders'}</p>
       </header>
 
-      {orders.length ? (
+        {currentOrders.length ? (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {orders.map((order, index) => (
+            {currentOrders.map((order, index) => (
             <OrderCard
               key={getOrderId(order, index)}
               order={order}
               index={index}
               onSelect={() => setSelectedOrder(order)}
+                onStatusChange={handleStatusChange}
+                statusSaving={savingOrderId === String(getOrderId(order, index))}
             />
           ))}
         </div>
