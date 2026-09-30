@@ -9,9 +9,8 @@ export default function RecentOrders({ orders }) {
     <div className="rounded-3xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(32,36,38,0.04)] sm:p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-text">Recent Orders</h2>
-        {/* TODO: point at your real orders page once it exists */}
         <Link
-          href="#"
+          href="/dashboard/orders"
           className="flex items-center gap-0.5 text-xs font-medium text-primary transition-colors hover:text-primary-dark"
         >
           View all

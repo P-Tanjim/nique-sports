@@ -35,6 +35,13 @@ export const getRecentOrders = async () => {
   return res?.data ?? null;
 };
 
+// GET /admin/orders
+// Expected to return full order records with customer and product details.
+export const getAllOrders = async () => {
+  const res = await serverFetch('/admin/orders', { signal: AbortSignal.timeout(8000) });
+  return res?.data ?? null;
+};
+
 // GET /admin/products/top-selling?limit=5
 // Expected shape: [{ id, name, category, sold, revenue }, ...]
 export const getTopProducts = async () => {
