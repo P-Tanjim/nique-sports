@@ -30,7 +30,7 @@ export default async function ProductGrid({ category, minPrice, maxPrice, sort, 
     <>
       <div className="grid grid-cols-2 gap-5 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-7">
         {items.map((product, index) => (
-          <ProductCard key={product._id} product={product} priority={index < 4} index={index} />
+          <ProductCard key={product._id} product={product} preload={index < 2} index={index} />
         ))}
       </div>
 

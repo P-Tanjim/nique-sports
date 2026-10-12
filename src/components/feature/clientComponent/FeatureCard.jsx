@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import ImageWithLoader from "@/components/common/ImageWithLoader";
 
 // How many cards sit in the fan at once, per breakpoint. This is the real
 // lever for mobile perf — fewer mounted <Image>/transition targets, not
@@ -389,15 +389,14 @@ export default function FeatureCard({ cards = [] }) {
                 href={`/shop/product/${card._id || "#"}`}
                 className="fan-card absolute w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-2xl overflow-hidden cursor-pointer"
               >
-                <div className="relative w-full h-full overflow-hidden">
-                  <Image
-                    src={card.imageLink}
-                    alt={card.alt || `Card ${idx}`}
-                    fill
-                    sizes="(max-width: 640px) 192px, (max-width: 768px) 224px, 256px"
-                    className="object-cover z-10"
-                  />
-                </div>
+                <ImageWithLoader
+                  src={card.imageLink}
+                  alt={card.alt || `Card ${idx}`}
+                  fill
+                  sizes="(max-width: 640px) 192px, (max-width: 768px) 224px, 256px"
+                  className="object-cover z-10"
+                  containerClassName="relative h-full w-full"
+                />
               </Link>
             );
           })}

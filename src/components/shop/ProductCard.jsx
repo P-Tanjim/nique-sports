@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Check, Heart, QrCode, ShoppingBasket } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
 import ProductQrModal from './ProductQrModal';
 import AddToCartFlyClone from './AddToCartFlyClone';
+import ImageWithLoader from '@/components/common/ImageWithLoader';
 // import ProductImage from '../../../public/products/1.jpg';
 import { addToCart } from '../sideCart/SideCart';
 
@@ -20,11 +20,10 @@ const ADDED_FEEDBACK_MS = 1400;
 
 export default function ProductCard({
   product,
-  priority = false,
+  preload = false,
   index = 0,
 }) {
   const [wishlisted, setWishlisted] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [flight, setFlight] = useState(null); // { from, to } | null
   const [justAdded, setJustAdded] = useState(false);
@@ -129,17 +128,15 @@ export default function ProductCard({
         <div className="relative">
           <Link href={`/shop/product/${slug}`} className="block">
             <div ref={imageBoxRef} className="relative aspect-square overflow-hidden bg-white">
-              <Image
+              <ImageWithLoader
                 src={image}
                 alt={name || 'Product Image'}
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                priority={priority}
+                preload={preload}
                 unoptimized={image?.startsWith('data:')}
-                onLoad={() => setLoaded(true)}
-                className={`absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.035] ${
-                  loaded ? 'opacity-100' : 'opacity-0'
-                }`}
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.035]"
+                containerClassName="absolute inset-0"
               />
             </div>
           </Link>

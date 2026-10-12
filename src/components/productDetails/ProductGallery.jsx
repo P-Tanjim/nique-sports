@@ -30,6 +30,11 @@ function GalleryPreloadLinks({ images }) {
   });
 }
 
+function handleSwipeStart(e) {
+  swipeRef.current = { x: e.clientX, y: e.clientY };
+  e.currentTarget.setPointerCapture?.(e.pointerId);
+}
+
 export default function ProductGallery({ images, title }) {
   const gallery = images ?? [];
   const [activeIndex, setActiveIndex] = useState(0);
@@ -143,7 +148,8 @@ export default function ProductGallery({ images, title }) {
         onPointerDown={handleSwipeStart}
         onPointerUp={handleSwipeEnd}
         onPointerCancel={() => (swipeRef.current = null)}
-        className="relative aspect-square w-full overflow-hidden rounded-3xl border border-border bg-white"
+        onDragStart={(e) => e.preventDefault()}
+        className="relative aspect-square w-full touch-pan-y select-none overflow-hidden rounded-3xl border border-border bg-white"
       >
         <Image
           loading="eager"
@@ -153,6 +159,7 @@ export default function ProductGallery({ images, title }) {
           fill
           sizes={MAIN_SIZES}
           priority
+          draggable={false}
           unoptimized={activeImage?.startsWith('data:')}
           className="object-cover"
         />

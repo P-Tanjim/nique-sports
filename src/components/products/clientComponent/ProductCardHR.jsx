@@ -1,6 +1,6 @@
 'use client'
-import Image from 'next/image'
 import Link from 'next/link'
+import ImageWithLoader from '@/components/common/ImageWithLoader'
 import { createPortal } from 'react-dom'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Scan, ShoppingBasket, X, Zap } from 'lucide-react'
@@ -125,13 +125,15 @@ const ProductCard = ({ product }) => {
                             <ShoppingBasket size={14} />
                         </button>
                     </div>
-                    <Image
+                    <ImageWithLoader
                         ref={imageRef}
                         src={product.imagesLink[0]}
                         alt={product.title}
                         width={150}
                         height={150}
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                         className='object-cover z-20 h-full w-full'
+                        containerClassName="relative w-full"
                     />
                     <div className='absolute w-[95%] mx-auto bottom-3 md:bottom-5 left-0 right-0 px-2 py-1.5 z-20 flex justify-between items-start bg-white rounded-xl shadow-sm'>
                         <p className='text-text text-xs min-[450px]:text-sm sm:text-base max-w-[70%] font-medium line-clamp-2'>{product.title}</p>
@@ -168,12 +170,13 @@ const ProductCard = ({ product }) => {
                         </button>
 
                         <div className="relative h-64 w-full shrink-0 overflow-hidden md:h-full md:w-1/2">
-                            <Image
+                            <ImageWithLoader
                                 src={product.imagesLink[0]}
                                 alt={product.title}
                                 fill
                                 sizes="(max-width: 768px) 100vw, 50vw"
                                 className="object-cover z-20"
+                                containerClassName="relative h-full w-full"
                             />
                         </div>
 

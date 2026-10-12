@@ -1,7 +1,6 @@
 import { Button } from "@heroui/react";
-import Image from "next/image";
 import Link from "next/link";
-import React from "react";
+import ImageWithLoader from "@/components/common/ImageWithLoader";
 
 const ProductCardVR = ({ product }) => {
     const price = Number(product?.price) || 0;
@@ -29,7 +28,14 @@ const ProductCardVR = ({ product }) => {
             >
                 -{discountPercent}%
             </div>}
-            <Image src={product.imagesLink?.[0]} width={100} height={100} alt={product.title || 'Product Image'} className="w-35 h-35 min-[430px]:w-45 min-[430px]:h-45 sm:w-35 sm:h-35 md:w-55 md:h-55 object-cover  bg-white rounded-2xl"></Image>
+            <ImageWithLoader
+                src={product.imagesLink?.[0]}
+                alt={product.title || 'Product Image'}
+                fill
+                sizes="(max-width: 429px) 140px, (max-width: 639px) 180px, (max-width: 767px) 140px, 220px"
+                className="object-cover bg-white rounded-2xl"
+                containerClassName="relative h-35 w-35 shrink-0 min-[430px]:h-45 min-[430px]:w-45 sm:h-35 sm:w-35 md:h-55 md:w-55"
+            />
             <div className="flex flex-col w-full gap-2 justify-between items-start p-2">
                 <div>
                     <p className="text-text text-sm min-[430px]:text-xl sm:text-lg md:text-2xl line-clamp-2">{product.title}</p>

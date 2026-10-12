@@ -65,6 +65,101 @@ body {
   100% { transform: scale(1); opacity: 1; }
 }
 
+@keyframes image-loading-sweep {
+  from { transform: translateX(-110%) skewX(-18deg); }
+  to { transform: translateX(210%) skewX(-18deg); }
+}
+
+@keyframes image-loading-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes image-loading-progress {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(250%); }
+}
+
+.image-loading-overlay {
+  background:
+    radial-gradient(ellipse at 50% 43%, rgb(255 255 255 / 92%), transparent 58%),
+    linear-gradient(145deg, #edf6f7 0%, #f9fbfb 48%, #e7f2f4 100%);
+  color: var(--color-primary);
+}
+
+.image-loading-overlay::before {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgb(48 136 152 / 13%) 0.7px, transparent 0.7px);
+  background-size: 13px 13px;
+  content: "";
+  opacity: 0.28;
+}
+
+.image-loading-shimmer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.image-loading-shimmer::after {
+  position: absolute;
+  inset: -30% auto -30% -35%;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 66%), transparent);
+  animation: image-loading-sweep 2.2s ease-in-out infinite;
+  content: "";
+}
+
+.image-loading-brand {
+  position: relative;
+  display: flex;
+  width: min(44%, 132px);
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  animation: image-loading-float 2.8s ease-in-out infinite;
+}
+
+.image-loading-jersey {
+  width: clamp(32px, 15%, 54px);
+  filter: drop-shadow(0 5px 8px rgb(35 107 121 / 12%));
+}
+
+.image-loading-wordmark {
+  color: #236b79;
+  font-size: clamp(8px, 2.2vw, 10px);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  white-space: nowrap;
+}
+
+.image-loading-progress {
+  position: relative;
+  width: 48px;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(48 136 152 / 16%);
+}
+
+.image-loading-progress span {
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  animation: image-loading-progress 1.35s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-loading-shimmer::after,
+  .image-loading-brand,
+  .image-loading-progress span {
+    animation: none;
+  }
+}
+
 .animate-form-shake {
   animation: form-shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
