@@ -12,7 +12,7 @@ const ProductCardVR = ({ product }) => {
 
     return (
         <Link href={`/shop/product/${product._id}`} className='w-full relative h-auto rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.2)] p-2 flex gap-2'>
-            {hasDiscount && <div className="absolute -left-1.25 -top-2.5 transform -rotate-20 h-10 w-10 bg-red-500 flex justify-center items-center text-sm font-medium text-white"
+            {hasDiscount && <div className="absolute -left-1.25 -top-2.5 z-50 transform -rotate-20 h-10 w-10 bg-red-500 flex justify-center items-center text-sm font-medium text-white"
                 style={{
                     clipPath: `polygon(
                         50% 0%, 59% 16%, 63% 2%, 69% 19%, 75% 7%, 77% 24%,
