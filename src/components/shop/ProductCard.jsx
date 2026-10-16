@@ -20,7 +20,7 @@ const ADDED_FEEDBACK_MS = 1400;
 
 export default function ProductCard({
   product,
-  preload = false,
+  eager = false,
   index = 0,
 }) {
   const [wishlisted, setWishlisted] = useState(false);
@@ -97,7 +97,7 @@ export default function ProductCard({
           delay: Math.min(index, 8) * 0.03,
           ease: 'easeOut',
         }}
-        className="group relative overflow-hidden rounded-3xl border border-border/70 bg-white shadow-[0_2px_8px_rgba(32,36,38,0.05)] transition-all duration-500 hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_18px_45px_rgba(32,36,38,0.12)]"
+        className="group relative overflow-hidden rounded-xl border border-border/70 bg-white shadow-[0_2px_8px_rgba(32,36,38,0.05)] transition-all duration-500 hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_18px_45px_rgba(32,36,38,0.12)]"
       >
         {/* BADGES */}
         <div className="pointer-events-none absolute left-3 top-3 z-20 flex flex-col gap-1.5">
@@ -133,7 +133,7 @@ export default function ProductCard({
                 alt={name || 'Product Image'}
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                preload={preload}
+                loading={eager ? 'eager' : 'lazy'}
                 unoptimized={image?.startsWith('data:')}
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.035]"
                 containerClassName="absolute inset-0"
@@ -149,27 +149,7 @@ export default function ProductCard({
           )}
 
           {/* ACTION BUTTONS */}
-          <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-2 opacity-100 transition-opacity duration-300 lg:opacity-0 lg:group-hover:opacity-100">
-            {/* Wishlist */}
-            <button
-              type="button"
-              onClick={() => setWishlisted((value) => !value)}
-              aria-pressed={wishlisted}
-              aria-label={
-                wishlisted ? 'Remove from wishlist' : 'Add to wishlist'
-              }
-              className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border backdrop-blur-md transition-all duration-300 hover:scale-110 md:h-9 md:w-9 ${
-                wishlisted
-                  ? 'border-danger/40 bg-white/90 text-danger shadow-sm'
-                  : 'border-white/20 bg-black/50 text-white hover:bg-black/70'
-              }`}
-            >
-              <Heart
-                size={15}
-                strokeWidth={1.8}
-                fill={wishlisted ? 'currentColor' : 'none'}
-              />
-            </button>
+          <div className="absolute bottom-1.5 w-full z-20 flex justify-center items-center flex-col gap-2 opacity-100 transition-opacity duration-300 lg:opacity-0 lg:group-hover:opacity-100">
 
             {/* Cart - Shopping Basket */}
             <button
@@ -177,10 +157,10 @@ export default function ProductCard({
               onClick={handleAddToCart}
               disabled={Boolean(flight)}
               aria-label={justAdded ? 'Added to cart' : 'Add to cart'}
-              className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border shadow-sm backdrop-blur-md transition-all duration-300 hover:scale-110 disabled:pointer-events-none disabled:opacity-70 md:h-9 md:w-9 ${
+              className={`flex h-7 w-[85%] cursor-pointer items-center justify-center rounded-md border shadow-sm backdrop-blur-md backdrop:saturate-150 transition-all duration-300 hover:scale-110 disabled:pointer-events-none disabled:opacity-70 md:h-9 md:w-9 ${
                 justAdded
                   ? 'border-success/40 bg-success text-white'
-                  : 'border-white/20 bg-black/50 text-white hover:bg-black/70'
+                  : 'border-white/20 bg-black/20 text-white hover:bg-black/50'
               }`}
             >
               <span

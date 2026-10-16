@@ -58,13 +58,21 @@ export default async function DashboardPage() {
           <p className="mt-1 text-sm text-text-muted">Here's what's happening with your store today.</p>
         </div>
 
-        <Link
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
           href="/dashboard/products"
           className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
         >
           <Package size={16} />
           Manage Products
         </Link>
+        <Link
+          href="/dashboard/orders"
+          className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+        >
+          Manage Orders
+        </Link>
+        </div>
       </div>
 
       {/* PRIORITY 1 — key numbers, glanceable at a look */}

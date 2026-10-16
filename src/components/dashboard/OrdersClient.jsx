@@ -97,7 +97,11 @@ function ImageGrid({ images, className = '' }) {
   const visibleImages = images.slice(0, 4);
   const gridShape = visibleImages.length === 1
     ? 'grid-cols-1 grid-rows-1'
-    : 'grid-cols-2 grid-rows-2';
+    : visibleImages.length === 2
+      ? 'grid-cols-2 grid-rows-1'
+      : visibleImages.length === 3
+        ? 'grid-cols-2 grid-rows-2'
+        : 'grid-cols-2 grid-rows-2';
 
   if (!visibleImages.length) {
     return (
