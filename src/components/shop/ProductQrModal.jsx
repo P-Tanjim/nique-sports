@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   AnimatePresence,
@@ -11,10 +11,19 @@ import {
   useSpring,
   useTransform,
 } from 'framer-motion';
-import { Check, Copy, Download, Loader2, X } from 'lucide-react';
+import { Check, Copy, Download, Loader2, RefreshCcw, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { dancingScript } from '@/app/fonts';
-import { PASS_H, PASS_W, drawProductPass } from './qrPassCanvas';
+import {
+  PASS_H,
+  PASS_LAYOUT,
+  PASS_W,
+  buildQrSkeletonSvg,
+  prewarmProductPass,
+  startProductPass,
+} from './qrPassCanvas';
+
+const LOGO_SRC = '/logo.jpg';
 
 // The card is 3:4. Width is capped by the viewport height so the card + buttons
 // always fit on short phones.
@@ -22,14 +31,63 @@ const CARD_WIDTH = 'min(340px, calc((100dvh - 190px) * 0.75))';
 // 72px of 1080×1440 — keeps the overlays clipped to the card's rounded corners.
 const CARD_RADIUS = '6.67% / 5%';
 
+/* ---- loading skeletons: sized from the painter's own layout numbers, so they
+        always sit exactly where the real QR / photo will land ---- */
+const pctX = (v) => `${(v / PASS_W) * 100}%`;
+const pctY = (v) => `${(v / PASS_H) * 100}%`;
+const { qr: QR, avatar: AVATAR } = PASS_LAYOUT;
+
+const QR_MASK = `url("data:image/svg+xml,${encodeURIComponent(buildQrSkeletonSvg())}")`;
+
+const QR_SKELETON_STYLE = {
+  left: pctX(QR.x),
+  top: pctY(QR.y),
+  width: pctX(QR.size),
+  height: pctY(QR.size),
+  backgroundImage:
+    'linear-gradient(110deg, #c5dde3 0%, #c5dde3 38%, #f0f8fa 50%, #c5dde3 62%, #c5dde3 100%)',
+  WebkitMaskImage: QR_MASK,
+  maskImage: QR_MASK,
+  WebkitMaskSize: '100% 100%',
+  maskSize: '100% 100%',
+  WebkitMaskRepeat: 'no-repeat',
+  maskRepeat: 'no-repeat',
+};
+
+const AVATAR_SKELETON_STYLE = {
+  left: pctX(AVATAR.x - AVATAR.photo),
+  top: pctY(AVATAR.y - AVATAR.photo),
+  width: pctX(AVATAR.photo * 2),
+  height: pctY(AVATAR.photo * 2),
+  borderRadius: '50%',
+  backgroundImage:
+    'linear-gradient(110deg, #d3e8ec 0%, #d3e8ec 38%, #f7fcfd 50%, #d3e8ec 62%, #d3e8ec 100%)',
+};
+
 const MODAL_CSS = `
   @keyframes qr-sheen {
-    0%, 62% { transform: translateX(-40%) skewX(-14deg); }
+    0%, 62% { transform: translateX(-10%) skewX(-14deg); }
     100% { transform: translateX(600%) skewX(-14deg); }
   }
   .qr-sheen { animation: qr-sheen 5.5s ease-in-out 0.5s infinite; }
-  @media (prefers-reduced-motion: reduce) { .qr-sheen { display: none; } }
+
+  @keyframes qr-shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: 0 0; }
+  }
+  .qr-skel {
+    background-size: 300% 100%;
+    background-repeat: no-repeat;
+    animation: qr-shimmer 1.5s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .qr-sheen { display: none; }
+    .qr-skel { animation: none; }
+  }
 `;
+
+const INITIAL_PROGRESS = { avatar: false, qr: false, font: false, error: false };
 
 function slugify(value) {
   return String(value ?? '')
@@ -39,16 +97,20 @@ function slugify(value) {
     .slice(0, 60);
 }
 
-// Mounted fresh every time the modal opens, so its state (loading → ready)
-// resets on its own and the canvas is redrawn for whichever product was tapped.
+// Mounted fresh every time the modal opens, so the canvas is always drawn for
+// whichever product was tapped. The card paints instantly with everything the
+// product already carries (name, price, discount); only the QR and the photo
+// are filled in afterwards, each one dissolving its own skeleton.
 function PassDialog({ product }) {
   const canvasRef = useRef(null);
-  const [status, setStatus] = useState('loading'); // loading | ready | error
+  const [progress, setProgress] = useState(INITIAL_PROGRESS);
+  const [attempt, setAttempt] = useState(0);
   const [saveState, setSaveState] = useState('idle'); // idle | working | done
   const [copied, setCopied] = useState(false);
   const reduceMotion = useReducedMotion();
 
   const url = `${window.location.origin}/shop/product/${product?.slug}`;
+  const complete = progress.avatar && progress.qr && progress.font;
 
   // pointer-driven tilt + light. Springs smooth it, nothing re-renders.
   const pointerX = useMotionValue(50);
@@ -59,34 +121,29 @@ function PassDialog({ product }) {
   const rotateX = useTransform(y, [0, 100], [10, -10]);
   const shine = useMotionTemplate`radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.4), rgba(255,255,255,0) 55%)`;
 
-  useEffect(() => {
+  // Layout effect: the first paint happens before the browser does, so there
+  // is never a blank-canvas frame.
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
 
-    let cancelled = false;
-    drawProductPass(canvas, {
-      url,
-      name: product?.name,
-      price: product?.price,
-      originalPrice: product?.originalPrice,
-      discountPercent: product?.discountPercent,
-      imageSrc: product?.image,
-      logoSrc: '/logo.jpg',
-      scriptFamily: dancingScript.style.fontFamily,
-      isCancelled: () => cancelled,
-    })
-      .then(() => {
-        if (!cancelled) setStatus('ready');
-      })
-      .catch((error) => {
-        console.error('QR card render failed:', error);
-        if (!cancelled) setStatus('error');
-      });
+    const pass = startProductPass(
+      canvas,
+      {
+        url,
+        name: product?.name,
+        price: product?.price,
+        originalPrice: product?.originalPrice,
+        discountPercent: product?.discountPercent,
+        imageSrc: product?.image,
+        logoSrc: LOGO_SRC,
+        scriptFamily: dancingScript.style.fontFamily,
+      },
+      setProgress
+    );
 
-    return () => {
-      cancelled = true;
-    };
-  }, [url, product]);
+    return () => pass.cancel();
+  }, [url, product, attempt]);
 
   function handlePointerMove(event) {
     if (reduceMotion) return;
@@ -102,7 +159,7 @@ function PassDialog({ product }) {
 
   async function handleDownload() {
     const canvas = canvasRef.current;
-    if (!canvas || status !== 'ready' || saveState === 'working') return;
+    if (!canvas || !complete || saveState === 'working') return;
 
     setSaveState('working');
     try {
@@ -152,6 +209,7 @@ function PassDialog({ product }) {
       >
         <motion.div
           className="relative w-full"
+          aria-busy={!complete && !progress.error}
           style={{
             aspectRatio: '3 / 4',
             rotateX: reduceMotion ? 0 : rotateX,
@@ -165,12 +223,53 @@ function PassDialog({ product }) {
             height={PASS_H}
             role="img"
             aria-label={`Share card with a QR code for ${product?.name ?? 'this product'}`}
-            className={`absolute inset-0 h-full w-full drop-shadow-[0_30px_45px_rgba(0,0,0,0.45)] transition-opacity duration-500 ${
-              status === 'ready' ? 'opacity-100' : 'opacity-0'
-            }`}
+            className="absolute inset-0 h-full w-full drop-shadow-[0_30px_45px_rgba(0,0,0,0.45)]"
           />
 
-          {status === 'ready' && !reduceMotion && (
+          {/* photo skeleton: fades out the moment the photo is painted */}
+          <div
+            aria-hidden="true"
+            className={`qr-skel pointer-events-none absolute transition-opacity duration-300 ${
+              progress.avatar ? 'opacity-0' : 'opacity-100'
+            }`}
+            style={AVATAR_SKELETON_STYLE}
+          />
+
+          {/* QR skeleton: same finder eyes + clear centre as the real code */}
+          <div
+            aria-hidden="true"
+            className={`qr-skel pointer-events-none absolute transition-opacity duration-300 ${
+              progress.qr || progress.error ? 'opacity-0' : 'opacity-100'
+            }`}
+            style={QR_SKELETON_STYLE}
+          />
+
+          {progress.error && (
+            <div
+              className="absolute flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/85 px-6 text-center backdrop-blur-sm"
+              style={{
+                left: pctX(QR.x),
+                top: pctY(QR.y),
+                width: pctX(QR.size),
+                height: pctY(QR.size),
+              }}
+            >
+              <p className="text-sm font-medium text-text">Couldn&apos;t generate the QR code.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setProgress(INITIAL_PROGRESS);
+                  setAttempt((n) => n + 1);
+                }}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-dark"
+              >
+                <RefreshCcw size={13} />
+                Try again
+              </button>
+            </div>
+          )}
+
+          {complete && !reduceMotion && (
             <>
               <motion.div
                 aria-hidden="true"
@@ -186,21 +285,6 @@ function PassDialog({ product }) {
               </div>
             </>
           )}
-
-          {status !== 'ready' && (
-            <div
-              className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-sm"
-              style={{ borderRadius: CARD_RADIUS }}
-            >
-              {status === 'loading' ? (
-                <Loader2 size={28} className="animate-spin text-white" />
-              ) : (
-                <p className="px-8 text-center text-sm text-white/85">
-                  Couldn&apos;t build the card. Close this and open it again.
-                </p>
-              )}
-            </div>
-          )}
         </motion.div>
       </div>
 
@@ -208,7 +292,7 @@ function PassDialog({ product }) {
         <button
           type="button"
           onClick={handleDownload}
-          disabled={status !== 'ready' || saveState === 'working'}
+          disabled={!complete || saveState === 'working'}
           className={`flex h-12 flex-1 cursor-pointer items-center justify-center rounded-2xl text-sm font-semibold text-white transition-all duration-300 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 ${
             saveState === 'done'
               ? 'bg-success shadow-[0_12px_30px_-10px_rgba(36,150,106,0.8)]'
@@ -264,6 +348,23 @@ export default function ProductQrModal({ product, open, onClose }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  // Warm the slow shared pieces (QR engine, logo, script font) while the
+  // browser is idle, so the first tap on any QR button is already fast.
+  // Every card mounts one of these; the warm-up itself is de-duplicated.
+  useEffect(() => {
+    if (navigator.connection?.saveData) return undefined;
+
+    const warm = () =>
+      prewarmProductPass({ scriptFamily: dancingScript.style.fontFamily, logoSrc: LOGO_SRC });
+
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(warm, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = setTimeout(warm, 1200);
+    return () => clearTimeout(id);
+  }, []);
 
   useEffect(() => {
     if (!open) return undefined;

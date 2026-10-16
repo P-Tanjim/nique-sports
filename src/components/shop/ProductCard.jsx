@@ -157,11 +157,10 @@ export default function ProductCard({
               onClick={handleAddToCart}
               disabled={Boolean(flight)}
               aria-label={justAdded ? 'Added to cart' : 'Add to cart'}
-              className={`flex h-7 w-[85%] cursor-pointer items-center justify-center rounded-md border shadow-sm backdrop-blur-md backdrop:saturate-150 transition-all duration-300 hover:scale-110 disabled:pointer-events-none disabled:opacity-70 md:h-9 md:w-9 ${
-                justAdded
+              className={`flex h-7 w-[85%] cursor-pointer items-center justify-center rounded-md border shadow-sm backdrop-blur-md backdrop:saturate-150 transition-all duration-300 hover:scale-110 disabled:pointer-events-none disabled:opacity-70 md:h-9 ${justAdded
                   ? 'border-success/40 bg-success text-white'
                   : 'border-white/20 bg-black/20 text-white hover:bg-black/50'
-              }`}
+                }`}
             >
               <span
                 key={justAdded ? 'check' : 'basket'}
@@ -170,7 +169,7 @@ export default function ProductCard({
                 {justAdded ? (
                   <Check size={15} strokeWidth={2.2} />
                 ) : (
-                  <ShoppingBasket size={15} strokeWidth={1.8} />
+                  <p className="flex justify-center items-center gap-2 text-[10px] font-medium">Add to Cart <ShoppingBasket size={14} strokeWidth={1.8} /></p>
                 )}
               </span>
             </button>

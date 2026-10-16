@@ -4,9 +4,16 @@
 // liquid-style QR, the product photo in a ringed avatar, price and discount.
 //
 // The modal shows THIS canvas and the download button exports THIS canvas, so
-// what the admin sees is exactly the PNG he gets — no html2canvas, no second
-// copy of the design to keep in sync. Corners are transparent, so the PNG can
-// be dropped on top of a video as an overlay.
+// what the admin sees is exactly the PNG he gets. Corners are transparent, so
+// the PNG can be dropped on top of a video as an overlay.
+//
+// Progressive by design: everything the product card already knows (name,
+// price, discount) is painted in the very first, synchronous pass. The things
+// that take time (QR matrix, photo, logo, script font) are filled in as each
+// one arrives — the whole card is repainted from one `state` object, so the
+// layers can never end up in the wrong order. Anything seen before (QR for a
+// product you already opened, the logo, the font) comes from a small cache and
+// is in that very first paint.
 
 import { getImageProps } from 'next/image';
 import { formatPrice } from '@/lib/format';
@@ -18,10 +25,13 @@ const FRAME_RADIUS = 72;
 const TAU = Math.PI * 2;
 const SANS = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
-// Layout (canvas px). Everything below is positioned from these.
+// Layout (canvas px). Everything below is positioned from these, and the
+// modal reads them to place its loading skeletons exactly on top.
 const CARD = { x: 200, y: 410, w: 680, h: 700, r: 72 };
 const QR = { x: 270, y: 470, size: 540, knockout: 144 };
 const AVATAR = { x: 540, y: 300, ring: 148, photo: 134 };
+
+export const PASS_LAYOUT = { qr: QR, avatar: AVATAR };
 
 /* ------------------------------------------------------------------ */
 /* small drawing helpers                                               */
@@ -118,8 +128,23 @@ function wrapText(ctx, text, maxWidth, maxLines) {
 }
 
 /* ------------------------------------------------------------------ */
-/* loading                                                             */
+/* loading + caches                                                    */
 /* ------------------------------------------------------------------ */
+
+const CACHE_LIMIT = 8;
+const matrixCache = new Map(); // url → QR matrix
+const matrixInflight = new Map();
+const imageCache = new Map(); // product image src → decoded <img>
+const imageInflight = new Map();
+const logoCache = new Map(); // logo src → <img> | null (null = failed, don't retry)
+const fontLoads = new Map();
+let enginePromise = null;
+
+function remember(map, key, value) {
+  map.set(key, value);
+  if (map.size > CACHE_LIMIT) map.delete(map.keys().next().value); // oldest out
+  return value;
+}
 
 function loadImage(src, cors = false) {
   return new Promise((resolve) => {
@@ -132,16 +157,18 @@ function loadImage(src, cors = false) {
 }
 
 // Prefers Next's own /_next/image URL: it's same-origin (so the canvas never
-// gets tainted → toBlob keeps working) and the browser already has it cached
-// from the product card. Falls back to a CORS request on the raw URL, then to
-// "no photo" — the card still renders with a monogram.
-async function loadProductImage(src) {
-  if (!src) return null;
+// gets tainted and toBlob keeps working) and is often the exact file the
+// product card already downloaded. Falls back to a CORS request on the raw
+// URL, then to "no photo" — the card still renders, with a monogram.
+async function fetchProductImage(src) {
   if (src.startsWith('data:')) return loadImage(src);
 
   let optimized = null;
   try {
-    optimized = getImageProps({ src, alt: '', width: 1080, height: 1080 }).props.src;
+    // Next puts the 2x entry in `src`: asking for 320px gives a w=640 URL —
+    // plenty for the 268px avatar, and far lighter than a 1080 request (which
+    // would resolve to the 3840px variant).
+    optimized = getImageProps({ src, alt: '', width: 320, height: 320 }).props.src;
   } catch {
     // not optimizable — use the direct URL below
   }
@@ -150,20 +177,64 @@ async function loadProductImage(src) {
   return viaOptimizer ?? loadImage(src, true);
 }
 
-async function ensureFont(family) {
-  if (typeof document === 'undefined' || !document.fonts?.load) return;
+function loadProductImage(src) {
+  const cached = imageCache.get(src);
+  if (cached) return Promise.resolve(cached);
+  if (!imageInflight.has(src)) {
+    imageInflight.set(
+      src,
+      fetchProductImage(src)
+        .then((img) => (img ? remember(imageCache, src, img) : null))
+        .finally(() => imageInflight.delete(src))
+    );
+  }
+  return imageInflight.get(src);
+}
+
+function loadLogo(src) {
+  if (logoCache.has(src)) return Promise.resolve(logoCache.get(src));
+  return loadImage(src).then((img) => remember(logoCache, src, img));
+}
+
+function isFontReady(family) {
+  if (typeof document === 'undefined' || !document.fonts?.check) return true;
   try {
-    await document.fonts.load(`700 64px ${family}`, 'Nique Scan to view');
+    return document.fonts.check(`700 64px ${family}`, 'Nique Scan to view');
   } catch {
-    // falls back to the generic cursive stack
+    return true;
   }
 }
 
-async function buildQrMatrix(text) {
-  const mod = await import('qrcode-generator');
-  const qrcode =
-    typeof mod.default === 'function' ? mod.default : typeof mod.qrcode === 'function' ? mod.qrcode : mod;
+function ensureFont(family) {
+  if (isFontReady(family)) return Promise.resolve();
+  if (!fontLoads.has(family)) {
+    fontLoads.set(
+      family,
+      document.fonts.load(`700 64px ${family}`, 'Nique Scan to view').then(
+        () => undefined,
+        () => undefined // falls back to the generic cursive stack
+      )
+    );
+  }
+  return fontLoads.get(family);
+}
 
+function loadEngine() {
+  if (!enginePromise) {
+    enginePromise = import('qrcode-generator')
+      .then((mod) =>
+        typeof mod.default === 'function' ? mod.default : typeof mod.qrcode === 'function' ? mod.qrcode : mod
+      )
+      .catch((error) => {
+        enginePromise = null; // let a retry try the import again
+        throw error;
+      });
+  }
+  return enginePromise;
+}
+
+async function buildQrMatrix(text) {
+  const qrcode = await loadEngine();
   const qr = qrcode(0, 'H'); // level H survives the logo knockout in the middle
   qr.addData(text);
   qr.make();
@@ -172,11 +243,25 @@ async function buildQrMatrix(text) {
   return Array.from({ length: n }, (_, r) => Array.from({ length: n }, (_, c) => qr.isDark(r, c)));
 }
 
+function loadQrMatrix(text) {
+  const cached = matrixCache.get(text);
+  if (cached) return Promise.resolve(cached);
+  if (!matrixInflight.has(text)) {
+    matrixInflight.set(
+      text,
+      buildQrMatrix(text)
+        .then((rows) => remember(matrixCache, text, rows))
+        .finally(() => matrixInflight.delete(text))
+    );
+  }
+  return matrixInflight.get(text);
+}
+
 /* ------------------------------------------------------------------ */
 /* painting                                                            */
 /* ------------------------------------------------------------------ */
 
-function paintBackground(ctx, script) {
+function paintBackground(ctx, script, fontReady) {
   const base = ctx.createLinearGradient(0, 0, PASS_W * 0.7, PASS_H);
   base.addColorStop(0, '#0a2f38');
   base.addColorStop(0.5, '#15535f');
@@ -195,14 +280,16 @@ function paintBackground(ctx, script) {
   for (let x = -80; x < PASS_W + 360; x += 76) ctx.fillRect(x, -10, 38, PASS_H + 20);
   ctx.restore();
 
-  // oversized brand script, barely there
-  ctx.save();
-  ctx.globalAlpha = 0.06;
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `700 380px ${script}`;
-  ctx.textAlign = 'center';
-  ctx.fillText('Nique', PASS_W / 2, 470);
-  ctx.restore();
+  // oversized brand script, barely there (waits for the font so it never flashes in a fallback face)
+  if (fontReady) {
+    ctx.save();
+    ctx.globalAlpha = 0.06;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `700 380px ${script}`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Nique', PASS_W / 2, 470);
+    ctx.restore();
+  }
 
   // diagonal sheen
   const sheen = ctx.createLinearGradient(0, 0, PASS_W, PASS_H);
@@ -267,6 +354,45 @@ function paintCardStack(ctx) {
   ctx.restore();
 }
 
+// The static part of the QR area: corner brackets + label. Painted straight
+// away, so the loading state already looks like the finished card.
+function paintQrFrame(ctx, script, fontReady) {
+  const { x, y, size } = QR;
+
+  const off = 40;
+  const arm = 60;
+  ctx.save();
+  ctx.strokeStyle = '#308898';
+  ctx.lineWidth = 10;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  [
+    [x - off, y - off, 1, 1],
+    [x + size + off, y - off, -1, 1],
+    [x - off, y + size + off, 1, -1],
+    [x + size + off, y + size + off, -1, -1],
+  ].forEach(([bx, by, dx, dy]) => {
+    ctx.beginPath();
+    ctx.moveTo(bx, by + arm * dy);
+    ctx.lineTo(bx, by);
+    ctx.lineTo(bx + arm * dx, by);
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  if (fontReady) {
+    ctx.save();
+    const label = ctx.createLinearGradient(370, 0, 710, 0);
+    label.addColorStop(0, '#1b5661');
+    label.addColorStop(1, '#308898');
+    ctx.fillStyle = label;
+    ctx.font = `700 58px ${script}`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Scan to view', PASS_W / 2, 1082);
+    ctx.restore();
+  }
+}
+
 // Data modules as one "liquid" path: a corner is only rounded when both
 // neighbours on that corner are empty, so touching modules melt together and
 // lone ones become dots. One fill() = no hairline seams between modules.
@@ -318,7 +444,8 @@ function paintQrModules(ctx, rows) {
   });
 }
 
-function paintQr(ctx, rows, logo, script) {
+// The part that needs the QR matrix (and the logo): modules, eyes, centre badge.
+function paintQrCode(ctx, rows, logo, script) {
   const { x, y, size } = QR;
 
   const ink = ctx.createLinearGradient(x, y, x + size, y + size);
@@ -327,40 +454,6 @@ function paintQr(ctx, rows, logo, script) {
   ctx.fillStyle = ink;
   paintQrModules(ctx, rows);
 
-  // corner brackets, kept clear of the quiet zone
-  const off = 40;
-  const arm = 60;
-  ctx.save();
-  ctx.strokeStyle = '#308898';
-  ctx.lineWidth = 10;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  [
-    [x - off, y - off, 1, 1],
-    [x + size + off, y - off, -1, 1],
-    [x - off, y + size + off, 1, -1],
-    [x + size + off, y + size + off, -1, -1],
-  ].forEach(([bx, by, dx, dy]) => {
-    ctx.beginPath();
-    ctx.moveTo(bx, by + arm * dy);
-    ctx.lineTo(bx, by);
-    ctx.lineTo(bx + arm * dx, by);
-    ctx.stroke();
-  });
-  ctx.restore();
-
-  // label
-  ctx.save();
-  const label = ctx.createLinearGradient(370, 0, 710, 0);
-  label.addColorStop(0, '#1b5661');
-  label.addColorStop(1, '#308898');
-  ctx.fillStyle = label;
-  ctx.font = `700 58px ${script}`;
-  ctx.textAlign = 'center';
-  ctx.fillText('Scan to view', PASS_W / 2, 1082);
-  ctx.restore();
-
-  // logo badge in the knocked-out centre (Square Version)
   const cx = x + size / 2;
   const cy = y + size / 2;
   
@@ -388,7 +481,8 @@ function paintQr(ctx, rows, logo, script) {
   ctx.restore();
 }
 
-function paintAvatar(ctx, photo, name, script) {
+// `photo`: undefined = still loading (ring only), null = failed (monogram), image = done.
+function paintAvatar(ctx, photo, name, face) {
   const { x, y, ring, photo: pr } = AVATAR;
 
   // lift
@@ -420,7 +514,8 @@ function paintAvatar(ctx, photo, name, script) {
   ctx.fill();
   ctx.restore();
 
-  // photo
+  if (photo === undefined) return;
+
   ctx.save();
   ctx.beginPath();
   ctx.arc(x, y, pr, 0, TAU);
@@ -442,7 +537,7 @@ function paintAvatar(ctx, photo, name, script) {
         .join('')
         .toUpperCase() || 'N';
     ctx.fillStyle = '#236b79';
-    ctx.font = `700 120px ${script}`;
+    ctx.font = `700 120px ${face}`;
     ctx.textAlign = 'center';
     ctx.fillText(initials, x, y + 40);
   }
@@ -576,39 +671,167 @@ function paintEdge(ctx) {
   ctx.restore();
 }
 
-/* ------------------------------------------------------------------ */
-/* public                                                              */
-/* ------------------------------------------------------------------ */
+// One full, deterministic repaint from whatever `state` currently holds.
+function paint(canvas, options, state) {
+  const { name, price, originalPrice, discountPercent } = options;
+  const script = options.scriptFamily || 'cursive';
 
-export async function drawProductPass(canvas, options) {
-  const { url, name, price, originalPrice, discountPercent, imageSrc, logoSrc, scriptFamily, isCancelled } = options;
-  const script = scriptFamily || 'cursive';
-
-  const [rows, photo, logo] = await Promise.all([
-    buildQrMatrix(url),
-    loadProductImage(imageSrc),
-    logoSrc ? loadImage(logoSrc) : null,
-    ensureFont(script),
-  ]);
-  if (isCancelled?.()) return;
-
-  canvas.width = PASS_W; // resets the bitmap + context state
-  canvas.height = PASS_H;
+  if (canvas.width !== PASS_W) canvas.width = PASS_W;
+  if (canvas.height !== PASS_H) canvas.height = PASS_H;
   const ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, PASS_W, PASS_H);
 
   ctx.save();
   ctx.beginPath();
   rrPath(ctx, 0, 0, PASS_W, PASS_H, FRAME_RADIUS);
   ctx.clip();
 
-  paintBackground(ctx, script);
+  paintBackground(ctx, script, state.fontReady);
   paintHeader(ctx);
   paintCardStack(ctx);
-  paintQr(ctx, rows, logo, script);
-  paintAvatar(ctx, photo, name, script);
-  if (Number(discountPercent) > 0) paintDiscount(ctx, discountPercent);
+  paintQrFrame(ctx, script, state.fontReady);
+  if (state.rows && state.logo !== undefined) paintQrCode(ctx, state.rows, state.logo, script);
+  paintAvatar(ctx, state.photo, name, state.fontReady ? script : SANS);
+  if (state.photo !== undefined && Number(discountPercent) > 0) paintDiscount(ctx, discountPercent);
   paintInfo(ctx, { name, price, originalPrice });
   paintEdge(ctx);
 
   ctx.restore();
+}
+
+/* ------------------------------------------------------------------ */
+/* public                                                              */
+/* ------------------------------------------------------------------ */
+
+// Paints the card right now with everything already known, then keeps
+// repainting as the slow pieces arrive. `onProgress` gets
+//   { avatar, qr, font, error }
+// every time something lands (and once up front), so the UI can drop its
+// loading skeletons piece by piece. Returns { cancel, done }.
+export function startProductPass(canvas, options, onProgress) {
+  const { url, imageSrc, logoSrc } = options;
+  const script = options.scriptFamily || 'cursive';
+
+  // undefined = still loading, null = finished without a result
+  const state = {
+    rows: matrixCache.get(url) ?? null,
+    photo: imageSrc ? imageCache.get(imageSrc) : null,
+    logo: logoSrc ? logoCache.get(logoSrc) : null,
+    fontReady: isFontReady(script),
+    error: false,
+  };
+
+  let cancelled = false;
+  let scheduled = false;
+
+  const emit = () =>
+    onProgress?.({
+      avatar: state.photo !== undefined,
+      qr: Boolean(state.rows) && state.logo !== undefined,
+      font: state.fontReady,
+      error: state.error,
+    });
+
+  const flush = () => {
+    scheduled = false;
+    if (cancelled) return;
+    paint(canvas, options, state);
+    emit();
+  };
+
+  // coalesce several arrivals in the same frame into one repaint
+  const schedule = () => {
+    if (scheduled || cancelled) return;
+    scheduled = true;
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(flush);
+    else setTimeout(flush, 0);
+  };
+
+  flush(); // first paint, synchronous
+
+  const tasks = [
+    loadQrMatrix(url).then(
+      (rows) => {
+        state.rows = rows;
+        state.error = false;
+      },
+      (error) => {
+        console.error('QR generation failed:', error);
+        state.error = true;
+      }
+    ),
+    imageSrc
+      ? loadProductImage(imageSrc).then((img) => {
+          state.photo = img;
+        })
+      : null,
+    logoSrc
+      ? loadLogo(logoSrc).then((img) => {
+          state.logo = img;
+        })
+      : null,
+    ensureFont(script).then(() => {
+      state.fontReady = true;
+    }),
+  ].filter(Boolean);
+
+  tasks.forEach((task) => task.then(schedule));
+  const done = Promise.all(tasks).then(flush);
+
+  return {
+    cancel() {
+      cancelled = true;
+    },
+    done,
+  };
+}
+
+// Warms the slow, shared pieces (QR engine, logo, script font) while the
+// browser is idle, so the first tap on a QR button is already fast.
+export function prewarmProductPass({ scriptFamily, logoSrc } = {}) {
+  loadEngine().catch(() => {});
+  if (logoSrc) loadLogo(logoSrc);
+  ensureFont(scriptFamily || 'cursive');
+}
+
+// A QR-looking placeholder: the same 3 finder eyes and the same clear centre
+// as the real code, with seeded-random blocks between. Used as a CSS mask so
+// the modal can shimmer it while the real QR is being made.
+export function buildQrSkeletonSvg(n = 41) {
+  let seed = 11;
+  const rand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+  const mid = n / 2;
+  const inEye = (r, c) => (r < 8 && c < 8) || (r < 8 && c >= n - 8) || (r >= n - 8 && c < 8);
+  const inCenter = (r, c) => Math.abs(c + 0.5 - mid) < 6.5 && Math.abs(r + 0.5 - mid) < 6.5;
+  const free = (r, c) => c < n && !inEye(r, c) && !inCenter(r, c);
+
+  let d = '';
+  for (let r = 0; r < n; r += 1) {
+    let c = 0;
+    while (c < n) {
+      if (!free(r, c) || rand() > 0.5) {
+        c += 1;
+        continue;
+      }
+      let run = 1;
+      while (run < 3 && free(r, c + run) && rand() > 0.45) run += 1;
+      d += `M${c + 0.25} ${r + 0.25}h${run - 0.5}v0.5h${-(run - 0.5)}z`;
+      c += run;
+    }
+  }
+
+  const eye = (x, y) =>
+    `<rect x="${x + 0.5}" y="${y + 0.5}" width="6" height="6" rx="1.8" fill="none" stroke="#000" stroke-width="1"/>` +
+    `<rect x="${x + 2}" y="${y + 2}" width="3" height="3" rx="1"/>`;
+
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}">` +
+    `<path d="${d}" fill="#000" stroke="#000" stroke-width="0.5" stroke-linejoin="round"/>` +
+    `${eye(0, 0)}${eye(n - 7, 0)}${eye(0, n - 7)}` +
+    `<circle cx="${mid}" cy="${mid}" r="4.6"/></svg>`
+  );
 }
