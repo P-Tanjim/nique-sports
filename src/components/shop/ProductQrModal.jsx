@@ -1,16 +1,7 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  AnimatePresence,
-  motion,
-  useMotionTemplate,
-  useMotionValue,
-  useReducedMotion,
-  useSpring,
-  useTransform,
-} from 'framer-motion';
 import { Check, Copy, Download, Loader2, RefreshCcw, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { dancingScript } from '@/app/fonts';
@@ -24,12 +15,18 @@ import {
 } from './qrPassCanvas';
 
 const LOGO_SRC = '/logo.jpg';
+const LEAVE_MS = 300;
 
 // The card is 3:4. Width is capped by the viewport height so the card + buttons
 // always fit on short phones.
 const CARD_WIDTH = 'min(340px, calc((100dvh - 190px) * 0.75))';
 // 72px of 1080×1440 — keeps the overlays clipped to the card's rounded corners.
 const CARD_RADIUS = '6.67% / 5%';
+
+// Same function list in both states, so the browser can interpolate them.
+const ENTER_FROM = 'perspective(1000px) translate3d(0, 56px, 0) scale(0.84) rotateX(22deg)';
+const ENTER_TO = 'perspective(1000px) translate3d(0, 0, 0) scale(1) rotateX(0deg)';
+const TILT_REST = 'perspective(900px) rotateX(0deg) rotateY(0deg)';
 
 /* ---- loading skeletons: sized from the painter's own layout numbers, so they
         always sit exactly where the real QR / photo will land ---- */
@@ -44,8 +41,7 @@ const QR_SKELETON_STYLE = {
   top: pctY(QR.y),
   width: pctX(QR.size),
   height: pctY(QR.size),
-  backgroundImage:
-    'linear-gradient(110deg, #c5dde3 0%, #c5dde3 38%, #f0f8fa 50%, #c5dde3 62%, #c5dde3 100%)',
+  backgroundColor: '#c5dde3',
   WebkitMaskImage: QR_MASK,
   maskImage: QR_MASK,
   WebkitMaskSize: '100% 100%',
@@ -60,30 +56,33 @@ const AVATAR_SKELETON_STYLE = {
   width: pctX(AVATAR.photo * 2),
   height: pctY(AVATAR.photo * 2),
   borderRadius: '50%',
-  backgroundImage:
-    'linear-gradient(110deg, #d3e8ec 0%, #d3e8ec 38%, #f7fcfd 50%, #d3e8ec 62%, #d3e8ec 100%)',
+  backgroundColor: '#d3e8ec',
 };
 
 const MODAL_CSS = `
+  .qr-card-enter { transition: transform 520ms cubic-bezier(0.34, 1.3, 0.64, 1), opacity 260ms ease-out; }
+  .qr-card-exit { transition: transform 260ms ease-in, opacity 220ms ease-in; }
+
   @keyframes qr-sheen {
     0%, 62% { transform: translateX(-10%) skewX(-14deg); }
     100% { transform: translateX(600%) skewX(-14deg); }
   }
   .qr-sheen { animation: qr-sheen 5.5s ease-in-out 0.5s infinite; }
 
-  @keyframes qr-shimmer {
-    from { background-position: 100% 0; }
-    to { background-position: 0 0; }
+  /* The loading shimmer is a child that slides with transform, so it keeps
+     moving on the compositor even while the main thread is busy making the QR. */
+  @keyframes qr-skel-sweep {
+    from { transform: translateX(0); }
+    to { transform: translateX(300%); }
   }
-  .qr-skel {
-    background-size: 300% 100%;
-    background-repeat: no-repeat;
-    animation: qr-shimmer 1.5s linear infinite;
+  .qr-skel-sweep {
+    background: linear-gradient(105deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.85) 50%, rgba(255,255,255,0) 100%);
+    animation: qr-skel-sweep 1.4s linear infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .qr-sheen { display: none; }
-    .qr-skel { animation: none; }
+    .qr-card-enter, .qr-card-exit { transition: opacity 150ms linear; }
+    .qr-sheen, .qr-shine, .qr-skel-sweep { display: none; }
   }
 `;
 
@@ -97,35 +96,59 @@ function slugify(value) {
     .slice(0, 60);
 }
 
+// Runs `fn` two animation frames from now (the browser needs one frame to
+// commit the starting state before a CSS transition can run). Returns a cancel.
+function afterNextFrames(fn) {
+  let second;
+  const first = requestAnimationFrame(() => {
+    second = requestAnimationFrame(fn);
+  });
+  return () => {
+    cancelAnimationFrame(first);
+    if (second) cancelAnimationFrame(second);
+  };
+}
+
+function Skeleton({ done, style }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={`pointer-events-none absolute overflow-hidden transition-opacity duration-300 ${
+        done ? 'opacity-0' : 'opacity-100'
+      }`}
+      style={style}
+    >
+      <div
+        className="qr-skel-sweep absolute inset-y-0 -left-1/2 w-1/2"
+        style={{ animationPlayState: done ? 'paused' : 'running' }}
+      />
+    </div>
+  );
+}
+
 // Mounted fresh every time the modal opens, so the canvas is always drawn for
 // whichever product was tapped. The card paints instantly with everything the
 // product already carries (name, price, discount); only the QR and the photo
 // are filled in afterwards, each one dissolving its own skeleton.
-function PassDialog({ product }) {
+function PassDialog({ product, onPainted }) {
   const canvasRef = useRef(null);
+  const tiltRef = useRef(null);
+  const reduceMotionRef = useRef(false);
   const [progress, setProgress] = useState(INITIAL_PROGRESS);
   const [attempt, setAttempt] = useState(0);
   const [saveState, setSaveState] = useState('idle'); // idle | working | done
   const [copied, setCopied] = useState(false);
-  const reduceMotion = useReducedMotion();
 
   const url = `${window.location.origin}/shop/product/${product?.slug}`;
   const complete = progress.avatar && progress.qr && progress.font;
 
-  // pointer-driven tilt + light. Springs smooth it, nothing re-renders.
-  const pointerX = useMotionValue(50);
-  const pointerY = useMotionValue(30);
-  const x = useSpring(pointerX, { stiffness: 160, damping: 20, mass: 0.6 });
-  const y = useSpring(pointerY, { stiffness: 160, damping: 20, mass: 0.6 });
-  const rotateY = useTransform(x, [0, 100], [-12, 12]);
-  const rotateX = useTransform(y, [0, 100], [10, -10]);
-  const shine = useMotionTemplate`radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.4), rgba(255,255,255,0) 55%)`;
-
-  // Layout effect: the first paint happens before the browser does, so there
-  // is never a blank-canvas frame.
+  // Layout effect: the first paint happens before the browser does, and the
+  // modal only starts the card's entrance once it has been told this is done.
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
+
+    reduceMotionRef.current = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
     const pass = startProductPass(
       canvas,
@@ -141,20 +164,34 @@ function PassDialog({ product }) {
       },
       setProgress
     );
+    onPainted?.();
 
     return () => pass.cancel();
-  }, [url, product, attempt]);
+  }, [url, product, attempt, onPainted]);
 
+  // Pointer tilt + light, written straight to the DOM through CSS variables —
+  // no React state, no animation library.
   function handlePointerMove(event) {
-    if (reduceMotion) return;
+    const el = tiltRef.current;
+    if (!el || reduceMotionRef.current) return;
+
     const rect = event.currentTarget.getBoundingClientRect();
-    pointerX.set(((event.clientX - rect.left) / rect.width) * 100);
-    pointerY.set(((event.clientY - rect.top) / rect.height) * 100);
+    const px = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const py = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+
+    el.style.transitionDuration = '120ms';
+    el.style.transform = `perspective(900px) rotateX(${((0.5 - py) * 20).toFixed(2)}deg) rotateY(${((px - 0.5) * 24).toFixed(2)}deg)`;
+    el.style.setProperty('--mx', `${(px * 100).toFixed(1)}%`);
+    el.style.setProperty('--my', `${(py * 100).toFixed(1)}%`);
   }
 
   function resetTilt() {
-    pointerX.set(50);
-    pointerY.set(30);
+    const el = tiltRef.current;
+    if (!el) return;
+    el.style.transitionDuration = '450ms';
+    el.style.transform = TILT_REST;
+    el.style.setProperty('--mx', '50%');
+    el.style.setProperty('--my', '30%');
   }
 
   async function handleDownload() {
@@ -197,8 +234,6 @@ function PassDialog({ product }) {
 
   return (
     <div className="flex flex-col items-center gap-4" style={{ width: CARD_WIDTH }}>
-      <style>{MODAL_CSS}</style>
-
       <div
         className="w-full"
         onPointerMove={handlePointerMove}
@@ -207,46 +242,45 @@ function PassDialog({ product }) {
         onPointerCancel={resetTilt}
         style={{ touchAction: 'none' }}
       >
-        <motion.div
+        <div
+          ref={tiltRef}
           className="relative w-full"
           aria-busy={!complete && !progress.error}
           style={{
             aspectRatio: '3 / 4',
-            rotateX: reduceMotion ? 0 : rotateX,
-            rotateY: reduceMotion ? 0 : rotateY,
-            transformPerspective: 900,
+            transform: TILT_REST,
+            transitionProperty: 'transform',
+            transitionTimingFunction: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+            transitionDuration: '450ms',
           }}
         >
+          {/* Card shadow as a plain box-shadow behind the canvas: painted once
+              into the layer, instead of a drop-shadow filter that the GPU
+              would have to re-run every frame of the entrance. */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0"
+            style={{ borderRadius: CARD_RADIUS, boxShadow: '0 34px 50px -14px rgba(0,0,0,0.5)' }}
+          />
+
           <canvas
             ref={canvasRef}
             width={PASS_W}
             height={PASS_H}
             role="img"
             aria-label={`Share card with a QR code for ${product?.name ?? 'this product'}`}
-            className="absolute inset-0 h-full w-full drop-shadow-[0_30px_45px_rgba(0,0,0,0.45)]"
+            className="absolute inset-0 h-full w-full"
           />
 
           {/* photo skeleton: fades out the moment the photo is painted */}
-          <div
-            aria-hidden="true"
-            className={`qr-skel pointer-events-none absolute transition-opacity duration-300 ${
-              progress.avatar ? 'opacity-0' : 'opacity-100'
-            }`}
-            style={AVATAR_SKELETON_STYLE}
-          />
+          <Skeleton done={progress.avatar} style={AVATAR_SKELETON_STYLE} />
 
           {/* QR skeleton: same finder eyes + clear centre as the real code */}
-          <div
-            aria-hidden="true"
-            className={`qr-skel pointer-events-none absolute transition-opacity duration-300 ${
-              progress.qr || progress.error ? 'opacity-0' : 'opacity-100'
-            }`}
-            style={QR_SKELETON_STYLE}
-          />
+          <Skeleton done={progress.qr || progress.error} style={QR_SKELETON_STYLE} />
 
           {progress.error && (
             <div
-              className="absolute flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/85 px-6 text-center backdrop-blur-sm"
+              className="absolute flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/85 px-6 text-center"
               style={{
                 left: pctX(QR.x),
                 top: pctY(QR.y),
@@ -269,12 +303,17 @@ function PassDialog({ product }) {
             </div>
           )}
 
-          {complete && !reduceMotion && (
+          {complete && (
             <>
-              <motion.div
+              {/* light that follows the pointer; plain alpha gradient, no blend mode */}
+              <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0"
-                style={{ borderRadius: CARD_RADIUS, background: shine, mixBlendMode: 'soft-light' }}
+                className="qr-shine pointer-events-none absolute inset-0"
+                style={{
+                  borderRadius: CARD_RADIUS,
+                  background:
+                    'radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgba(255,255,255,0.2), rgba(255,255,255,0) 55%)',
+                }}
               />
               <div
                 aria-hidden="true"
@@ -285,7 +324,7 @@ function PassDialog({ product }) {
               </div>
             </>
           )}
-        </motion.div>
+        </div>
       </div>
 
       <div className="flex w-full items-center gap-3">
@@ -326,7 +365,7 @@ function PassDialog({ product }) {
           type="button"
           onClick={handleCopy}
           aria-label={copied ? 'Link copied' : 'Copy product link'}
-          className="flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur-md transition-all duration-200 hover:bg-white/20 active:scale-90"
+          className="flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white transition-all duration-200 hover:bg-white/20 active:scale-90"
         >
           <span
             key={copied ? 'check' : 'copy'}
@@ -345,7 +384,18 @@ function PassDialog({ product }) {
 }
 
 export default function ProductQrModal({ product, open, onClose }) {
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(false); // portal target exists (client only)
+  const [phase, setPhase] = useState('closed');
+  const [settled, setSettled] = useState(false); // entrance finished → drop will-change
+  const phaseRef = useRef('closed');
+  const closeTimerRef = useRef(null);
+  const cancelFramesRef = useRef(null);
+
+  const go = useCallback((next) => {
+    phaseRef.current = next;
+    setPhase(next);
+    if (next !== 'in') setSettled(false);
+  }, []);
 
   useEffect(() => setMounted(true), []);
 
@@ -366,6 +416,38 @@ export default function ProductQrModal({ product, open, onClose }) {
     return () => clearTimeout(id);
   }, []);
 
+  // open / close drive the phases
+  useEffect(() => {
+    if (open) {
+      clearTimeout(closeTimerRef.current);
+      if (phaseRef.current === 'closed') {
+        go('mounting');
+        cancelFramesRef.current = afterNextFrames(() => go('shell'));
+      } else if (phaseRef.current === 'leaving') {
+        // re-opened mid-exit: the card is still mounted and painted
+        cancelFramesRef.current = afterNextFrames(() => go('in'));
+      }
+      return () => cancelFramesRef.current?.();
+    }
+
+    if (phaseRef.current === 'closed') return undefined;
+    cancelFramesRef.current?.();
+    go('leaving');
+    closeTimerRef.current = setTimeout(() => go('closed'), LEAVE_MS);
+    return () => clearTimeout(closeTimerRef.current);
+  }, [open, go]);
+
+  // The card calls this right after its first (heavy) canvas paint. Only then
+  // does the entrance start — two frames later, so the browser has committed
+  // the hidden starting state.
+  const handlePainted = useCallback(() => {
+    if (phaseRef.current !== 'shell') return;
+    cancelFramesRef.current?.();
+    cancelFramesRef.current = afterNextFrames(() => {
+      if (phaseRef.current === 'shell') go('in');
+    });
+  }, [go]);
+
   useEffect(() => {
     if (!open) return undefined;
     function handleKey(e) {
@@ -380,64 +462,68 @@ export default function ProductQrModal({ product, open, onClose }) {
     };
   }, [open, onClose]);
 
-  if (!mounted) return null;
+  if (!mounted || phase === 'closed') return null;
+
+  const backdropIn = phase === 'shell' || phase === 'in';
+  const cardMounted = phase === 'shell' || phase === 'in' || phase === 'leaving';
+  const cardIn = phase === 'in';
 
   return createPortal(
-    <AnimatePresence>
-      {open && (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Share card for ${product?.name ?? 'this product'}`}
+      className="fixed inset-0 z-70 flex items-center justify-center p-4"
+    >
+      <style>{MODAL_CSS}</style>
+
+      {/* backdrop: blur + dim live on the same element as its fade */}
+      <div
+        onClick={onClose}
+        className={`absolute inset-0 bg-ink/75 backdrop-blur-sm transition-opacity duration-300 ${
+          backdropIn ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute left-1/2 top-1/2 h-160 w-160 -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(circle,rgba(48,136,152,0.5),transparent_65%)] transition-opacity duration-500 ${
+          backdropIn ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className={`absolute right-4 top-4 z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition-[opacity,transform,background-color] duration-300 hover:bg-white/20 ${
+          backdropIn ? 'scale-100 opacity-100' : 'scale-75 opacity-0'
+        }`}
+      >
+        <X size={18} />
+      </button>
+
+      {/* the card drops in like it's being dealt, then settles */}
+      {cardMounted && (
         <div
-          key="qr-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Share card for ${product?.name ?? 'this product'}`}
-          className="fixed inset-0 z-70 flex items-center justify-center p-4"
+          className={`relative z-10 ${cardIn ? 'qr-card-enter' : 'qr-card-exit'}`}
+          onTransitionEnd={(e) => {
+            if (e.target === e.currentTarget && e.propertyName === 'transform' && phaseRef.current === 'in') {
+              setSettled(true);
+            }
+          }}
+          style={{
+            transform: cardIn ? ENTER_TO : ENTER_FROM,
+            transformOrigin: '50% 100%',
+            opacity: cardIn ? 1 : 0,
+            // only promoted to its own layer while it is actually moving
+            willChange: settled ? 'auto' : 'transform, opacity',
+          }}
         >
-          {/* backdrop: blur + dim live on the same element as its fade, so the blur fades in smoothly */}
-          <motion.div
-            onClick={onClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="absolute inset-0 bg-ink/75 backdrop-blur-md"
-          />
-
-          <motion.div
-            aria-hidden="true"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="pointer-events-none absolute left-1/2 top-1/2 h-160 w-160 -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(circle,rgba(48,136,152,0.5),transparent_65%)]"
-          />
-
-          <motion.button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            initial={{ opacity: 0, scale: 0.7 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.7 }}
-            transition={{ duration: 0.2 }}
-            className="absolute right-4 top-4 z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20"
-          >
-            <X size={18} />
-          </motion.button>
-
-          {/* the card drops in like it's being dealt, then settles */}
-          <motion.div
-            className="relative z-10"
-            initial={{ opacity: 0, y: 70, scale: 0.78, rotateX: 28 }}
-            animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
-            exit={{ opacity: 0, y: 24, scale: 0.92 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-            style={{ transformPerspective: 1000 }}
-          >
-            <PassDialog product={product} />
-          </motion.div>
+          <PassDialog product={product} onPainted={handlePainted} />
         </div>
       )}
-    </AnimatePresence>,
+    </div>,
     document.body
   );
 }
