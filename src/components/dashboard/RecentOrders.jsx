@@ -1,43 +1,46 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
-import OrderStatusBadge from './OrderStatusBadge';
+import OrderStatusBadge from '../../../../src/components/dashboard/OrderStatusBadge';
 import { formatPrice } from '@/lib/format';
+import { formatOrderDate } from '@/lib/admin/dates';
 
-// Server Component — plain list, no client interactivity needed here.
 export default function RecentOrders({ orders }) {
   return (
-    <div className="rounded-3xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(32,36,38,0.04)] sm:p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-text">Recent Orders</h2>
+    <section className="rounded-2xl border border-border bg-white">
+      <header className="flex items-center justify-between px-5 py-4">
+        <h2 className="text-sm font-semibold text-text">Recent orders</h2>
         <Link
           href="/dashboard/orders"
-          className="flex items-center gap-0.5 text-xs font-medium text-primary transition-colors hover:text-primary-dark"
+          className="inline-flex items-center gap-0.5 text-xs font-medium text-text-muted transition-colors hover:text-text"
         >
           View all
           <ChevronRight size={14} />
         </Link>
-      </div>
+      </header>
 
       {orders.length === 0 ? (
-        <p className="py-8 text-center text-sm text-text-muted">No orders yet.</p>
+        <p className="border-t border-border px-5 py-10 text-center text-sm text-text-muted">
+          No orders yet. New orders will show up here.
+        </p>
       ) : (
-        <div className="mt-4 divide-y divide-border/70">
+        <ul className="divide-y divide-border border-t border-border">
           {orders.map((order) => (
-            <div key={order.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-text">{order.customer}</p>
-                <p className="mt-0.5 text-xs text-text-muted">
-                  {order.id} · {order.items} {order.items === 1 ? 'item' : 'items'} · {order.date}
+            <li key={order.id} className="flex items-center gap-4 px-5 py-3.5">
+              <OrderStatusBadge status={order.status} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-text">{order.customer || 'Customer'}</p>
+                <p className="mt-0.5 truncate text-xs text-text-muted">
+                  {order.orderId}, {order.itemCount} {order.itemCount === 1 ? 'item' : 'items'},{' '}
+                  {formatOrderDate(order.createdAt)}
                 </p>
               </div>
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <span className="text-sm font-semibold text-text">{formatPrice(order.amount)}৳</span>
-                <OrderStatusBadge status={order.status} />
-              </div>
-            </div>
+              <span className="shrink-0 text-sm font-semibold tabular-nums text-text">
+                {formatPrice(order.total)}৳
+              </span>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
-    </div>
+    </section>
   );
 }

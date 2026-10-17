@@ -1,24 +1,64 @@
 'use server'
 
 import { revalidatePath } from 'next/cache';
-import { serverDelete, serverFetch, serverPost, serverPut } from '../core/core';
+import { serverFetch } from '../core/core';
+import { adminDelete, adminFetch, adminPost, adminPut } from '../core/adminCore';
+
+// ---------------------------------------------------------------
+// Admin-only actions (create / count / update / delete).
+// These are server actions, which means anyone can POST to them from
+// outside the dashboard — so they go through adminCore, which verifies
+// the signed-in user is an admin and adds the Express API key.
+// ---------------------------------------------------------------
 
 export async function createProduct(product) {
-  const result = await serverPost('/admin/products', product);
+  const result = await adminPost('/admin/products', product);
 
   if (result?.success) {
     revalidatePath('/', 'page');
     revalidatePath('/shop');
     revalidatePath('/dashboard/products');
+    revalidatePath('/dashboard');
   }
 
   return result;
 }
 
 export async function getFeaturedProductCount() {
-  const result = await serverFetch('/admin/feature-count');
+  const result = await adminFetch('/admin/feature-count');
   return typeof result?.data === 'number' ? result.data : null;
 }
+
+export async function updateProduct(id, product) {
+  const result = await adminPut(`/admin/products/${encodeURIComponent(id)}`, product);
+
+  if (result?.success) {
+    revalidatePath('/', 'page');
+    revalidatePath('/shop');
+    revalidatePath('/dashboard/products');
+    revalidatePath('/dashboard');
+    revalidatePath(`/dashboard/products/${encodeURIComponent(id)}/edit`);
+  }
+
+  return result;
+}
+
+export async function deleteProduct(id) {
+  const result = await adminDelete(`/admin/products/${encodeURIComponent(id)}`);
+
+  if (result?.success) {
+    revalidatePath('/', 'page');
+    revalidatePath('/shop');
+    revalidatePath('/dashboard/products');
+    revalidatePath('/dashboard');
+  }
+
+  return result;
+}
+
+// ---------------------------------------------------------------
+// Public storefront reads — unchanged.
+// ---------------------------------------------------------------
 
 function toSlug(value) {
   return String(value ?? '')
@@ -120,31 +160,6 @@ export async function getShopPriceBounds() {
     min: prices.length ? Math.min(...prices) : 0,
     max: prices.length ? Math.max(...prices) : 0,
   };
-}
-
-export async function updateProduct(id, product) {
-  const result = await serverPut(`/admin/products/${encodeURIComponent(id)}`, product);
-
-  if (result?.success) {
-    revalidatePath('/', 'page');
-    revalidatePath('/shop');
-    revalidatePath('/dashboard/products');
-    revalidatePath(`/dashboard/products/${encodeURIComponent(id)}/edit`);
-  }
-
-  return result;
-}
-
-export async function deleteProduct(id) {
-  const result = await serverDelete(`/admin/products/${encodeURIComponent(id)}`);
-
-  if (result?.success) {
-    revalidatePath('/', 'page');
-    revalidatePath('/shop');
-    revalidatePath('/dashboard/products');
-  }
-
-  return result;
 }
 
 export async function getProductById(id) {

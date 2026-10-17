@@ -1,3 +1,4 @@
+import { requireAdmin } from '@/lib/admin/guard';
 import OrdersClient from '@/components/dashboard/OrdersClient';
 import { getAllOrders } from '@/lib/api/requests/dashboard';
 
@@ -9,6 +10,7 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function OrdersPage() {
+  await requireAdmin();
   const response = await getAllOrders();
   const orders = Array.isArray(response)
     ? response

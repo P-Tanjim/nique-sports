@@ -1,5 +1,6 @@
 'use server'
 
+import { getAdminUser } from '@/lib/admin/guard';
 import { serverFetch } from "../core/core"
 import { v2 as cloudinary } from 'cloudinary';
 
@@ -11,6 +12,7 @@ cloudinary.config({
 });
 
 export async function uploadToCloudinary(formData) {
+  if (!(await getAdminUser())) return { success: false, error: 'Not authorized.' };
   try {
     const file = formData.get("image");
     if (!file) {
@@ -61,6 +63,7 @@ export async function uploadToCloudinary(formData) {
 }
 
 export async function deleteFromCloudinary(imageUrl) {
+  if (!(await getAdminUser())) return { success: false, error: 'Not authorized.' };
   try {
     if (!imageUrl || !imageUrl.includes('cloudinary.com')) {
       return { success: false, error: "Invalid URL" };

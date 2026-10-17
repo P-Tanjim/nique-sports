@@ -3,10 +3,13 @@ import React from "react";
 import bdFlag from "../../../../public/bd-flag.webp";
 import usFlag from "../../../../public/en-flag.webp";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Tabs } from "@heroui/react";
 import Image from "next/image";
-import { ChartBarStacked } from "lucide-react";
+import { ChartBarStacked, Store } from "lucide-react";
 import { useNav } from "./NavStateContext";
+import AdminSignOutButton from "./AdminSignOutButton";
+import { ADMIN_LINKS, isActiveAdminLink, isAdminPath } from "@/components/navbar/adminNav";
 
 const defaultNavItems = [
 	{ heading: "Home", href: "/" },
@@ -33,7 +36,26 @@ const NavLink = ({ heading, href, setIsActive, index }) => (
 	</Link>
 );
 
-const SideNavbar = ({ isActive, setIsActive, navItems }) => (
+// Admin rows: icon + label, same large light type as the storefront menu.
+const AdminNavLink = ({ href, label, icon: Icon, active, setIsActive }) => (
+	<Link
+		href={href}
+		onClick={() => setIsActive(false)}
+		aria-current={active ? "page" : undefined}
+		className="group flex items-center gap-4 border-b border-black/30 py-4 md:py-6"
+	>
+		<Icon size={22} strokeWidth={1.5} className={active ? "text-primary" : "text-black"} />
+		<span
+			className={`text-2xl font-light transition-transform duration-300 ease-out group-hover:translate-x-3 ${
+				active ? "text-primary" : "text-black"
+			}`}
+		>
+			{label}
+		</span>
+	</Link>
+);
+
+const SideNavbar = ({ isActive, setIsActive, navItems, inAdmin, pathname }) => (
 	<div
 		className={`fixed right-0 top-0 z-70 h-dvh w-screen max-w-screen-sm bg-white transition-transform duration-500 ease-[cubic-bezier(0.207,0.473,0.504,0.935)] ${isActive ? "translate-x-0" : "translate-x-full"
 			}`}
@@ -41,35 +63,60 @@ const SideNavbar = ({ isActive, setIsActive, navItems }) => (
 		<div className="h-full pt-11 flex flex-col justify-between">
 			<div className="flex flex-col gap-3 mt-0 px-10 md:px-24">
 				<div className="text-primary border-b border-primary-dark/30 uppercase text-sm mb-0">
-					<p>apanique</p>
+					<p>{inAdmin ? "admin" : "apanique"}</p>
 				</div>
 				<section className="bg-transparent mt-0">
 					<div className="mx-auto max-w-7xl">
-						{navItems.map((item, index) => (
-							<NavLink
-								key={item.href}
-								{...item}
-								setIsActive={setIsActive}
-								index={index + 1}
-							/>
-						))}
+						{inAdmin ? (
+							<>
+								{ADMIN_LINKS.map((link) => (
+									<AdminNavLink
+										key={link.href}
+										href={link.href}
+										label={link.label}
+										icon={link.icon}
+										active={isActiveAdminLink(link, pathname)}
+										setIsActive={setIsActive}
+									/>
+								))}
+								<AdminNavLink
+									href="/"
+									label="View store"
+									icon={Store}
+									active={false}
+									setIsActive={setIsActive}
+								/>
+								<AdminSignOutButton variant="row" onDone={() => setIsActive(false)} />
+							</>
+						) : (
+							navItems.map((item, index) => (
+								<NavLink
+									key={item.href}
+									{...item}
+									setIsActive={setIsActive}
+									index={index + 1}
+								/>
+							))
+						)}
 					</div>
 				</section>
 
-				<Tabs className="w-full mt-2 h-fit">
-					<Tabs.ListContainer>
-						<Tabs.List aria-label="Options">
-							<Tabs.Tab id="overview">
-								<Image src={bdFlag} width={18} alt="BD Flag w-auto h-auto" />
-								<Tabs.Indicator className="px-2 py-2" />
-							</Tabs.Tab>
-							<Tabs.Tab id="analytics">
-								<Image src={usFlag} width={18} alt="US Flag w-auto h-auto" />
-								<Tabs.Indicator />
-							</Tabs.Tab>
-						</Tabs.List>
-					</Tabs.ListContainer>
-				</Tabs>
+				{!inAdmin && (
+					<Tabs className="w-full mt-2 h-fit">
+						<Tabs.ListContainer>
+							<Tabs.List aria-label="Options">
+								<Tabs.Tab id="overview">
+									<Image src={bdFlag} width={18} alt="BD Flag w-auto h-auto" />
+									<Tabs.Indicator className="px-2 py-2" />
+								</Tabs.Tab>
+								<Tabs.Tab id="analytics">
+									<Image src={usFlag} width={18} alt="US Flag w-auto h-auto" />
+									<Tabs.Indicator />
+								</Tabs.Tab>
+							</Tabs.List>
+						</Tabs.ListContainer>
+					</Tabs>
+				)}
 			</div>
 		</div>
 	</div>
@@ -77,6 +124,9 @@ const SideNavbar = ({ isActive, setIsActive, navItems }) => (
 
 const MobileNav = ({ navItems = defaultNavItems, where = "sidebar" }) => {
 	const { isActive, setIsActive } = useNav();
+	const pathname = usePathname();
+	// Cosmetic switch only — dashboard access is enforced on the server.
+	const inAdmin = isAdminPath(pathname);
 
 	return (
 		<>
@@ -112,7 +162,13 @@ const MobileNav = ({ navItems = defaultNavItems, where = "sidebar" }) => {
 			)}
 
 			{where === "sidebar" && (
-				<SideNavbar isActive={isActive} setIsActive={setIsActive} navItems={navItems} />
+				<SideNavbar
+					isActive={isActive}
+					setIsActive={setIsActive}
+					navItems={navItems}
+					inAdmin={inAdmin}
+					pathname={pathname}
+				/>
 			)}
 		</>
 	);

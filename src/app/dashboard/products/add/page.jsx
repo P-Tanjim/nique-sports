@@ -1,3 +1,4 @@
+import { requireAdmin } from '@/lib/admin/guard';
 import { getCategories } from '@/lib/products';
 import ProductForm from '@/components/dashboard/products/ProductForm';
 import Link from 'next/link';
@@ -11,6 +12,7 @@ export const metadata = {
 // page ships instantly and every interactive bit (switches, dropdown,
 // image upload) lives inside <ProductForm>, a Client Component below it.
 export default async function AddProductPage() {
+  await requireAdmin();
   const categories = await getCategories();
 
   return (

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { requireAdmin } from '@/lib/admin/guard';
 import { Plus } from 'lucide-react';
 import ProductAdminCard from '@/components/dashboard/products/ProductAdminCard';
 import { getProducts } from '@/lib/api/products/products';
@@ -11,6 +12,7 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardProductsPage() {
+  await requireAdmin();
   const result = await getProducts(1000);
   const products = Array.isArray(result) ? result : [];
 

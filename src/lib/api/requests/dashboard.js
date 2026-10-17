@@ -1,50 +1,26 @@
 'use server'
 
 import { revalidatePath } from 'next/cache';
-import { serverFetch, serverPut } from '../core/core';
+import { adminFetch, adminPut } from '../core/adminCore';
 
-// ---------------------------------------------------------------
-// Admin dashboard data. Each function is a thin wrapper around your
-// Express API — swap the path for your real route. serverFetch
-// already returns null on any failure, and dashboard/page.jsx falls
-// back to demo data whenever a function returns null/empty, so the
-// UI stays intact while you wire the backend up one route at a time.
-//
-// These hit admin-only data, so once you add auth to serverFetch
-// (or write a dedicated adminFetch), route these through it.
-// ---------------------------------------------------------------
+// Every call here goes through adminCore: it verifies the signed-in user is
+// an admin before anything is sent, and adds the Express API key.
 
-// GET /admin/dashboard/stats
-// Expected shape: { revenue: {value, change, trend}, orders: {...}, customers: {...}, pendingOrders: {...} }
-// trend is 'positive' | 'negative' — it's about whether the change is good news, not the arrow direction.
-export const getDashboardStats = async () => {
-  const res = await serverFetch('/admin/dashboard/stats');
-  return res?.data ?? null;
-};
-
-// GET /admin/dashboard/revenue?range=7d
-// Expected shape: [{ date: 'Mon', revenue: 8400 }, ...]
-export const getRevenueOverview = async () => {
-  const res = await serverFetch('/admin/dashboard/revenue?range=7d');
-  return res?.data ?? null;
-};
-
-// GET /admin/orders/recent?limit=6
-// Expected shape: [{ id, customer, amount, status, date, items }, ...]
-export const getRecentOrders = async () => {
-  const res = await serverFetch('/admin/orders/recent?limit=6');
+// GET /admin/dashboard/overview?range=14
+// -> { range, stats, chart, recentOrders, lowStock }
+export const getDashboardOverview = async (range = 14) => {
+  const res = await adminFetch(`/admin/dashboard/overview?range=${encodeURIComponent(range)}`);
   return res?.data ?? null;
 };
 
 // GET /admin/orders
-// Expected to return full order records with customer and product details.
 export const getAllOrders = async () => {
-  const res = await serverFetch('/admin/orders', { signal: AbortSignal.timeout(8000) });
+  const res = await adminFetch('/admin/orders', { signal: AbortSignal.timeout(8000) });
   return res?.data ?? null;
 };
 
 export const updateOrderStatus = async (id, status) => {
-  const result = await serverPut(`/admin/orders/${encodeURIComponent(id)}/status`, { status });
+  const result = await adminPut(`/admin/orders/${encodeURIComponent(id)}/status`, { status });
 
   if (result?.success) {
     revalidatePath('/dashboard/orders');
@@ -52,18 +28,4 @@ export const updateOrderStatus = async (id, status) => {
   }
 
   return result;
-};
-
-// GET /admin/products/top-selling?limit=5
-// Expected shape: [{ id, name, category, sold, revenue }, ...]
-export const getTopProducts = async () => {
-  const res = await serverFetch('/admin/products/top-selling?limit=5');
-  return res?.data ?? null;
-};
-
-// GET /admin/products/low-stock?threshold=10
-// Expected shape: [{ id, name, stock }, ...]
-export const getLowStockProducts = async () => {
-  const res = await serverFetch('/admin/products/low-stock?threshold=10');
-  return res?.data ?? null;
 };

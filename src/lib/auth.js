@@ -46,6 +46,15 @@ export const auth = betterAuth({
                 required: false,
                 input: false,
             },
+            // 'user' for everyone; 'admin' can only be granted by editing the
+            // user document in MongoDB. input: false means no sign-up or
+            // profile-update request can ever set it.
+            userRole: {
+                type: "string",
+                required: false,
+                defaultValue: "user",
+                input: false,
+            },
         },
     },
 
@@ -58,6 +67,7 @@ export const auth = betterAuth({
                     return {
                         data: {
                             ...user,
+                            userRole: "user",
                             privacyPolicyVersion: PRIVACY_POLICY_VERSION,
                             privacyPolicyAcceptedAt: new Date().toISOString(),
                         },
@@ -67,6 +77,7 @@ export const auth = betterAuth({
             update: {
                 before: async (user) => {
                     if (
+                        "userRole" in user ||
                         "privacyPolicyAccepted" in user ||
                         "privacyPolicyVersion" in user ||
                         "privacyPolicyAcceptedAt" in user

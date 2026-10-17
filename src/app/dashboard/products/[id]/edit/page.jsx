@@ -1,3 +1,4 @@
+import { requireAdmin } from '@/lib/admin/guard';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -11,6 +12,7 @@ export const metadata = {
 };
 
 export default async function EditProductPage({ params }) {
+  await requireAdmin();
   const { id } = await params;
   const [product, categories] = await Promise.all([
     getProductById(id),
