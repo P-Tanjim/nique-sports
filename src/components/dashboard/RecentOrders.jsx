@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
-import OrderStatusBadge from '../../../../src/components/dashboard/OrderStatusBadge';
 import { formatPrice } from '@/lib/format';
 import { formatOrderDate } from '@/lib/admin/dates';
+import OrderStatusBadge from './OrderStatusBadge';
 
 export default function RecentOrders({ orders }) {
   return (
