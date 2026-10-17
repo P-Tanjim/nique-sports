@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Minus, Plus, ShoppingBasket, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { addToCart } from '@/components/sideCart/SideCart';
 import { formatPrice } from '@/lib/format';
 import SizeSelector from './SizeSelector';
 import SizeChartModal from './SizeChartModal';
 import CustomizationOptions from './CustomizationOptions';
+import { Minus, Plus, Zap } from 'lucide-react';
+import AddToCartButton from '@/components/common/AddToCartButton';
 
 // Client Component — this is where all the "what is the person about to
 // buy" state lives: selected size, quantity, and the two purchase actions.
@@ -65,10 +66,10 @@ export default function PurchasePanel({ product, slug }) {
       patchsImg: product.patchsImg ?? [],
       customization: customization.fontEnabled
         ? {
-            name: customization.name,
-            number: customization.number,
-            font: customization.font || undefined,
-          }
+          name: customization.name,
+          number: customization.number,
+          font: customization.font || undefined,
+        }
         : undefined,
       patch: customization.patch.length > 0 ? customization.patch : undefined,
     }),
@@ -96,7 +97,7 @@ export default function PurchasePanel({ product, slug }) {
   }
 
   function handleAddToCart() {
-    if (!validate()) return;
+    if (!validate()) return false;
     addToCart(cartItem, quantity, selectedSize);
   }
 
@@ -139,7 +140,7 @@ export default function PurchasePanel({ product, slug }) {
             {customization.patch.length > 0 && (
               <span>+ Patch {formatPrice(patchPrice)}৳</span>
             )}
-              </span>
+          </span>
         </p>
       </motion.div>
       <SizeSelector
@@ -189,15 +190,11 @@ export default function PurchasePanel({ product, slug }) {
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <button
-          type="button"
-          onClick={handleAddToCart}
+        <AddToCartButton
+          onAdd={handleAddToCart}
           disabled={isOutOfStock}
-          className="flex cursor-pointer p-3 md:h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-primary bg-white text-sm font-semibold text-primary transition-colors hover:bg-primary-soft disabled:cursor-not-allowed disabled:border-border disabled:text-text-muted disabled:hover:bg-white"
-        >
-          <ShoppingBasket size={17} />
-          Add to Cart
-        </button>
+          className="h-11 w-full rounded-xl sm:flex-1 md:h-12"
+        />
         <button
           type="button"
           onClick={handleBuyNow}

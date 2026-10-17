@@ -6,6 +6,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Scan, ShoppingBasket, X, Zap } from 'lucide-react'
 import { addToCart } from '@/components/sideCart/SideCart';
 import AddToCartFlyClone from '@/components/shop/AddToCartFlyClone';
+import AddToCartButton from '@/components/common/AddToCartButton'
 
 const TRANSITION_MS = 300;
 const CART_TARGET_SELECTOR = '[data-cart-fly-target]';
@@ -196,16 +197,10 @@ const ProductCard = ({ product }) => {
                             </div>
 
                             <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
-                                <button
-                                    onClick={() => {
-                                        addToCart(product, 1);
-                                        close();
-                                    }}
-                                    className="w-full py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                                >
-                                    <ShoppingBasket size={18} />
-                                    Add to Cart
-                                </button>
+                                <AddToCartButton
+                                    onAdd={() => addToCart(product, 1)}
+                                    className="h-12 w-full rounded-xl shadow-md"
+                                />
                             </div>
                         </div>
                     </div>
