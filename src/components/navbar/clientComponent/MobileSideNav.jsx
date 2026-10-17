@@ -57,66 +57,72 @@ const AdminNavLink = ({ href, label, icon: Icon, active, setIsActive }) => (
 
 const SideNavbar = ({ isActive, setIsActive, navItems, inAdmin, pathname }) => (
 	<div
-		className={`fixed right-0 top-0 z-70 h-dvh w-screen max-w-screen-sm bg-white transition-transform duration-500 ease-[cubic-bezier(0.207,0.473,0.504,0.935)] ${isActive ? "translate-x-0" : "translate-x-full"
-			}`}
+		className="pointer-events-none fixed inset-0 z-70 overflow-x-clip"
 	>
-		<div className="h-full pt-11 flex flex-col justify-between">
-			<div className="flex flex-col gap-3 mt-0 px-10 md:px-24">
-				<div className="text-primary border-b border-primary-dark/30 uppercase text-sm mb-0">
-					<p>{inAdmin ? "admin" : "apanique"}</p>
-				</div>
-				<section className="bg-transparent mt-0">
-					<div className="mx-auto max-w-7xl">
-						{inAdmin ? (
-							<>
-								{ADMIN_LINKS.map((link) => (
+		<div
+			aria-hidden={!isActive}
+			inert={!isActive}
+			className={`absolute right-0 top-0 h-dvh w-screen max-w-screen-sm bg-white transition-transform duration-500 ease-[cubic-bezier(0.207,0.473,0.504,0.935)] ${isActive ? "translate-x-0" : "translate-x-full pointer-events-none"
+				}`}
+		>
+			<div className="h-full pt-11 flex flex-col justify-between">
+				<div className="flex flex-col gap-3 mt-0 px-10 md:px-24">
+					<div className="text-primary border-b border-primary-dark/30 uppercase text-sm mb-0">
+						<p>{inAdmin ? "admin" : "apanique"}</p>
+					</div>
+					<section className="bg-transparent mt-0">
+						<div className="mx-auto max-w-7xl">
+							{inAdmin ? (
+								<>
+									{ADMIN_LINKS.map((link) => (
+										<AdminNavLink
+											key={link.href}
+											href={link.href}
+											label={link.label}
+											icon={link.icon}
+											active={isActiveAdminLink(link, pathname)}
+											setIsActive={setIsActive}
+										/>
+									))}
 									<AdminNavLink
-										key={link.href}
-										href={link.href}
-										label={link.label}
-										icon={link.icon}
-										active={isActiveAdminLink(link, pathname)}
+										href="/"
+										label="View store"
+										icon={Store}
+										active={false}
 										setIsActive={setIsActive}
 									/>
-								))}
-								<AdminNavLink
-									href="/"
-									label="View store"
-									icon={Store}
-									active={false}
-									setIsActive={setIsActive}
-								/>
-								<AdminSignOutButton variant="row" onDone={() => setIsActive(false)} />
-							</>
-						) : (
-							navItems.map((item, index) => (
-								<NavLink
-									key={item.href}
-									{...item}
-									setIsActive={setIsActive}
-									index={index + 1}
-								/>
-							))
-						)}
-					</div>
-				</section>
+									<AdminSignOutButton variant="row" onDone={() => setIsActive(false)} />
+								</>
+							) : (
+								navItems.map((item, index) => (
+									<NavLink
+										key={item.href}
+										{...item}
+										setIsActive={setIsActive}
+										index={index + 1}
+									/>
+								))
+							)}
+						</div>
+					</section>
 
-				{!inAdmin && (
-					<Tabs className="w-full mt-2 h-fit">
-						<Tabs.ListContainer>
-							<Tabs.List aria-label="Options">
-								<Tabs.Tab id="overview">
-									<Image src={bdFlag} width={18} alt="BD Flag w-auto h-auto" />
-									<Tabs.Indicator className="px-2 py-2" />
-								</Tabs.Tab>
-								<Tabs.Tab id="analytics">
-									<Image src={usFlag} width={18} alt="US Flag w-auto h-auto" />
-									<Tabs.Indicator />
-								</Tabs.Tab>
-							</Tabs.List>
-						</Tabs.ListContainer>
-					</Tabs>
-				)}
+					{!inAdmin && (
+						<Tabs className="w-full mt-2 h-fit">
+							<Tabs.ListContainer>
+								<Tabs.List aria-label="Options">
+									<Tabs.Tab id="overview">
+										<Image src={bdFlag} width={18} alt="BD Flag w-auto h-auto" />
+										<Tabs.Indicator className="px-2 py-2" />
+									</Tabs.Tab>
+									<Tabs.Tab id="analytics">
+										<Image src={usFlag} width={18} alt="US Flag w-auto h-auto" />
+										<Tabs.Indicator />
+									</Tabs.Tab>
+								</Tabs.List>
+							</Tabs.ListContainer>
+						</Tabs>
+					)}
+				</div>
 			</div>
 		</div>
 	</div>
