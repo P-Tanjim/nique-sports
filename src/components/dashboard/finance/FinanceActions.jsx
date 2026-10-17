@@ -123,7 +123,7 @@ export default function FinanceActions({ today, opening }) {
           <div
             aria-hidden="true"
             onClick={close}
-            className={`fixed inset-0 z-100 bg-ink/40 backdrop-blur-sm transition-opacity duration-300 ${
+            className={`fixed inset-0 z-100 bg-primary/40 backdrop-blur-sm transition-opacity duration-300 ${
               visible ? 'opacity-100' : 'pointer-events-none opacity-0'
             }`}
           />
@@ -136,7 +136,7 @@ export default function FinanceActions({ today, opening }) {
               transform: isDragging ? `translateY(${dragY}px)` : visible ? 'translateY(0)' : 'translateY(100%)',
               transition: isDragging ? 'none' : `transform ${SLIDE_MS}ms ${SETTLE_EASE}`,
             }}
-            className="fixed inset-x-0 bottom-0 z-101 mx-auto flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-b-0 border-border bg-white shadow-[0_-12px_40px_rgba(32,36,38,0.18)] will-change-transform"
+            className="fixed inset-x-0 bottom-0 z-101 mx-auto flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-b-0 border-border bg-white shadow-[0_-12px_40px_rgba(32,36,38,0.18)] will-change-transform"
           >
             {/* handle + title: the only part that starts a drag, so the form still scrolls normally */}
             <div
@@ -173,7 +173,7 @@ export default function FinanceActions({ today, opening }) {
                         aria-selected={mode === value}
                         onClick={() => setMode(value)}
                         className={`cursor-pointer rounded-[10px] py-2 font-medium transition-colors ${
-                          mode === value ? 'bg-ink text-white' : 'text-text-muted hover:text-text'
+                          mode === value ? 'bg-primary text-white' : 'text-text-muted hover:text-text'
                         }`}
                       >
                         {label}

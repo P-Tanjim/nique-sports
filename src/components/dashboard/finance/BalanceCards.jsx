@@ -14,8 +14,8 @@ const amountClass = (value) => (value < 0 ? 'text-danger' : 'text-text');
 export default function BalanceCards({ balances }) {
   return (
     <div className="grid overflow-hidden rounded-2xl border border-border bg-white lg:grid-cols-[1.25fr_repeat(4,1fr)]">
-      <div className="bg-ink p-5 text-white">
-        <p className="text-xs text-white/60">Total balance</p>
+      <div className="bg-primary p-5 text-white">
+        <p className="text-xs text-white/80">Total balance</p>
         <p className="mt-3 text-3xl font-semibold tabular-nums">{formatPrice(balances.total)}৳</p>
       </div>
 

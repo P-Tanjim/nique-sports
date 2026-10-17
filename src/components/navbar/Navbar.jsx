@@ -55,7 +55,7 @@ const Navbar = () => {
 
 
             {/* Desktop Navigation */}
-            <ul className="hidden min-[1050px]:flex items-center md:gap-6 lg:gap-8 xl:gap-10 text-ink ">
+            <ul className="relative hidden min-[1050px]:flex items-center md:gap-6 lg:gap-8 py-2 xl:gap-10 text-ink ">
               <AreaSwitch
                 store={
                   <>
@@ -88,7 +88,7 @@ const Navbar = () => {
             </ul>
 
             {/* Logo */}
-            <Link href="/">
+            <Link href="/" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               <Image
                 src={logo}
                 width={50}

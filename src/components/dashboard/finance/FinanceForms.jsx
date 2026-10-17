@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { addExpenses, addMoneyIn, addTransfer, saveOpeningBalances } from '@/lib/api/requests/finance';
 import { formatPrice } from '@/lib/format';
 import DateInput from '@/components/dashboard/DateInput';
+import AnimatedSelect from '@/components/dashboard/products/AnimatedSelect';
 
 export const ACCOUNTS = ['Cash', 'Bank', 'bKash', 'Nagad'];
 
@@ -22,20 +23,17 @@ function Field({ label, children, className = '' }) {
 }
 
 function AccountSelect({ name, value, onChange, defaultValue, label }) {
-  const controlled = value !== undefined;
   return (
-    <select
+    <AnimatedSelect
       name={name}
-      aria-label={label}
-      className={inputClass}
-      {...(controlled ? { value, onChange } : { defaultValue })}
-    >
-      {ACCOUNTS.map((account) => (
-        <option key={account} value={account}>
-          {account}
-        </option>
-      ))}
-    </select>
+      value={value}
+      defaultValue={defaultValue}
+      onChange={onChange}
+      triggerLabel={label}
+      className="w-full"
+      triggerClassName={`${inputClass} flex items-center justify-between text-left`}
+      options={ACCOUNTS.map((account) => ({ value: account, label: account }))}
+    />
   );
 }
 
@@ -189,7 +187,7 @@ export function ExpenseForm({ today, onDone }) {
               />
               <AccountSelect
                 value={row.paidFrom}
-                onChange={(e) => updateRow(row.id, { paidFrom: e.target.value })}
+                onChange={(paidFrom) => updateRow(row.id, { paidFrom })}
                 label={`Expense ${index + 1} paid from`}
               />
             </div>

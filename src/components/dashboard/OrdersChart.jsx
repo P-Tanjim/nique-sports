@@ -44,7 +44,7 @@ export default function OrdersChart({ data, range }) {
               scroll={false}
               aria-current={days === range ? 'true' : undefined}
               className={`rounded-[10px] px-3 py-1.5 font-medium transition-colors ${
-                days === range ? 'bg-ink text-white' : 'text-text-muted hover:text-text'
+                days === range ? 'bg-primary text-white' : 'text-text-muted hover:text-text'
               }`}
             >
               {days}d

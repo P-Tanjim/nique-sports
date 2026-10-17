@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 import DateInput from '@/components/dashboard/DateInput';
+import AnimatedSelect from '@/components/dashboard/products/AnimatedSelect';
 
 const fieldClass =
   'w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-text outline-none transition-colors focus:border-primary';
@@ -31,23 +32,29 @@ export default function FinanceFilters({ from, to, type, q, presets }) {
       <form key={`${from}|${to}|${type}|${q}`} onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_160px_1.4fr_auto]">
         <DateInput label="From" name="from" defaultValue={from} />
         <DateInput label="To" name="to" defaultValue={to} />
-        <label className="block">
-          <span className="mb-1.5 block text-xs text-text-muted">Type</span>
-          <select name="type" defaultValue={type} className={fieldClass}>
-            <option value="">All</option>
-            <option value="money_in">Money in</option>
-            <option value="expense">Expense</option>
-            <option value="transfer">Transfer</option>
-          </select>
-        </label>
+        <div className="block">
+          <span className="block text-xs text-text-muted">Type</span>
+          <AnimatedSelect
+            name="type"
+            defaultValue={type}
+            triggerLabel="Type"
+            className="w-full"
+            options={[
+              { value: '', label: 'All' },
+              { value: 'money_in', label: 'Money in' },
+              { value: 'expense', label: 'Expense' },
+              { value: 'transfer', label: 'Transfer' },
+            ]}
+          />
+        </div>
         <label className="block">
           <span className="mb-1.5 block text-xs text-text-muted">Search</span>
           <input name="q" defaultValue={q} maxLength={80} placeholder="Note or reference" className={fieldClass} />
         </label>
-        <div className="flex items-end">
+        <div className="flex w-full items-end">
           <button
             type="submit"
-            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-dark-soft sm:w-auto"
+            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-soft sm:w-auto"
           >
             <Search size={16} />
             Apply
