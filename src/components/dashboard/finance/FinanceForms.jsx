@@ -5,6 +5,7 @@ import { Loader2, Plus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { addExpenses, addMoneyIn, addTransfer, saveOpeningBalances } from '@/lib/api/requests/finance';
 import { formatPrice } from '@/lib/format';
+import DateInput from '@/components/dashboard/DateInput';
 
 export const ACCOUNTS = ['Cash', 'Bank', 'bKash', 'Nagad'];
 
@@ -92,9 +93,7 @@ export function MoneyInForm({ today, onDone }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Date">
-          <input name="date" type="date" defaultValue={today} required className={inputClass} />
-        </Field>
+        <DateInput label="Date" name="date" defaultValue={today} required />
         <Field label="Deposit to">
           <AccountSelect name="account" defaultValue="Cash" />
         </Field>
@@ -151,9 +150,7 @@ export function ExpenseForm({ today, onDone }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="Date">
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className={inputClass} />
-      </Field>
+      <DateInput label="Date" value={date} onChange={setDate} required />
 
       <ul className="space-y-3">
         {rows.map((row, index) => (
@@ -240,9 +237,7 @@ export function TransferForm({ today, onDone }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="Date">
-        <input name="date" type="date" defaultValue={today} required className={inputClass} />
-      </Field>
+      <DateInput label="Date" name="date" defaultValue={today} required />
       <div className="grid grid-cols-2 gap-3">
         <Field label="From">
           <AccountSelect name="from" defaultValue="Cash" />

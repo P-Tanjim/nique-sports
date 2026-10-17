@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Check, ChevronDown } from 'lucide-react';
+
+const menuVariants = {
+  closed: { opacity: 0, scale: 0.92 },
+  open: { opacity: 1, scale: 1 },
+};
 
 const SORT_OPTIONS = [
   { value: 'default', label: 'Default sorting' },
@@ -75,39 +81,46 @@ export default function SortDropdown() {
         />
       </button>
 
-      {open && (
-        <div
-          role="listbox"
-          aria-labelledby="shop-sort"
-          onMouseLeave={() => setHoveredIndex(null)}
-          className="absolute left-0 right-0 z-50 mt-2 rounded-[24px] border border-white/10 bg-white p-2 shadow-2xl"
-        >
-          {SORT_OPTIONS.map((option, index) => (
-            <button
-              key={option.value}
-              type="button"
-              role="option"
-              aria-selected={option.value === current}
-              onMouseEnter={() => setHoveredIndex(index)}
-              onClick={() => {
-                select(option.value);
-                setOpen(false);
-              }}
-              className="group/item relative flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left text-sm font-medium text-primary-dark"
-            >
-              {indicatorIndex === index && (
-                <span className="absolute inset-0 rounded-2xl border border-white/20 bg-primary-light/30 " />
-              )}
-              <span className="relative z-10 text-[#263238] transition-transform duration-200 group-hover/item:translate-x-1">
-                {option.label}
-              </span>
-              {option.value === current && (
-                <Check size={16} className="relative z-10 shrink-0 text-[#263238]" />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            role="listbox"
+            aria-labelledby="shop-sort"
+            onMouseLeave={() => setHoveredIndex(null)}
+            initial="closed"
+            animate="open"
+            exit="closed"
+            variants={menuVariants}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="absolute left-0 right-0 z-50 mt-2 origin-top rounded-[24px] border border-white/10 bg-white p-2 shadow-2xl"
+          >
+            {SORT_OPTIONS.map((option, index) => (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={option.value === current}
+                onMouseEnter={() => setHoveredIndex(index)}
+                onClick={() => {
+                  select(option.value);
+                  setOpen(false);
+                }}
+                className="group/item relative flex w-full cursor-pointer items-center justify-between px-4 py-3 text-left text-sm font-medium text-primary-dark"
+              >
+                {indicatorIndex === index && (
+                  <span className="absolute inset-0 rounded-2xl border border-white/20 bg-primary-light/30 " />
+                )}
+                <span className="relative z-10 text-[#263238] transition-transform duration-200 group-hover/item:translate-x-1">
+                  {option.label}
+                </span>
+                {option.value === current && (
+                  <Check size={16} className="relative z-10 shrink-0 text-[#263238]" />
+                )}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

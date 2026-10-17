@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
+import DateInput from '@/components/dashboard/DateInput';
 
 const fieldClass =
   'w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-text outline-none transition-colors focus:border-primary';
@@ -28,14 +29,8 @@ export default function FinanceFilters({ from, to, type, q, presets }) {
   return (
     <section className="rounded-2xl border border-border bg-white p-5">
       <form key={`${from}|${to}|${type}|${q}`} onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_160px_1.4fr_auto]">
-        <label className="block">
-          <span className="mb-1.5 block text-xs text-text-muted">From</span>
-          <input name="from" type="date" defaultValue={from} className={fieldClass} />
-        </label>
-        <label className="block">
-          <span className="mb-1.5 block text-xs text-text-muted">To</span>
-          <input name="to" type="date" defaultValue={to} className={fieldClass} />
-        </label>
+        <DateInput label="From" name="from" defaultValue={from} />
+        <DateInput label="To" name="to" defaultValue={to} />
         <label className="block">
           <span className="mb-1.5 block text-xs text-text-muted">Type</span>
           <select name="type" defaultValue={type} className={fieldClass}>
@@ -67,9 +62,8 @@ export default function FinanceFilters({ from, to, type, q, presets }) {
             href={preset.href}
             replace
             scroll={false}
-            className={`transition-colors ${
-              preset.active ? 'font-semibold text-primary' : 'text-text-muted hover:text-text'
-            }`}
+            className={`transition-colors ${preset.active ? 'font-semibold text-primary' : 'text-text-muted hover:text-text'
+              }`}
           >
             {preset.label}
           </Link>

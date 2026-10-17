@@ -17,7 +17,6 @@ export default function AdminHeaderActions() {
         <Store size={18} strokeWidth={1.8} />
         <span className="hidden min-[1050px]:inline">View store</span>
       </Link>
-      <AdminSignOutButton />
     </div>
   );
 }

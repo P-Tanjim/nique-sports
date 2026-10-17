@@ -6,8 +6,7 @@ export default function DataError({ title = "Couldn't load this page" }) {
       <TriangleAlert size={22} strokeWidth={1.6} className="text-text-muted" />
       <h2 className="mt-4 text-base font-semibold text-text">{title}</h2>
       <p className="mt-1.5 max-w-md text-sm text-text-muted">
-        The API didn&apos;t answer. Check that the backend is running and that ADMIN_API_KEY is
-        the same value on both the website and the backend, then reload.
+        Something is preventing this page from loading. Please try again later or contact support if the problem persists.
       </p>
     </div>
   );
