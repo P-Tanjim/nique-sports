@@ -132,7 +132,8 @@ const ProductCard = ({ product }) => {
                         alt={product.title}
                         width={150}
                         height={150}
-                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        sizes="(max-width: 767px) calc(50vw - 24px), (max-width: 1279px) calc(33.333vw - 64px), calc(25vw - 52px)"
+                        quality={55}
                         className='object-cover z-20 h-full w-full'
                         containerClassName="relative w-full"
                     />

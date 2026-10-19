@@ -70,7 +70,7 @@ function getCardMotion(offset) {
   return { x: dir * 112, y: -30, scale: 0.82, opacity: 0, zIndex: 0 };
 }
 
-const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion, isPriority }) {
+const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion }) {
   const isActive = offset === 0;
   const isInteractive = !isActive && Math.abs(offset) <= VISIBLE_RADIUS;
   const m = getCardMotion(offset);
@@ -89,7 +89,7 @@ const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion, is
       style={{ zIndex: m.zIndex, width: CARD_W, height: CARD_H, willChange: "transform, opacity" }}
       className={`absolute inset-0 m-auto overflow-hidden rounded-[28px] border ${
         isActive
-          ? "cursor-default border-white/10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.65)]"
+          ? "cursor-default border-white/10 shadow-[0_15px_60px_-15px_rgba(0,0,0,0.65)]"
           : isInteractive
             ? "cursor-pointer border-white/5"
             : "pointer-events-none border-transparent"
@@ -97,11 +97,11 @@ const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion, is
     >
       <Image
         src={testimonial.image}
-        alt={`${testimonial.name} wearing their jersey`}
+        alt={`${testimonial.name || "NIQUE SPORTS customer"} wearing their jersey`}
         fill
         sizes={`${CARD_W}px`}
-        priority={isPriority}
-        loading={isActive ? undefined : "eager"}
+        loading="lazy"
+        quality={50}
         className="object-cover"
       />
       {/* scrim only on the active card — peek cards are already dimmed via opacity */}
@@ -202,43 +202,9 @@ export default function TestimonialCarousel({
             offset={offset}
             reduceMotion={reduceMotion}
             onClick={() => goTo(i)}
-            isPriority={Math.abs(offset) <= 2}
           />
         ))}
       </motion.div>
-{/* 
-      <div className="mt-6 text-center">
-        <p className="text-base font-semibold text-white">{active.name}</p>
-        {active.subtitle && <p className="text-sm text-neutral-500">{active.subtitle}</p>}
-      </div> */}
-
-      <div className="mt-5 flex items-center justify-center gap-4">
-        <NavButton direction="prev" onClick={goPrev} />
-
-        <div className="flex items-center gap-2">
-          {testimonials.map((t, i) => (
-            <button
-              key={t._id}
-              type="button"
-              onClick={() => goTo(i)}
-              aria-label={`Go to testimonial ${i + 1}`}
-              className="flex h-2 items-center"
-            >
-              {i === activeIndex ? (
-                <motion.span
-                  layoutId="active-dot"
-                  className="h-2 w-6 rounded-full bg-white"
-                  transition={{ type: "spring", stiffness: 500, damping: 34 }}
-                />
-              ) : (
-                <span className="h-2 w-2 rounded-full bg-white/25 transition-colors hover:bg-white/40" />
-              )}
-            </button>
-          ))}
-        </div>
-
-        <NavButton direction="next" onClick={goNext} />
-      </div>
     </div>
   );
 }

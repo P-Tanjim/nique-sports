@@ -35,7 +35,7 @@ const ProductsSection = async () => {
                 ))}
             </div>
 
-            <Link href='/shop'><Button variant='ghost' className='mt-6 mx-auto flex items-center justify-center gap-2 bg-primary text-white'>See More <ArrowRight size={20} /></Button></Link>
+            <Link href='/shop'><Button variant='ghost' className='mt-6 mx-auto flex items-center justify-center gap-2 bg-primary text-white'>Browse all jerseys <ArrowRight size={20} /></Button></Link>
         </div>
     )
 }

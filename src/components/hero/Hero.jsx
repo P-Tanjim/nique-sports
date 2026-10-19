@@ -6,7 +6,15 @@ export default function Hero() {
   return (
     <div className='mb-10'>
         {/* hero image  */}
-        <Image loading='eager' src={heroBg} alt='hero-background' className='w-full aspect-video' />
+        <Image
+          src={heroBg}
+          alt='NIQUE SPORTS football jerseys'
+          loading='eager'
+          fetchPriority='high'
+          sizes='100vw'
+          quality={65}
+          className='w-full aspect-video'
+        />
     </div>
   )
 }

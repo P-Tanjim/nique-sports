@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import ImageWithLoader from "@/components/common/ImageWithLoader";
 
@@ -8,8 +8,21 @@ import ImageWithLoader from "@/components/common/ImageWithLoader";
 // lever for mobile perf — fewer mounted <Image>/transition targets, not
 // just smaller spacing.
 function getDesiredVisibleSlots(width) {
-  if (width < 1024) return 5;
+  if (width < 768) return 5;
   return 9;
+}
+
+function subscribeToViewport(callback) {
+  window.addEventListener("resize", callback);
+  return () => window.removeEventListener("resize", callback);
+}
+
+function getVisibleSlotSnapshot() {
+  return getDesiredVisibleSlots(window.innerWidth);
+}
+
+function getServerVisibleSlotSnapshot() {
+  return 7;
 }
 
 // One extra card mounted (but hidden) on each side of the visible window so
@@ -153,18 +166,17 @@ export default function FeatureCard({ cards = [] }) {
 
   const totalCards = cards.length;
 
-  // SSR-safe default (desktop count); corrected to the real viewport right
-  // after mount so the very first paint never mismatches server HTML.
-  const [desiredVisible, setDesiredVisible] = useState(7);
-  useEffect(() => {
-    setDesiredVisible(getDesiredVisibleSlots(window.innerWidth));
-  }, []);
+  const desiredVisible = useSyncExternalStore(
+    subscribeToViewport,
+    getVisibleSlotSnapshot,
+    getServerVisibleSlotSnapshot
+  );
 
   const needsPagination = totalCards > 1;
   const visibleSlots = needsPagination ? Math.min(totalCards, desiredVisible) : totalCards;
   const half = Math.floor(visibleSlots / 2);
 
-  const [centerIndex, setCenterIndex] = useState(needsPagination ? half : totalCards >> 1);
+  const [centerIndex, setCenterIndex] = useState(totalCards >> 1);
 
   const cycle = (direction) => {
     if (isAnimating.current || !needsPagination) return;
@@ -218,9 +230,11 @@ export default function FeatureCard({ cards = [] }) {
 
     if (isFirstMount) isAnimating.current = true;
 
+    let completionTimer = null;
     let completedCount = 0;
     const onCardDone = () => {
       if (++completedCount >= visibleMap.size) {
+        if (completionTimer) clearTimeout(completionTimer);
         isAnimating.current = false;
         hasEntered.current = true;
       }
@@ -299,6 +313,16 @@ export default function FeatureCard({ cards = [] }) {
 
     directRetargets.forEach(({ el, to, timing, onDone }) => animateCard(el, to, timing, onDone));
 
+    const longestTransition = [...pendingEntrances, ...directRetargets]
+      .filter(({ onDone }) => onDone)
+      .reduce((longest, { timing }) => Math.max(longest, timing.duration + (timing.delay ?? 0)), 0);
+    if (longestTransition > 0) {
+      completionTimer = setTimeout(() => {
+        isAnimating.current = false;
+        hasEntered.current = true;
+      }, (longestTransition + 0.2) * 1000);
+    }
+
     prevVisible.current = new Set(visibleMap.keys());
     visibleEntries.sort((a, b) => a.slot - b.slot);
 
@@ -357,11 +381,7 @@ export default function FeatureCard({ cards = [] }) {
       if (w === lastWidthRef.current) return;
       lastWidthRef.current = w;
       mults.current = getMultipliers(w);
-      const nextDesired = getDesiredVisibleSlots(w);
-      if (nextDesired !== desiredVisible) {
-        setDesiredVisible(nextDesired); // crosses a breakpoint — let the effect fully re-run
-        return;
-      }
+      if (getDesiredVisibleSlots(w) !== desiredVisible) return;
       if (!isAnimating.current) updateHoverLayout(activeSlot);
     };
     window.addEventListener("resize", onResize);
@@ -370,6 +390,7 @@ export default function FeatureCard({ cards = [] }) {
       listeners.forEach(({ el, handler }) => el.removeEventListener("mouseenter", handler));
       if (!isTouchDevice) container.removeEventListener("mouseleave", onMouseLeave);
       window.removeEventListener("resize", onResize);
+      if (completionTimer) clearTimeout(completionTimer);
       if (leaveTimer) clearTimeout(leaveTimer);
     };
   }, [centerIndex, totalCards, needsPagination, visibleSlots, half, mountedIndices, cards, desiredVisible]);
@@ -394,6 +415,7 @@ export default function FeatureCard({ cards = [] }) {
                   alt={card.alt || `Card ${idx}`}
                   fill
                   sizes="(max-width: 640px) 192px, (max-width: 768px) 224px, 256px"
+                  quality={55}
                   className="object-cover z-10"
                   containerClassName="relative h-full w-full"
                 />
