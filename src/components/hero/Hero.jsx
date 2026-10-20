@@ -12,7 +12,7 @@ export default function Hero() {
           loading='eager'
           fetchPriority='high'
           sizes='100vw'
-          quality={65}
+          quality={60}
           className='w-full aspect-video'
         />
     </div>

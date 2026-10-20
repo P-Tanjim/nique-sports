@@ -1,6 +1,6 @@
 import { dancingScript } from '@/app/fonts'
 import React from 'react'
-import TestimonialCarousel from './clientComponent/cards';
+import DeferredTestimonialCarousel from './clientComponent/DeferredTestimonialCarousel';
 import { getTestimonials } from '@/lib/api/requests/testimonial';
 
 const Testimonial = async () => {
@@ -15,7 +15,7 @@ const Testimonial = async () => {
         <h1 className={`text-center mb-10 text-5xl md:text-6xl lg:text-7xl text-primary ${dancingScript.className}`}>Customers</h1>
         <div className="bg-white">
       <div className="mx-auto max-w-4xl overflow-clip">
-        <TestimonialCarousel
+        <DeferredTestimonialCarousel
           testimonials={testimonials}
           autoPlay={true}
           autoPlayInterval={3500}

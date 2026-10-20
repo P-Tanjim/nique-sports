@@ -89,7 +89,7 @@ const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion }) 
       style={{ zIndex: m.zIndex, width: CARD_W, height: CARD_H, willChange: "transform, opacity" }}
       className={`absolute inset-0 m-auto overflow-hidden rounded-[28px] border ${
         isActive
-          ? "cursor-default border-white/10 shadow-[0_15px_60px_-15px_rgba(0,0,0,0.65)]"
+          ? "cursor-default border-white/10 shadow-[0_10px_40px_0px_rgba(0,0,0,0.65)]"
           : isInteractive
             ? "cursor-pointer border-white/5"
             : "pointer-events-none border-transparent"
@@ -101,7 +101,7 @@ const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion }) 
         fill
         sizes={`${CARD_W}px`}
         loading="lazy"
-        quality={50}
+        quality={40}
         className="object-cover"
       />
       {/* scrim only on the active card — peek cards are already dimmed via opacity */}

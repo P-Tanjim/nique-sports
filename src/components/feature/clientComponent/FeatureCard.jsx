@@ -231,6 +231,8 @@ export default function FeatureCard({ cards = [] }) {
     if (isFirstMount) isAnimating.current = true;
 
     let completionTimer = null;
+    let transitionFrame = null;
+    let transitionFrameNext = null;
     let completedCount = 0;
     const onCardDone = () => {
       if (++completedCount >= visibleMap.size) {
@@ -307,8 +309,11 @@ export default function FeatureCard({ cards = [] }) {
 
     if (pendingEntrances.length) {
       pendingEntrances.forEach(({ el, from }) => setInstant(el, from));
-      void container.offsetHeight;
-      pendingEntrances.forEach(({ el, to, timing, onDone }) => animateCard(el, to, timing, onDone));
+      transitionFrame = requestAnimationFrame(() => {
+        transitionFrameNext = requestAnimationFrame(() => {
+          pendingEntrances.forEach(({ el, to, timing, onDone }) => animateCard(el, to, timing, onDone));
+        });
+      });
     }
 
     directRetargets.forEach(({ el, to, timing, onDone }) => animateCard(el, to, timing, onDone));
@@ -392,6 +397,8 @@ export default function FeatureCard({ cards = [] }) {
       window.removeEventListener("resize", onResize);
       if (completionTimer) clearTimeout(completionTimer);
       if (leaveTimer) clearTimeout(leaveTimer);
+      if (transitionFrame !== null) cancelAnimationFrame(transitionFrame);
+      if (transitionFrameNext !== null) cancelAnimationFrame(transitionFrameNext);
     };
   }, [centerIndex, totalCards, needsPagination, visibleSlots, half, mountedIndices, cards, desiredVisible]);
 
@@ -415,7 +422,7 @@ export default function FeatureCard({ cards = [] }) {
                   alt={card.alt || `Card ${idx}`}
                   fill
                   sizes="(max-width: 640px) 192px, (max-width: 768px) 224px, 256px"
-                  quality={55}
+                  quality={45}
                   className="object-cover z-10"
                   containerClassName="relative h-full w-full"
                 />
