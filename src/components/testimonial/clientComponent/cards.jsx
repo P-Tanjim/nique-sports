@@ -38,7 +38,7 @@
  * layers at the cost of the far "peek" cards.
  */
 
-import { useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, useCallback, memo, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 
@@ -89,7 +89,7 @@ const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion }) 
       style={{ zIndex: m.zIndex, width: CARD_W, height: CARD_H, willChange: "transform, opacity" }}
       className={`absolute inset-0 m-auto overflow-hidden rounded-[28px] border ${
         isActive
-          ? "cursor-default border-white/10 shadow-[0_10px_40px_0px_rgba(0,0,0,0.65)]"
+          ? "cursor-default border-black/10 md:border-white/10 shadow-none md:shadow-[0_10px_40px_0px_rgba(0,0,0,0.65)]"
           : isInteractive
             ? "cursor-pointer border-white/5"
             : "pointer-events-none border-transparent"
@@ -142,6 +142,8 @@ export default function TestimonialCarousel({
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const containerRef = useRef(null);
   const reduceMotion = useReducedMotion();
   const total = testimonials.length;
 
@@ -149,12 +151,23 @@ export default function TestimonialCarousel({
   const goPrev = useCallback(() => setActiveIndex((i) => (i - 1 + total) % total), [total]);
   const goTo = useCallback((i) => setActiveIndex(i), []);
 
-  // autoplay, paused on hover/focus/hidden tab
   useEffect(() => {
-    if (!autoPlay || isPaused || total <= 1) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { rootMargin: "50px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // autoplay, paused when offscreen, on hover/focus, or when tab is hidden
+  useEffect(() => {
+    if (!isInView || !autoPlay || isPaused || total <= 1) return;
     const id = setInterval(goNext, autoPlayInterval);
     return () => clearInterval(id);
-  }, [autoPlay, isPaused, autoPlayInterval, goNext, total]);
+  }, [isInView, autoPlay, isPaused, autoPlayInterval, goNext, total]);
 
   useEffect(() => {
     const onVisibility = () => setIsPaused(document.hidden);
@@ -172,6 +185,7 @@ export default function TestimonialCarousel({
 
   return (
     <div
+      ref={containerRef}
       className={`w-full select-none outline-none ${className}`}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}

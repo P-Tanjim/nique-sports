@@ -112,7 +112,7 @@ const ProductCard = ({ product }) => {
                             type="button"
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); open(); }}
                             title="Quick View"
-                            className='w-9 pointer-events-auto md:w-10 md:h-10 h-9 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium'
+                            className='w-9 pointer-events-auto md:w-10 md:h-10 h-9 cursor-pointer hover:scale-110 transition-transform duration-300 bg-linear-to-t from-black/70 via-black/65 to-black/40 md:bg-black/45 md:backdrop-blur-sm bg-black/40 rounded-full flex justify-center items-center text-xs text-white font-medium'
                         >
                             <Scan size={14} />
                         </button>
@@ -121,7 +121,7 @@ const ProductCard = ({ product }) => {
                             title="Add to Cart"
                             disabled={Boolean(flight)}
                             onClick={handleAddToCart}
-                            className='w-9 pointer-events-auto h-9 md:w-10 md:h-10 cursor-pointer hover:scale-110 transition-transform duration-300 backdrop-blur-sm bg-black/50 rounded-full flex justify-center items-center text-xs text-white font-medium disabled:pointer-events-none disabled:opacity-70'
+                            className='w-9 pointer-events-auto h-9 md:w-10 md:h-10 cursor-pointer hover:scale-110 transition-transform duration-300 bg-linear-to-t from-black/70 via-black/65 to-black/40 md:bg-black/45 md:backdrop-blur-sm bg-black/40 rounded-full flex justify-center items-center text-xs text-white font-medium disabled:pointer-events-none disabled:opacity-70'
                         >
                             <ShoppingBasket size={14} />
                         </button>
@@ -132,7 +132,7 @@ const ProductCard = ({ product }) => {
                         alt={product.title}
                         width={150}
                         height={150}
-                        sizes="(max-width: 767px) calc(50vw - 24px), (max-width: 1279px) calc(33.333vw - 64px), calc(25vw - 52px)"
+                        sizes="(max-width: 640px) 48vw, (max-width: 1024px) 32vw, 24vw"
                         quality={45}
                         className='object-cover z-20 h-full w-full'
                         containerClassName="relative w-full"
@@ -154,7 +154,7 @@ const ProductCard = ({ product }) => {
                     {/* Backdrop */}
                     <div
                         onClick={close}
-                        className={`absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'
+                        className={`absolute inset-0 bg-black/70 bg-linear-to-t from-black/90 via-black/75 to-black/40 md:bg-black/45 md:backdrop-blur-md transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'
                             }`}
                     />
 
@@ -166,7 +166,7 @@ const ProductCard = ({ product }) => {
                         <button
                             onClick={close}
                             aria-label="Close"
-                            className="absolute top-4 right-4 z-30 flex h-9 w-9 items-center justify-center bg-black/60 hover:bg-black rounded-full text-white transition-colors backdrop-blur-sm cursor-pointer"
+                            className="absolute top-4 right-4 z-30 flex h-9 w-9 items-center justify-center bg-black/60 hover:bg-black rounded-full text-white transition-colors bg-gradient-to-t from-black/90 via-black/75 to-black/40 md:bg-black/45 md:backdrop-blur-sm cursor-pointer"
                         >
                             <X size={18} />
                         </button>

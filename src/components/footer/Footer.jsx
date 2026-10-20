@@ -63,7 +63,7 @@ const footerLinks = [
 
 export default function Footer() {
   return (
-    <footer className="relative w-full overflow-hidden bg-primary-dark pb-8 pt-12 text-[#F2F0E6] antialiased md:pt-16">
+    <footer className="relative w-full overflow-hidden bg-primary-dark pb-8 pt-12 text-[#F2F0E6] antialiased md:pt-16 section-visibility-footer">
       <div className="container mx-auto px-6 lg:px-12">
         {/* Top Section */}
         <div className="mb-8 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">

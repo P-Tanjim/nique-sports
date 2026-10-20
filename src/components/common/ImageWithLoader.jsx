@@ -10,6 +10,7 @@ const ImageWithLoader = forwardRef(function ImageWithLoader(
     alt,
     loading = "lazy",
     preload = false,
+    sizes,
     onLoad,
     onError,
     ...imageProps
@@ -34,10 +35,11 @@ const ImageWithLoader = forwardRef(function ImageWithLoader(
         {...imageProps}
         ref={ref}
         alt={alt}
+        sizes={sizes}
         {...(preload ? { preload: true } : { loading })}
         onLoad={handleLoad}
         onError={handleError}
-        className={`${className} transition-[opacity,transform] duration-300 ${
+        className={`${className} transition-opacity duration-300 ${
           loaded ? "opacity-100" : "opacity-0"
         }`}
       />

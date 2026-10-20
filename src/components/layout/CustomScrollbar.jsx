@@ -21,6 +21,7 @@ export default function CustomScrollbar() {
   const [metrics, setMetrics] = useState({ thumbHeight: 0, thumbTop: 0, visible: false });
 
   useEffect(() => {
+    if (window.matchMedia('(max-width: 768px), (pointer: coarse)').matches) return;
     let frameId;
 
     function update() {

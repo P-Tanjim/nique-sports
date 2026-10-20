@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { serverFetch } from '../core/core';
 import { adminDelete, adminFetch, adminPost, adminPut } from '../core/adminCore';
+import { optimizeCloudinaryUrl } from '@/lib/cloudinary';
 
 // ---------------------------------------------------------------
 // Admin-only actions (create / count / update / delete).
@@ -72,11 +73,17 @@ function normalizeProduct(product) {
   const price = Number(product?.price) || 0;
   const beforePrice = Number(product?.beforePrice) || 0;
   const hasDiscount = Boolean(product?.discount) && beforePrice > price;
+  const rawImage = product?.imagesLink?.[0] ?? product?.image ?? null;
+  const optimizedImage = optimizeCloudinaryUrl(rawImage);
+  const optimizedLinks = Array.isArray(product?.imagesLink)
+    ? product.imagesLink.map((u) => optimizeCloudinaryUrl(u))
+    : product?.imagesLink;
 
   return {
     ...product,
     name: product?.title,
-    image: product?.imagesLink?.[0] ?? null,
+    image: optimizedImage,
+    imagesLink: optimizedLinks,
     slug: product?._id,
     originalPrice: hasDiscount ? beforePrice : null,
     discountPercent: hasDiscount

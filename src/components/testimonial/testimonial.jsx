@@ -11,7 +11,7 @@ const Testimonial = async () => {
     return null; 
   }
   return (
-    <div className='py-20'>
+    <section className='py-20 section-visibility-testimonial'>
         <h1 className={`text-center mb-10 text-5xl md:text-6xl lg:text-7xl text-primary ${dancingScript.className}`}>Customers</h1>
         <div className="bg-white">
       <div className="mx-auto max-w-4xl overflow-clip">
@@ -22,7 +22,7 @@ const Testimonial = async () => {
         />
       </div>
     </div>
-    </div>
+    </section>
   )
 }
 

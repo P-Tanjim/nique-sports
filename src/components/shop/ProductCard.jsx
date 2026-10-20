@@ -88,16 +88,9 @@ export default function ProductCard({
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-80px' }}
-        transition={{
-          duration: 0.3,
-          delay: Math.min(index, 8) * 0.03,
-          ease: 'easeOut',
-        }}
-        className="group relative overflow-hidden rounded-xl border border-border/70 bg-white shadow-[0_2px_8px_rgba(32,36,38,0.05)] transition-all duration-500 hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_18px_45px_rgba(32,36,38,0.12)]"
+      <div
+        className="group relative overflow-hidden rounded-xl border border-border/70 bg-white shadow-[0_2px_8px_rgba(32,36,38,0.05)] transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_18px_45px_rgba(32,36,38,0.12)] cart-badge-pop"
+        style={{ '--i': index }}
       >
         {/* BADGES */}
         <div className="pointer-events-none absolute left-3 top-3 z-20 flex flex-col gap-1.5">
@@ -119,7 +112,7 @@ export default function ProductCard({
           type="button"
           onClick={() => setQrOpen(true)}
           aria-label={`View QR code for ${name}`}
-          className="absolute right-3 top-3 cursor-pointer z-20 flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white shadow-sm backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-black/70 md:h-9 md:w-9"
+          className="absolute right-3 top-3 cursor-pointer z-20 flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white shadow-sm bg-linear-to-t from-black/70 via-black/65 to-black/40 md:bg-black/45 md:backdrop-blur-sm transition-[transform,box-shadow,border-color] duration-300 hover:scale-110 hover:bg-black/70 md:h-9 md:w-9"
         >
           <QrCode size={14} strokeWidth={1.8} />
         </button>
@@ -132,7 +125,7 @@ export default function ProductCard({
                 src={image}
                 alt={name || 'Product Image'}
                 fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                sizes="(max-width: 640px) 48vw, (max-width: 1024px) 32vw, 24vw"
                 loading={eager ? 'eager' : 'lazy'}
                 unoptimized={image?.startsWith('data:')}
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.035]"
@@ -143,7 +136,7 @@ export default function ProductCard({
 
           {/* STAMP */}
           {stamp && (
-            <span className="pointer-events-none absolute bottom-3 left-3 z-20 flex h-14 w-14 -rotate-12 items-center justify-center rounded-full border-2 border-danger/70 bg-white/85 text-center text-[9px] font-bold uppercase leading-tight text-danger shadow-sm backdrop-blur-sm">
+            <span className="pointer-events-none absolute bottom-3 left-3 z-20 flex h-14 w-14 -rotate-12 items-center justify-center rounded-full border-2 border-danger/70 bg-white/85 text-center text-[9px] font-bold uppercase leading-tight text-danger shadow-sm">
               {stamp}
             </span>
           )}
@@ -157,9 +150,9 @@ export default function ProductCard({
               onClick={handleAddToCart}
               disabled={Boolean(flight)}
               aria-label={justAdded ? 'Added to cart' : 'Add to cart'}
-              className={`flex h-7 w-[85%] cursor-pointer items-center justify-center rounded-md border shadow-sm backdrop-blur-md backdrop:saturate-150 transition-all duration-300 hover:scale-110 disabled:pointer-events-none disabled:opacity-70 md:h-9 ${justAdded
+              className={`flex h-7 w-[85%] cursor-pointer items-center justify-center rounded-md border shadow-sm backdrop-blur-sm backdrop:saturate-150 transition-[transform,box-shadow,border-color] duration-300 hover:scale-110 disabled:pointer-events-none disabled:opacity-70 md:h-9 ${justAdded
                   ? 'border-success/40 bg-success text-white'
-                  : 'border-white/20 bg-black/20 text-white hover:bg-black/50'
+                  : 'border-white/20 bg-black/25 text-white hover:bg-black/50'
                 }`}
             >
               <span
@@ -197,13 +190,15 @@ export default function ProductCard({
             </span>
           </div>
         </Link>
-      </motion.div>
+      </div>
 
-      <ProductQrModal
-        product={product}
-        open={qrOpen}
-        onClose={() => setQrOpen(false)}
-      />
+      {qrOpen && (
+        <ProductQrModal
+          open={qrOpen}
+          onClose={() => setQrOpen(false)}
+          product={product}
+        />
+      )}
 
       {flight &&
         createPortal(

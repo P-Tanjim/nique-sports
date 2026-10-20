@@ -52,6 +52,10 @@ body {
   overflow-x: clip;
 }
 
+.fade-in{
+  animation: sheet-fade-in 0.3s ease-in-out;
+}
+
 @keyframes sheet-fade-in {
   from {
     opacity: 0;
@@ -85,7 +89,10 @@ body {
     transform: translateX(5px);
   }
 }
-
+.cart-badge-pop{
+  animation: cart-badge-pop 0.4s ease-in-out;
+  animation-delay: calc(var(--i, 0) * 0.12s);
+}
 @keyframes cart-badge-pop {
   0% {
     transform: scale(0.4);
@@ -104,66 +111,62 @@ body {
 }
 
 @keyframes image-loading-sweep {
-  from {
-    transform: translateX(-110%) skewX(-18deg);
+  0% {
+    transform: translate3d(-100%, 0, 0);
   }
 
-  to {
-    transform: translateX(210%) skewX(-18deg);
+  100% {
+    transform: translate3d(200%, 0, 0);
   }
 }
 
-@keyframes image-loading-float {
-
+@keyframes image-loading-pulse {
   0%,
   100% {
-    transform: translateY(0);
+    transform: scale3d(1, 1, 1);
+    opacity: 0.88;
   }
 
   50% {
-    transform: translateY(-5px);
+    transform: scale3d(1.05, 1.05, 1);
+    opacity: 1;
   }
 }
 
-@keyframes image-loading-progress {
+@keyframes image-loading-bar {
   0% {
-    transform: translateX(-110%);
+    transform: translate3d(-100%, 0, 0);
   }
 
   100% {
-    transform: translateX(250%);
+    transform: translate3d(250%, 0, 0);
   }
 }
 
 .image-loading-overlay {
-  background:
-    radial-gradient(ellipse at 50% 43%, rgb(255 255 255 / 92%), transparent 58%),
-    linear-gradient(145deg, #edf6f7 0%, #f9fbfb 48%, #e7f2f4 100%);
+  background: linear-gradient(135deg, #f0f6f8 0%, #fbfdfd 50%, #edf4f6 100%);
   color: var(--color-primary);
-}
-
-.image-loading-overlay::before {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(rgb(48 136 152 / 13%) 0.7px, transparent 0.7px);
-  background-size: 13px 13px;
-  content: "";
-  opacity: 0.28;
+  contain: paint;
+  transform: translateZ(0);
 }
 
 .image-loading-shimmer {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .image-loading-shimmer::after {
   position: absolute;
-  inset: -30% auto -30% -35%;
-  width: 35%;
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 66%), transparent);
-  animation: image-loading-sweep 2.2s ease-in-out infinite;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 55%), transparent);
+  animation: image-loading-sweep 2s ease-in-out infinite;
   content: "";
+  will-change: transform;
 }
 
 .image-loading-brand {
@@ -173,12 +176,12 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 7px;
-  animation: image-loading-float 2.8s ease-in-out infinite;
+  animation: image-loading-pulse 2.4s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 .image-loading-jersey {
-  width: clamp(32px, 15%, 54px);
-  filter: drop-shadow(0 5px 8px rgb(35 107 121 / 12%));
+  width: clamp(32px, 15%, 52px);
 }
 
 .image-loading-wordmark {
@@ -191,7 +194,7 @@ body {
 
 .image-loading-progress {
   position: relative;
-  width: 48px;
+  width: 44px;
   height: 2px;
   overflow: hidden;
   border-radius: 999px;
@@ -201,10 +204,11 @@ body {
 .image-loading-progress span {
   position: absolute;
   inset: 0;
-  width: 42%;
+  width: 40%;
   border-radius: inherit;
   background: var(--color-primary);
-  animation: image-loading-progress 1.35s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation: image-loading-bar 1.35s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -259,4 +263,28 @@ body {
     opacity: 0;
     transform: translateY(-4px) scale(0.8);
   }
+}
+
+/* ========================================================
+   OFFSCREEN CONTENT VISIBILITY OPTIMIZATION
+   Skips rendering of offscreen sections until approached.
+   ======================================================== */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+
+.section-visibility-products {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 950px;
+}
+
+.section-visibility-testimonial {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 650px;
+}
+
+.section-visibility-footer {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 550px;
 }

@@ -2,19 +2,9 @@ import { dancingScript } from '@/app/fonts'
 import React from 'react'
 import ProductCard from './clientComponent/ProductCardHR';
 import ProductCardVR from './clientComponent/ProductCardVR';
-import { Button } from '@heroui/react';
 import { ArrowRight } from 'lucide-react';
 import { getProducts } from '@/lib/api/products/products';
 import Link from 'next/link';
-
-const getProductLimit = (width ) => {
-    if (width < 1280){
-        return 8;
-    }
-    else {
-        return 6;
-    }
-}
 
 const ProductsSection = async () => {
     const products = await getProducts(10);
@@ -22,7 +12,7 @@ const ProductsSection = async () => {
     const discountedProducts = productList.filter((product) => product.discount && product.beforePrice > product.price);
     const regularProducts = productList.filter((product) => !discountedProducts.includes(product));
     return (
-        <div className='px-4 md:px-20 mx-auto mt-6 mb-10 w-full'>
+        <section className='px-4 md:px-20 mx-auto mt-6 mb-10 w-full section-visibility-products'>
             <h1 className={`text-center mb-10 text-4xl md:text-6xl lg:text-7xl text-primary ${dancingScript.className}`}>Our Jerseys</h1>
             <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4'>
                 {regularProducts.slice(0, 6).map((product) => (
@@ -35,8 +25,13 @@ const ProductsSection = async () => {
                 ))}
             </div>
 
-            <Link href='/shop'><Button variant='ghost' className='mt-6 mx-auto flex items-center justify-center gap-2 bg-primary text-white'>Browse all jerseys <ArrowRight size={20} /></Button></Link>
-        </div>
+            <Link
+                href="/shop"
+                className="mt-6 mx-auto flex w-fit items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-white transition-transform active:scale-95 hover:bg-primary-dark"
+            >
+                Browse all jerseys <ArrowRight size={20} />
+            </Link>
+        </section>
     )
 }
 

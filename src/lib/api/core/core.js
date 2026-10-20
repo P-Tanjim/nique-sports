@@ -2,9 +2,12 @@
 
 const API = process.env.API;
 
-export const serverFetch = async (path, other={}) => {
+export const serverFetch = async (path, other = {}) => {
   try {
-    const res = await fetch(`${API}${path}`, other);
+    const res = await fetch(`${API}${path}`, {
+      next: { revalidate: 60 },
+      ...other,
+    });
     if (!res.ok) {
       return null;
     }

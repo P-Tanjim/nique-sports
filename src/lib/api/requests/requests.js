@@ -3,6 +3,7 @@
 import { getAdminUser } from '@/lib/admin/guard';
 import { serverFetch } from "../core/core"
 import { v2 as cloudinary } from 'cloudinary';
+import { optimizeCloudinaryUrl } from '@/lib/cloudinary';
 
 // Configure Cloudinary with environment variables
 cloudinary.config({
@@ -99,8 +100,11 @@ export async function deleteFromCloudinary(imageUrl) {
 
 export const getFeaturedProducts = async () => {
   const data = await serverFetch('/featured-products');
-  
-  return data.data;
+  const items = Array.isArray(data?.data) ? data.data : [];
+  return items.map((item) => ({
+    ...item,
+    imageLink: optimizeCloudinaryUrl(item.imageLink || item.image || item.imagesLink?.[0]),
+  }));
 }
 
 export async function uploadToImgBB(formData) {

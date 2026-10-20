@@ -136,7 +136,7 @@ function animateCard(el, props, { duration, ease, delay = 0 }, onDone) {
     el.__transitionEndHandler = null;
   }
 
-  el.style.willChange = "transform, opacity";
+  el.style.willChange = "transform";
   el.style.transitionProperty = "transform, opacity";
   el.style.transitionDuration = `${duration}s`;
   el.style.transitionTimingFunction = ease;
@@ -156,13 +156,26 @@ function animateCard(el, props, { duration, ease, delay = 0 }, onDone) {
 }
 
 export default function FeatureCard({ cards = [] }) {
+  const sectionRef = useRef(null);
   const containerRef = useRef(null);
+  const [isInView, setIsInView] = useState(false);
   const isAnimating = useRef(false);
   const hasEntered = useRef(false);
   const directionRef = useRef(null);
   const prevVisible = useRef(new Set());
   const mults = useRef({ m: 1, hMult: 1 });
   const lastWidthRef = useRef(0);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { rootMargin: "50px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const totalCards = cards.length;
 
@@ -179,7 +192,7 @@ export default function FeatureCard({ cards = [] }) {
   const [centerIndex, setCenterIndex] = useState(totalCards >> 1);
 
   const cycle = (direction) => {
-    if (isAnimating.current || !needsPagination) return;
+    if (!isInView || isAnimating.current || !needsPagination) return;
     isAnimating.current = true;
     directionRef.current = direction;
     setCenterIndex(prev =>
@@ -208,7 +221,7 @@ export default function FeatureCard({ cards = [] }) {
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !totalCards) return;
+    if (!container || !totalCards || !isInView) return;
 
     lastWidthRef.current = window.innerWidth;
     mults.current = getMultipliers(window.innerWidth);
@@ -400,12 +413,12 @@ export default function FeatureCard({ cards = [] }) {
       if (transitionFrame !== null) cancelAnimationFrame(transitionFrame);
       if (transitionFrameNext !== null) cancelAnimationFrame(transitionFrameNext);
     };
-  }, [centerIndex, totalCards, needsPagination, visibleSlots, half, mountedIndices, cards, desiredVisible]);
+  }, [centerIndex, totalCards, needsPagination, visibleSlots, half, mountedIndices, cards, desiredVisible, isInView]);
 
   if (!totalCards) return null;
 
   return (
-    <section className="flex flex-col items-center w-full py-4 lg:py-8 px-4 md:px-8 relative z-20">
+    <section ref={sectionRef} className="flex flex-col items-center w-full py-4 lg:py-8 px-4 md:px-8 relative z-20">
       <div className="flex items-center justify-center w-full max-w-360">
         <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full h-96 sm:h-112 md:h-136 max-w-7xl">
           {mountedIndices.map((idx) => {
@@ -415,7 +428,7 @@ export default function FeatureCard({ cards = [] }) {
                 key={card._id ?? idx}
                 data-card-index={idx}
                 href={`/shop/product/${card._id || "#"}`}
-                className="fan-card absolute w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-2xl overflow-hidden cursor-pointer"
+                className="fan-card absolute w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-2xl overflow-hidden cursor-pointer border border-black/10 md:border-transparent shadow-none md:shadow-xl transition-[border-color,box-shadow] duration-300"
               >
                 <ImageWithLoader
                   src={card.imageLink}
