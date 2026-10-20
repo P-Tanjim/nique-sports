@@ -11,15 +11,6 @@ import AddToCartFlyClone from './AddToCartFlyClone';
 import ImageWithLoader from '@/components/common/ImageWithLoader';
 // import ProductImage from '../../../public/products/1.jpg';
 import { addToCart } from '../sideCart/SideCart';
-import { dancingScript } from '@/app/fonts';
-import { prewarmProductPass } from './qrPassCanvas';
-
-let qrEnginePrewarmed = false;
-function warmQrEngine() {
-  if (qrEnginePrewarmed || typeof window === 'undefined') return;
-  qrEnginePrewarmed = true;
-  prewarmProductPass({ scriptFamily: dancingScript?.style?.fontFamily, logoSrc: '/logo.jpg' });
-}
 
 // SideCartButton.jsx carries this as a data attribute. Looked up fresh at
 // click time rather than via a ref/context, since this card can render far
@@ -42,15 +33,18 @@ export default function ProductCard({
 
   const { name, price, originalPrice, discountPercent, isNew, stamp, image, slug } = product || {};
 
+  // Belt-and-braces: locks the page while the clone is mid-flight. The
+  // real reason it can't drift is that the target is a `sticky top-0`
+  // nav icon (see SideCartButton), so its viewport position never moves
+  // under scroll the way GalleryFlyClone's in-flow target did.
   useEffect(() => {
-    if (typeof window === 'undefined' || qrEnginePrewarmed) return;
-    if (typeof window.requestIdleCallback === 'function') {
-      const id = window.requestIdleCallback(warmQrEngine, { timeout: 2500 });
-      return () => window.cancelIdleCallback(id);
-    }
-    const id = setTimeout(warmQrEngine, 1200);
-    return () => clearTimeout(id);
-  }, []);
+    if (!flight) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [flight]);
 
   useEffect(() => () => {
     if (addedTimerRef.current) clearTimeout(addedTimerRef.current);
@@ -117,9 +111,6 @@ export default function ProductCard({
         <button
           type="button"
           onClick={() => setQrOpen(true)}
-          onMouseEnter={warmQrEngine}
-          onPointerDown={warmQrEngine}
-          onTouchStart={warmQrEngine}
           aria-label={`View QR code for ${name}`}
           className="absolute right-3 top-3 cursor-pointer z-20 flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white shadow-sm bg-linear-to-t from-black/70 via-black/65 to-black/40 md:bg-black/45 md:backdrop-blur-sm transition-[transform,box-shadow,border-color] duration-300 hover:scale-110 hover:bg-black/70 md:h-9 md:w-9"
         >
