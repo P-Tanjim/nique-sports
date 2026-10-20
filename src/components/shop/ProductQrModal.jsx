@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Copy, Download, Loader2, RefreshCcw, X } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -383,11 +383,13 @@ function PassDialog({ product, onPainted }) {
   );
 }
 
+const emptySubscribe = () => () => {};
+
 export default function ProductQrModal({ product, open, onClose }) {
-  const [mounted, setMounted] = useState(false); // portal target exists (client only)
-  const [phase, setPhase] = useState('closed');
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const [phase, setPhase] = useState(open ? 'mounting' : 'closed');
   const [settled, setSettled] = useState(false); // entrance finished → drop will-change
-  const phaseRef = useRef('closed');
+  const phaseRef = useRef(open ? 'mounting' : 'closed');
   const closeTimerRef = useRef(null);
   const cancelFramesRef = useRef(null);
 
@@ -396,8 +398,6 @@ export default function ProductQrModal({ product, open, onClose }) {
     setPhase(next);
     if (next !== 'in') setSettled(false);
   }, []);
-
-  useEffect(() => setMounted(true), []);
 
   // Warm the slow shared pieces (QR engine, logo, script font) while the
   // browser is idle, so the first tap on any QR button is already fast.
@@ -423,6 +423,8 @@ export default function ProductQrModal({ product, open, onClose }) {
       if (phaseRef.current === 'closed') {
         go('mounting');
         cancelFramesRef.current = afterNextFrames(() => go('shell'));
+      } else if (phaseRef.current === 'mounting') {
+        cancelFramesRef.current = afterNextFrames(() => go('shell'));
       } else if (phaseRef.current === 'leaving') {
         // re-opened mid-exit: the card is still mounted and painted
         cancelFramesRef.current = afterNextFrames(() => go('in'));
@@ -441,10 +443,12 @@ export default function ProductQrModal({ product, open, onClose }) {
   // does the entrance start — two frames later, so the browser has committed
   // the hidden starting state.
   const handlePainted = useCallback(() => {
-    if (phaseRef.current !== 'shell') return;
+    if (phaseRef.current === 'closed' || phaseRef.current === 'leaving') return;
     cancelFramesRef.current?.();
     cancelFramesRef.current = afterNextFrames(() => {
-      if (phaseRef.current === 'shell') go('in');
+      if (phaseRef.current !== 'closed' && phaseRef.current !== 'leaving') {
+        go('in');
+      }
     });
   }, [go]);
 
@@ -464,8 +468,8 @@ export default function ProductQrModal({ product, open, onClose }) {
 
   if (!mounted || phase === 'closed') return null;
 
-  const backdropIn = phase === 'shell' || phase === 'in';
-  const cardMounted = phase === 'shell' || phase === 'in' || phase === 'leaving';
+  const backdropIn = phase !== 'closed' && phase !== 'leaving';
+  const cardMounted = phase !== 'closed';
   const cardIn = phase === 'in';
 
   return createPortal(
@@ -473,13 +477,14 @@ export default function ProductQrModal({ product, open, onClose }) {
       role="dialog"
       aria-modal="true"
       aria-label={`Share card for ${product?.name ?? 'this product'}`}
-      className="fixed inset-0 z-70 flex items-center justify-center p-4"
+      className="fixed inset-0 z-70 flex items-center justify-center p-4 overscroll-contain"
     >
       <style>{MODAL_CSS}</style>
 
       {/* backdrop: blur + dim live on the same element as its fade */}
       <div
         onClick={onClose}
+        style={{ touchAction: 'none' }}
         className={`absolute inset-0 bg-ink/75 backdrop-blur-sm transition-opacity duration-300 ${
           backdropIn ? 'opacity-100' : 'opacity-0'
         }`}
@@ -502,6 +507,21 @@ export default function ProductQrModal({ product, open, onClose }) {
       >
         <X size={18} />
       </button>
+
+      {/* Immediate loader in the center while canvas is preparing/painting */}
+      {!cardIn && backdropIn && (
+        <div
+          aria-live="polite"
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 pointer-events-none transition-opacity duration-200"
+        >
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md shadow-2xl">
+            <Loader2 size={26} className="animate-spin text-white" />
+          </div>
+          <span className="text-xs font-semibold tracking-wider text-white/90 drop-shadow">
+            Generating QR Pass...
+          </span>
+        </div>
+      )}
 
       {/* the card drops in like it's being dealt, then settles */}
       {cardMounted && (

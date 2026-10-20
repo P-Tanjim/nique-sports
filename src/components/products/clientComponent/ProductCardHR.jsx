@@ -144,69 +144,73 @@ const ProductCard = ({ product }) => {
                 </div>
             </Link>
 
-            {mounted && (
-                <div
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label={product.title}
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10"
-                >
-                    {/* Backdrop */}
+            {mounted &&
+                typeof document !== 'undefined' &&
+                createPortal(
                     <div
-                        onClick={close}
-                        className={`absolute inset-0 bg-black/70 bg-linear-to-t from-black/90 via-black/75 to-black/40 md:bg-black/45 md:backdrop-blur-md transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'
-                            }`}
-                    />
-
-                    {/* Popover panel — simple fade + scale, no shared-element measurement */}
-                    <div
-                        className={`relative w-full max-w-3xl h-[80svh] md:h-125 bg-white rounded-2xl overflow-hidden border border-gray-100 z-10 flex flex-col md:flex-row shadow-2xl transition duration-300 ease-out ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                            }`}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={product.title}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10 overscroll-contain"
                     >
-                        <button
+                        {/* Backdrop */}
+                        <div
                             onClick={close}
-                            aria-label="Close"
-                            className="absolute top-4 right-4 z-30 flex h-9 w-9 items-center justify-center bg-black/60 hover:bg-black rounded-full text-white transition-colors bg-gradient-to-t from-black/90 via-black/75 to-black/40 md:bg-black/45 md:backdrop-blur-sm cursor-pointer"
+                            style={{ touchAction: 'none' }}
+                            className={`absolute inset-0 bg-black/70 bg-linear-to-t from-black/90 via-black/75 to-black/40 md:bg-black/45 md:backdrop-blur-md transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'
+                                }`}
+                        />
+
+                        {/* Popover panel — simple fade + scale, no shared-element measurement */}
+                        <div
+                            className={`relative w-full max-w-3xl h-[80svh] md:h-125 bg-white rounded-2xl overflow-hidden border border-gray-100 z-10 flex flex-col md:flex-row shadow-2xl transition duration-300 ease-out overscroll-contain ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                                }`}
                         >
-                            <X size={18} />
-                        </button>
+                            <button
+                                onClick={close}
+                                aria-label="Close"
+                                className="absolute top-4 right-4 z-30 flex h-9 w-9 items-center justify-center bg-black/60 hover:bg-black rounded-full text-white transition-colors bg-gradient-to-t from-black/90 via-black/75 to-black/40 md:bg-black/45 md:backdrop-blur-sm cursor-pointer"
+                            >
+                                <X size={18} />
+                            </button>
 
-                        <div className="relative h-64 w-full shrink-0 overflow-hidden md:h-full md:w-1/2">
-                            <ImageWithLoader
-                                src={product.imagesLink[0]}
-                                alt={product.title}
-                                fill
-                                sizes="(max-width: 768px) 100vw, 50vw"
-                                className="object-cover z-20"
-                                containerClassName="relative h-full w-full"
-                            />
-                        </div>
-
-                        <div className="p-6 sm:p-8 w-full md:w-1/2 flex flex-col justify-between h-full overflow-y-auto">
-                            <div>
-                                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 leading-tight">
-                                    {product.title}
-                                </h3>
-
-                                <div className="flex items-baseline gap-2 mb-4">
-                                    <span className="text-2xl sm:text-3xl font-extrabold text-primary">{product.price}৳</span>
-                                </div>
-
-                                <p className="text-gray-600 text-sm leading-relaxed mb-6">
-                                    Premium quality sportswear jersey engineered with moisture-wicking fabric and ergonomic athletic fit. Perfect for matches, training, or casual wear.
-                                </p>
-                            </div>
-
-                            <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
-                                <AddToCartButton
-                                    onAdd={() => addToCart(product, 1)}
-                                    className="h-12 w-full rounded-xl shadow-md"
+                            <div className="relative h-64 w-full shrink-0 overflow-hidden md:h-full md:w-1/2">
+                                <ImageWithLoader
+                                    src={product.imagesLink[0]}
+                                    alt={product.title}
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, 50vw"
+                                    className="object-cover z-20"
+                                    containerClassName="relative h-full w-full"
                                 />
                             </div>
+
+                            <div className="p-6 sm:p-8 w-full md:w-1/2 flex flex-col justify-between h-full overflow-y-auto overscroll-contain">
+                                <div>
+                                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 leading-tight">
+                                        {product.title}
+                                    </h3>
+
+                                    <div className="flex items-baseline gap-2 mb-4">
+                                        <span className="text-2xl sm:text-3xl font-extrabold text-primary">{product.price}৳</span>
+                                    </div>
+
+                                    <p className="text-gray-600 text-sm leading-relaxed mb-6">
+                                        Premium quality sportswear jersey engineered with moisture-wicking fabric and ergonomic athletic fit. Perfect for matches, training, or casual wear.
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
+                                    <AddToCartButton
+                                        onAdd={() => addToCart(product, 1)}
+                                        className="h-12 w-full rounded-xl shadow-md"
+                                    />
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            )}
+                    </div>,
+                    document.body
+                )}
 
             {flight &&
                 createPortal(
