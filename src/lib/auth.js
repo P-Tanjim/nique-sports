@@ -5,8 +5,19 @@ import { nextCookies } from "better-auth/next-js";
 
 const PRIVACY_POLICY_VERSION = "2026-09-27";
 
-const client = new MongoClient(process.env.MONGODB_URL);
-export const db = client.db(process.env.DATABASE_NAME);
+const mongoUri = process.env.MONGODB_URL || "mongodb://127.0.0.1:27017/nique_sports";
+const dbName = process.env.DATABASE_NAME || "nique_sports";
+
+let client;
+if (process.env.NODE_ENV === "development") {
+  if (!globalThis._mongoClient) {
+    globalThis._mongoClient = new MongoClient(mongoUri);
+  }
+  client = globalThis._mongoClient;
+} else {
+  client = new MongoClient(mongoUri);
+}
+export const db = client.db(dbName);
 
 const appUrl =
     process.env.BETTER_AUTH_URL ||

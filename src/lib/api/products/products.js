@@ -70,26 +70,35 @@ function toSlug(value) {
 }
 
 function normalizeProduct(product) {
-  const price = Number(product?.price) || 0;
-  const beforePrice = Number(product?.beforePrice) || 0;
-  const hasDiscount = Boolean(product?.discount) && beforePrice > price;
-  const rawImage = product?.imagesLink?.[0] ?? product?.image ?? null;
+  if (!product) return null;
+  const id = String(product._id ?? product.id ?? product.slug ?? '');
+  const price = Number(product.price) || 0;
+  const beforePrice = Number(product.beforePrice) || 0;
+  const hasDiscount = Boolean(product.discount) && beforePrice > price;
+  const rawImage = product.imagesLink?.[0] ?? product.image ?? null;
   const optimizedImage = optimizeCloudinaryUrl(rawImage);
-  const optimizedLinks = Array.isArray(product?.imagesLink)
+  const optimizedLinks = Array.isArray(product.imagesLink)
     ? product.imagesLink.map((u) => optimizeCloudinaryUrl(u))
-    : product?.imagesLink;
+    : (product.imagesLink || []);
+
+  const { _id, ...rest } = product;
 
   return {
-    ...product,
-    name: product?.title,
+    ...rest,
+    _id: id,
+    id,
+    slug: id,
+    title: product.title || product.name || '',
+    name: product.title || product.name || '',
+    price,
+    beforePrice,
     image: optimizedImage,
     imagesLink: optimizedLinks,
-    slug: product?._id,
     originalPrice: hasDiscount ? beforePrice : null,
     discountPercent: hasDiscount
       ? Math.round(((beforePrice - price) / beforePrice) * 100)
       : 0,
-    createdAt: product?.createdAt ? new Date(product.createdAt).getTime() : 0,
+    createdAt: product.createdAt ? new Date(product.createdAt).getTime() : 0,
   };
 }
 
@@ -97,7 +106,7 @@ async function fetchProducts(limit = 1000) {
   const res = await serverFetch(`/products?limit=${limit}`);
   const products = res?.data || res?.products || [];
   if (Array.isArray(products) && products.length > 0) {
-    return products.map(normalizeProduct);
+    return products.map(normalizeProduct).filter(Boolean);
   }
 
   // Fallback to direct MongoDB read if Express server is unreachable
@@ -105,7 +114,7 @@ async function fetchProducts(limit = 1000) {
     const { db } = await import('@/lib/auth');
     const docs = await db.collection('products').find({}).limit(limit).toArray();
     if (docs?.length) {
-      return docs.map(normalizeProduct);
+      return docs.map(normalizeProduct).filter(Boolean);
     }
   } catch (err) {
     console.error('Direct MongoDB products fallback failed:', err);
