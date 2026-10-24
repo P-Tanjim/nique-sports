@@ -10,7 +10,7 @@ import { appendOrder, findRecentDuplicate, makeOrderNo } from '@/lib/sheets/orde
 import { courierEnabled, getSettings } from '@/lib/sheets/settings';
 import { dispatchToSteadfast } from '@/lib/services/courier';
 import { releaseStock, reserveStock } from '@/lib/services/stock';
-
+ 
 // Public website checkout. Same name + same payload as before, so CheckoutClient is untouched.
 // Prices are ALWAYS recomputed here from the product catalogue (never trusted from the browser).
 
