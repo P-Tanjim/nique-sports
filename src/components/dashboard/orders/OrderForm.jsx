@@ -1,16 +1,18 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, Plus, Save, Sparkles, X } from 'lucide-react';
+import { Loader2, Plus, Save, Shirt, ShoppingBag, Sparkles, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DateInput from '@/components/dashboard/DateInput';
 import AnimatedSelect from '@/components/dashboard/products/AnimatedSelect';
 import IOSSwitch from '@/components/dashboard/products/IOSSwitch';
+import SelectedProductModal from '@/components/dashboard/orders/SelectedProductModal';
 import { createManualOrder, parseOrderText, updateOrder } from '@/lib/api/requests/staffOrders';
 import { todayInDhaka } from '@/lib/admin/dates';
-import { ACCOUNTS, SIZES, SOURCES } from '@/lib/orders/constants';
+import { ACCOUNTS, SOURCES } from '@/lib/orders/constants';
 import { formatPrice } from '@/lib/format';
 
 const IOS_EASE = [0.32, 0.72, 0, 1];
@@ -21,7 +23,6 @@ const cardClass = 'relative rounded-3xl border border-border bg-white/80 p-6 sha
 const h2Class = 'text-sm font-semibold uppercase tracking-wide text-text-muted';
 const labelClass = 'mb-1.5 block text-xs font-medium uppercase tracking-wide text-text-muted';
 
-const SIZE_OPTIONS = [{ value: '', label: 'Size' }, ...SIZES.map((s) => ({ value: s, label: s }))];
 const SOURCE_OPTIONS = SOURCES.map((s) => ({ value: s, label: s }));
 const ACCOUNT_OPTIONS = ACCOUNTS.map((a) => ({ value: a, label: a }));
 
@@ -34,21 +35,14 @@ function Field({ label, children, className = '' }) {
   );
 }
 
-export default function OrderForm({ mode, order, assignees, defaultAssignee, canPickAssignee, aiEnabled, courierEnabled }) {
-  const router = useRouter();
-  const nextId = useRef(100);
-  const isEdit = mode === 'edit';
-  const isWebsite = Boolean(order?.isWebsite);
-
-  const [f, setF] = useState(() => ({
+function getInitialFormState(order, defaultAssignee, isWebsite, isEdit) {
+  const base = {
     date: order?.date ?? todayInDhaka(),
     customerName: order?.customerName ?? '',
     phone: order?.phone ?? '',
     phone2: order?.phone2 ?? '',
     address: order?.address ?? '',
-    items: order && !isWebsite
-      ? order.items.map((i, idx) => ({ id: idx, title: i.title, size: i.size || '', quantity: i.quantity || 1, note: i.note || '' }))
-      : [{ id: 0, title: '', size: '', quantity: 1, note: '' }],
+    items: order?.items ? order.items : [],
     cod: order && !isWebsite ? String(order.cod || '') : '',
     advance: order?.advance ? String(order.advance) : '',
     advanceAccount: order?.advanceAccount ?? '',
@@ -56,16 +50,55 @@ export default function OrderForm({ mode, order, assignees, defaultAssignee, can
     source: order?.source ?? 'Facebook',
     assigneeId: defaultAssignee,
     sendToCourier: true,
-  }));
+  };
+
+  if (typeof window === 'undefined' || isEdit) return base;
+
+  try {
+    const draft = sessionStorage.getItem('nique_order_draft');
+    if (draft) {
+      const parsedDraft = JSON.parse(draft);
+      Object.assign(base, parsedDraft);
+    }
+
+    const savedProducts = sessionStorage.getItem('nique_selected_products');
+    if (savedProducts) {
+      const parsedItems = JSON.parse(savedProducts);
+      if (Array.isArray(parsedItems) && parsedItems.length > 0) {
+        base.items = parsedItems;
+        const itemsSubtotal = parsedItems.reduce(
+          (s, it) => s + (Number(it.lineTotal) || Number(it.unitPrice) * (Number(it.quantity) || 1) || Number(it.basePrice) || 0),
+          0
+        );
+        const adv = Number(base.advance) || 0;
+        if (!base.cod || Number(base.cod) === 0) {
+          base.cod = String(Math.max(0, itemsSubtotal - adv));
+        }
+      }
+    }
+  } catch {
+    // Ignore storage parse errors
+  }
+
+  return base;
+}
+
+export default function OrderForm({ mode, order, assignees, defaultAssignee, canPickAssignee, aiEnabled, courierEnabled }) {
+  const router = useRouter();
+  const nextId = useRef(100);
+  const isEdit = mode === 'edit';
+  const isWebsite = Boolean(order?.isWebsite);
+
+  const [f, setF] = useState(() => getInitialFormState(order, defaultAssignee, isWebsite, isEdit));
   const [saving, setSaving] = useState(false);
   const [aiText, setAiText] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
+  const [previewItem, setPreviewItem] = useState(null);
 
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
-  const setItem = (id, patch) => setF((p) => ({ ...p, items: p.items.map((i) => (i.id === id ? { ...i, ...patch } : i)) }));
 
   const advance = Number(f.advance) || 0;
-  // website orders have a fixed total; manual orders: COD is typed
+  // website orders have a fixed total; manual orders: COD is typed or calculated
   const cod = isWebsite ? Math.max(0, (order?.total ?? 0) - advance) : Number(f.cod) || 0;
   const total = isWebsite ? order.total : cod + advance;
 
@@ -80,7 +113,7 @@ export default function OrderForm({ mode, order, assignees, defaultAssignee, can
       customerName: d.customerName || p.customerName,
       phone: d.phone || p.phone,
       address: d.address || p.address,
-      items: d.items.length ? d.items.map((i) => ({ id: nextId.current++, ...i })) : p.items,
+      items: d.items?.length ? d.items.map((i) => ({ id: nextId.current++, ...i })) : p.items,
       cod: d.cod ? String(d.cod) : p.cod,
       advance: d.advance ? String(d.advance) : p.advance,
       note: d.note || p.note,
@@ -88,16 +121,40 @@ export default function OrderForm({ mode, order, assignees, defaultAssignee, can
     toast.success('Filled by AI. Check everything, then save.');
   }
 
+  const navigateToSelectProduct = () => {
+    try {
+      sessionStorage.setItem('nique_order_draft', JSON.stringify(f));
+    } catch (err) {
+      console.error('Failed to save draft to sessionStorage:', err);
+    }
+    router.push('/dashboard/orders/add/select-product');
+  };
+
   async function submit(e, confirmDuplicate = false) {
     e?.preventDefault();
     if (saving) return;
+
+    if (!isWebsite && (!f.items || f.items.length === 0)) {
+      toast.error('Please select at least one product.');
+      return;
+    }
+
     setSaving(true);
 
     const payload = {
-      date: f.date, customerName: f.customerName, phone: f.phone, phone2: f.phone2, address: f.address,
+      date: f.date,
+      customerName: f.customerName,
+      phone: f.phone,
+      phone2: f.phone2,
+      address: f.address,
       items: isWebsite ? order.items.map((i) => ({ title: i.title, size: i.size, quantity: i.quantity, note: '' })) : f.items,
-      cod, advance, advanceAccount: advance > 0 ? f.advanceAccount : '',
-      note: f.note, source: f.source, assigneeId: f.assigneeId, sendToCourier: f.sendToCourier,
+      cod,
+      advance,
+      advanceAccount: advance > 0 ? f.advanceAccount : '',
+      note: f.note,
+      source: f.source,
+      assigneeId: f.assigneeId,
+      sendToCourier: f.sendToCourier,
     };
 
     try {
@@ -108,7 +165,17 @@ export default function OrderForm({ mode, order, assignees, defaultAssignee, can
         if (window.confirm(`${res.error}\n\nCreate another order for the same number anyway?`)) return submit(null, true);
         return;
       }
-      if (!res.success) { toast.error(res.error); setSaving(false); return; }
+      if (!res.success) {
+        toast.error(res.error);
+        setSaving(false);
+        return;
+      }
+
+      // Clear draft on successful creation
+      try {
+        sessionStorage.removeItem('nique_order_draft');
+        sessionStorage.removeItem('nique_selected_products');
+      } catch {}
 
       if (isEdit) toast.success(res.courierWarning ? 'Saved. Note: it was already sent to Steadfast, the courier still has the old details.' : 'Order updated.');
       else if (res.courier && !res.courier.ok) toast.error(`Order saved, but Steadfast failed: ${res.courier.error}`);
@@ -136,6 +203,7 @@ export default function OrderForm({ mode, order, assignees, defaultAssignee, can
         </section>
       )}
 
+      {/* Customer Section */}
       <section className={`${cardClass} z-30`}>
         <h2 className={h2Class}>Customer</h2>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
@@ -146,30 +214,120 @@ export default function OrderForm({ mode, order, assignees, defaultAssignee, can
         </div>
       </section>
 
+      {/* Select Product Section */}
       <section className={`${cardClass} z-20`}>
-        <h2 className={h2Class}>Items</h2>
-        {isWebsite ? (
-          <p className="mt-4 rounded-2xl bg-surface p-4 text-sm text-text-muted">Website order, items and prices are locked: {order.items.map((i) => `${i.title} (${i.size}) x${i.quantity}`).join(', ')}</p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className={h2Class}>Select product</h2>
+            <p className="mt-0.5 text-xs text-text-muted">
+              {f.items.length > 0
+                ? `${f.items.length} ${f.items.length === 1 ? 'product' : 'products'} selected. Click an image to view details.`
+                : 'Select jerseys or apparel to add to this order.'}
+            </p>
+          </div>
+          {!isWebsite && (
+            <button
+              type="button"
+              onClick={navigateToSelectProduct}
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-2xl bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-primary-dark active:scale-95"
+            >
+              <ShoppingBag size={15} />
+              {f.items.length > 0 ? 'Change products' : 'Select products'}
+            </button>
+          )}
+        </div>
+
+        {f.items.length > 0 ? (
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            <AnimatePresence mode="popLayout">
+              {f.items.map((item, idx) => (
+                <motion.div
+                  layout
+                  key={item.productId ? `${item.productId}-${item.size || 'std'}-${idx}` : idx}
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.22, ease: 'easeOut' } }}
+                  transition={{ layout: { duration: 0.28, ease: IOS_EASE } }}
+                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface p-2.5 transition-colors hover:border-primary/40"
+                >
+                  {/* Clicking on the product image opens the modal with product info */}
+                  <button
+                    type="button"
+                    onClick={() => setPreviewItem(item)}
+                    aria-label={`View details for ${item.title}`}
+                    className="relative aspect-square w-full cursor-pointer overflow-hidden rounded-xl border border-border bg-white"
+                  >
+                    {item.image ? (
+                      <Image
+                        src={item.image}
+                        alt={item.title}
+                        fill
+                        sizes="160px"
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-text-muted">
+                        <Shirt size={28} />
+                      </div>
+                    )}
+                    {item.size && (
+                      <span className="absolute bottom-1.5 right-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+                        {item.size}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Info */}
+                  <div className="mt-2 min-w-0 flex-1">
+                    <h3 className="line-clamp-1 text-xs font-semibold text-text" title={item.title}>
+                      {item.title}
+                    </h3>
+                    <div className="mt-1 flex items-center justify-between text-xs">
+                      <span className="font-bold text-primary">
+                        {formatPrice(item.lineTotal || item.unitPrice || item.basePrice || 0)}৳
+                      </span>
+                      {item.quantity > 1 && (
+                        <span className="text-[11px] text-text-muted">×{item.quantity}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Remove button: always visible on mobile, hover on desktop */}
+                  {!isWebsite && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = f.items.filter((_, i) => i !== idx);
+                        set('items', updated);
+                        try {
+                          sessionStorage.setItem('nique_selected_products', JSON.stringify(updated));
+                        } catch {}
+                      }}
+                      aria-label={`Remove ${item.title}`}
+                      className="absolute right-2 top-2 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-border/80 bg-white/95 text-text-muted shadow-sm transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-50 hover:text-danger active:scale-90"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
         ) : (
-          <div className="mt-5 space-y-3">
-            {f.items.map((it, idx) => (
-              <div key={it.id} className="grid gap-2 rounded-2xl border border-border p-3 sm:grid-cols-[1fr_110px_80px_auto]">
-                <input value={it.title} onChange={(e) => setItem(it.id, { title: e.target.value })} maxLength={150} placeholder={`Item ${idx + 1}: team / season / kit`} aria-label={`Item ${idx + 1} name`} className={inputClass} />
-                <AnimatedSelect id={`size-${it.id}`} options={SIZE_OPTIONS} value={it.size} onChange={(v) => setItem(it.id, { size: v })} triggerLabel={`Item ${idx + 1} size`} className="w-full" triggerClassName={triggerClass} />
-                <input value={it.quantity} onChange={(e) => setItem(it.id, { quantity: e.target.value })} type="number" min="1" max="50" aria-label={`Item ${idx + 1} quantity`} className={inputClass} />
-                {f.items.length > 1 ? (
-                  <button type="button" onClick={() => setF((p) => ({ ...p, items: p.items.filter((x) => x.id !== it.id) }))} aria-label={`Remove item ${idx + 1}`} className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-text-muted hover:bg-surface hover:text-danger"><X size={16} /></button>
-                ) : <span />}
-                <input value={it.note} onChange={(e) => setItem(it.id, { note: e.target.value })} maxLength={150} placeholder="Name / number / patch / sleeve (optional)" aria-label={`Item ${idx + 1} note`} className={`${inputClass} sm:col-span-4`} />
-              </div>
-            ))}
-            {f.items.length < 20 && (
-              <button type="button" onClick={() => setF((p) => ({ ...p, items: [...p.items, { id: nextId.current++, title: '', size: '', quantity: 1, note: '' }] }))} className="inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-primary hover:text-primary-dark"><Plus size={15} />Add another item</button>
-            )}
+          <div
+            onClick={navigateToSelectProduct}
+            className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface/50 p-8 text-center transition-all duration-200 hover:border-primary/40 hover:bg-surface active:scale-[0.98]"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <ShoppingBag size={22} />
+            </div>
+            <p className="mt-3 text-sm font-semibold text-text">No products selected yet</p>
+            <p className="mt-1 text-xs text-text-muted">Click here to browse catalog and select products</p>
           </div>
         )}
       </section>
 
+      {/* Payment Section */}
       <section className={`${cardClass} z-10`}>
         <h2 className={h2Class}>Payment</h2>
         <div className="mt-5">
@@ -214,6 +372,7 @@ export default function OrderForm({ mode, order, assignees, defaultAssignee, can
         <p className="mt-4 text-sm text-text-muted">Order total: <span className="font-semibold text-text">{formatPrice(total)}৳</span></p>
       </section>
 
+      {/* Order Info Section */}
       <section className={`${cardClass} z-1`}>
         <h2 className={h2Class}>Order info</h2>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
@@ -237,6 +396,19 @@ export default function OrderForm({ mode, order, assignees, defaultAssignee, can
         {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
         {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Add order'}
       </button>
+
+      {/* Product Information Modal (Root Level) */}
+      <SelectedProductModal
+        item={previewItem}
+        onClose={() => setPreviewItem(null)}
+        onRemove={(toRemove) => {
+          const updated = f.items.filter((it) => it !== toRemove);
+          set('items', updated);
+          try {
+            sessionStorage.setItem('nique_selected_products', JSON.stringify(updated));
+          } catch {}
+        }}
+      />
     </form>
   );
 }

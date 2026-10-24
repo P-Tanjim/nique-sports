@@ -32,7 +32,20 @@ export function validateOrderInput(raw) {
     if (clean(it?.size) && !size) fail(`Item ${i + 1}: size is not valid.`);
     const note = clean(it?.note);
     if (note.length > 150) fail(`Item ${i + 1}: note is too long.`);
-    return { title, size, quantity, note };
+    return {
+      title,
+      size,
+      quantity,
+      note,
+      ...(it?.productId ? { productId: String(it.productId) } : {}),
+      ...(it?.image ? { image: String(it.image) } : {}),
+      ...(it?.unitPrice != null ? { unitPrice: Number(it.unitPrice) } : {}),
+      ...(it?.lineTotal != null ? { lineTotal: Number(it.lineTotal) } : {}),
+      ...(it?.basePrice != null ? { basePrice: Number(it.basePrice) } : {}),
+      ...(it?.font ? { font: it.font } : {}),
+      ...(it?.patches ? { patches: it.patches } : {}),
+      ...(it?.customization ? { customization: it.customization } : {}),
+    };
   });
 
   const cod = money(raw.cod);

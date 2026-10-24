@@ -1,3 +1,4 @@
+import PerformanceGuard from "@/components/layout/PerformanceGuard";
 import Navbar from "@/components/navbar/Navbar";
 import "./globals.css";
 import Footer from "@/components/footer/Footer";
@@ -16,6 +17,7 @@ export default function RootLayout({ children }) {
       className={`h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <PerformanceGuard />
         <Navbar></Navbar>
         {children}
         <Footer></Footer>

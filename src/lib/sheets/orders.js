@@ -12,8 +12,10 @@ function toOrderDoc(order) {
   }
 
   const { _row, ...rest } = order;
+  const orderId = order.orderId || order.orderNo || order.id || undefined;
   return {
     ...rest,
+    ...(orderId ? { orderId } : {}),
     items: parsedItems,
     itemsSummary: order.items || '',
     itemsJson: order.itemsJson || '',
@@ -32,8 +34,9 @@ function toOrderDoc(order) {
 export async function saveOrderToDatabase(order) {
   try {
     const doc = toOrderDoc(order);
+    const filter = order.id ? { id: order.id } : { orderNo: order.orderNo };
     await db.collection('orders').updateOne(
-      { $or: [{ id: order.id }, { orderNo: order.orderNo }] },
+      filter,
       { $set: doc },
       { upsert: true }
     );
@@ -50,8 +53,9 @@ export async function patchOrderInDatabase(order, patch) {
         update.items = JSON.parse(patch.itemsJson);
       } catch {}
     }
+    const filter = order.id ? { id: order.id } : { orderNo: order.orderNo };
     await db.collection('orders').updateOne(
-      { $or: [{ id: order.id }, { orderNo: order.orderNo }] },
+      filter,
       { $set: update }
     );
   } catch (err) {
@@ -69,9 +73,10 @@ export async function patchOrdersInDatabase(list) {
           update.items = JSON.parse(patch.itemsJson);
         } catch {}
       }
+      const filter = order.id ? { id: order.id } : { orderNo: order.orderNo };
       return {
         updateOne: {
-          filter: { $or: [{ id: order.id }, { orderNo: order.orderNo }] },
+          filter,
           update: { $set: update },
         },
       };
@@ -85,14 +90,21 @@ export async function patchOrdersInDatabase(list) {
 export async function syncOrdersToDatabase(orders) {
   if (!orders?.length) return;
   try {
-    const ops = orders.map((o) => ({
-      updateOne: {
-        filter: { $or: [{ id: o.id }, { orderNo: o.orderNo }] },
-        update: { $set: toOrderDoc(o) },
-        upsert: true,
-      },
-    }));
-    await db.collection('orders').bulkWrite(ops, { ordered: false });
+    const ops = orders
+      .filter((o) => o && (o.id || o.orderNo))
+      .map((o) => {
+        const filter = o.id ? { id: o.id } : { orderNo: o.orderNo };
+        return {
+          updateOne: {
+            filter,
+            update: { $set: toOrderDoc(o) },
+            upsert: true,
+          },
+        };
+      });
+    if (ops.length) {
+      await db.collection('orders').bulkWrite(ops, { ordered: false });
+    }
   } catch (err) {
     console.error('Failed to sync orders from sheet to MongoDB database:', err);
   }

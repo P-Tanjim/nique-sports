@@ -17,6 +17,7 @@ import { aiEnabled, courierEnabled, geminiCreds, getSettings } from '@/lib/sheet
 import { dispatchToSteadfast, syncCourierStatuses } from '@/lib/services/courier';
 import { parseOrderWithGemini } from '@/lib/services/gemini';
 import { resolveAssignee } from '@/lib/services/moderators';
+import { releaseStock, reserveStock } from '@/lib/services/stock';
 
 // Every export below is a public endpoint -> each one checks the session itself.
 
@@ -55,13 +56,28 @@ export async function createManualOrder(input, opts = {}) {
       if (dup) return { success: false, duplicate: dup, error: `This phone already ordered recently (${dup.orderNo}).` };
     }
 
+    // Atomic stock check + decrement for items that have a productId
+    const demand = v.items
+      .filter((i) => i.productId)
+      .map((i) => ({ productId: i.productId, quantity: Number(i.quantity) || 1 }));
+
+    let reserved = null;
+    if (demand.length > 0) {
+      const stock = await reserveStock(demand);
+      if (!stock.ok) return { success: false, error: stock.error };
+      reserved = demand;
+    }
+
     const now = new Date().toISOString();
+    const orderNo = makeOrderNo();
     const draft = {
-      id: randomUUID(), createdAt: now, date: v.date, orderNo: makeOrderNo(), source: v.source,
+      id: randomUUID(), orderId: orderNo, createdAt: now, date: v.date, orderNo, source: v.source,
       addedBy: assignee.name, moderatorId: assignee.id,
       customerName: v.customerName, phone: v.phone, phone2: v.phone2, address: v.address, deliveryArea: '',
       items: itemsSummary(v.items), itemsJson: JSON.stringify(v.items),
-      subtotal: 0, deliveryFee: 0, total: v.cod + v.advance,
+      subtotal: v.items.reduce((sum, it) => sum + (Number(it.lineTotal) || 0), 0),
+      deliveryFee: 0,
+      total: v.cod + v.advance,
       advance: v.advance, advanceAccount: v.advanceAccount, cod: v.cod,
       status: 'Pending', note: v.note,
       courierId: '', trackingCode: '', courierStatus: '', courierSyncedAt: '', courierError: '',
@@ -69,7 +85,15 @@ export async function createManualOrder(input, opts = {}) {
       deliveryDate: '', commissionRate: assignee.commissionRate, deliveryCommission: 0,
       reviewSent: 'NO', updatedAt: now,
     };
-    const saved = await appendOrder(draft);
+
+    let saved;
+    try {
+      saved = await appendOrder(draft);
+      reserved = null; // Successfully saved -> stock stays decremented
+    } catch (err) {
+      if (reserved) await releaseStock(reserved).catch(() => {});
+      throw err;
+    }
 
     if (v.advance > 0) {
       await addTransactions([newTx({ date: v.date, type: 'money_in', to: v.advanceAccount, amount: v.advance, reference: saved.id, note: `Order Advance - ${saved.orderNo}` })]);
@@ -129,6 +153,20 @@ export async function setOrderStatus(id, status) {
     const order = await findOrder(clean(id));
     if (!order) throw new UserError('Order not found.');
     const patch = statusPatch(order, status);
+
+    if (status === 'Cancelled' && order.status !== 'Cancelled') {
+      try {
+        let items = [];
+        try { items = order.itemsJson ? JSON.parse(order.itemsJson) : []; } catch {}
+        const restock = items.filter((i) => i.productId).map((i) => ({ productId: i.productId, quantity: Number(i.quantity) || 1 }));
+        if (restock.length > 0) {
+          await releaseStock(restock);
+        }
+      } catch (e) {
+        console.error('Failed to restock cancelled order:', e);
+      }
+    }
+
     await patchOrder(order, patch);
     refresh();
     return { success: true, patch };
