@@ -77,7 +77,7 @@ export default function ProductCard({
   return (
     <>
       <div
-        className="product-card-enter h-full"
+        className="product-card-enter card-gpu-isolate h-full"
         style={{ '--card-i': Math.min(index, 11) }}
       >
         <div

@@ -310,3 +310,13 @@ body {
   content-visibility: auto;
   contain-intrinsic-size: auto 550px;
 }
+
+/* ========================================================
+   HARDWARE LAYER ISOLATION FOR PRODUCT CARDS
+   Isolates layout and paint calculations without clipping.
+   ======================================================== */
+.card-gpu-isolate {
+  contain: layout style paint;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}

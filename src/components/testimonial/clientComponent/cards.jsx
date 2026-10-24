@@ -93,6 +93,7 @@ function SwipeGestureHint({ visible }) {
               src="/sideScrollGesture.lottie"
               autoplay
               loop
+              renderConfig={{ devicePixelRatio: 1 }}
               className="w-full h-full object-contain"
             />
           </div>
@@ -137,6 +138,7 @@ const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion }) 
   const isActive = offset === 0;
   const isInteractive = !isActive && Math.abs(offset) <= VISIBLE_RADIUS;
   const m = getCardMotion(offset);
+  const isVisibleCard = m.opacity > 0;
 
   return (
     <motion.div
@@ -149,10 +151,16 @@ const Card = memo(function Card({ testimonial, offset, onClick, reduceMotion }) 
       transition={
         reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30, mass: 0.7 }
       }
-      style={{ zIndex: m.zIndex, width: CARD_W, height: CARD_H, willChange: "transform, opacity" }}
-      className={`absolute inset-0 m-auto overflow-hidden rounded-[28px] border ${
+      style={{
+        zIndex: m.zIndex,
+        width: CARD_W,
+        height: CARD_H,
+        visibility: isVisibleCard ? "visible" : "hidden",
+        willChange: isVisibleCard ? "transform, opacity" : "auto",
+      }}
+      className={`absolute inset-0 m-auto overflow-hidden rounded-[28px] border border-black/10 shadow-md md:shadow-2xl ${
         isActive
-          ? "cursor-default border-black/10 md:border-white/10 shadow-none md:shadow-[0_10px_40px_0px_rgba(0,0,0,0.65)]"
+          ? "cursor-default border-black/10 md:border-white/10"
           : isInteractive
             ? "cursor-pointer border-white/5"
             : "pointer-events-none border-transparent"
@@ -250,10 +258,32 @@ export default function TestimonialCarousel({
     return () => clearTimeout(timer);
   }, [isInView, hasInteracted, total]);
 
+  const isUserScrollingRef = useRef(false);
+
+  useEffect(() => {
+    let scrollTimeout;
+    const onScroll = () => {
+      isUserScrollingRef.current = true;
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        isUserScrollingRef.current = false;
+      }, 150);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, []);
+
   // autoplay, paused when offscreen, on hover/focus, when tab is hidden, or while initial gesture hint is playing
   useEffect(() => {
     if (!isInView || !autoPlay || isPaused || total <= 1 || !hasInteracted) return;
-    const id = setInterval(goNext, autoPlayInterval);
+    const id = setInterval(() => {
+      if (isUserScrollingRef.current || !isInView) return; // Don't trigger a card transition mid-vertical-scroll!
+      goNext();
+    }, autoPlayInterval);
     return () => clearInterval(id);
   }, [isInView, autoPlay, isPaused, autoPlayInterval, goNext, total, hasInteracted]);
 
@@ -309,7 +339,7 @@ export default function TestimonialCarousel({
           />
         ))}
 
-        <SwipeGestureHint visible={showHint} />
+        {showHint && <SwipeGestureHint visible={showHint} />}
       </motion.div>
     </div>
   );

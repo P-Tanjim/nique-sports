@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { forwardRef, useState } from "react";
+import { forwardRef, useState, startTransition } from "react";
 
 const ImageWithLoader = forwardRef(function ImageWithLoader(
   {
@@ -20,12 +20,16 @@ const ImageWithLoader = forwardRef(function ImageWithLoader(
   const [loaded, setLoaded] = useState(false);
 
   function handleLoad(event) {
-    setLoaded(true);
+    startTransition(() => {
+      setLoaded(true);
+    });
     onLoad?.(event);
   }
 
   function handleError(event) {
-    setLoaded(true);
+    startTransition(() => {
+      setLoaded(true);
+    });
     onError?.(event);
   }
 
@@ -36,6 +40,7 @@ const ImageWithLoader = forwardRef(function ImageWithLoader(
         ref={ref}
         alt={alt}
         sizes={sizes}
+        decoding="async"
         {...(preload ? { preload: true } : { loading })}
         onLoad={handleLoad}
         onError={handleError}

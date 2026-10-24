@@ -22,20 +22,21 @@ export default function AddToCartFlyClone({ src, from, to, onDone }) {
   }
 
   useEffect(() => {
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevBodyOverflow = document.body.style.overflow;
-    const prevTouchAction = document.body.style.touchAction;
-
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
-
     function preventScroll(e) {
       e.preventDefault();
     }
 
+    function preventScrollKeys(e) {
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+    }
+
+    // Intercept wheel, touch gestures, and scroll keys at capture level without mutating
+    // document.documentElement / body overflow (which breaks position: sticky on the top navbar).
     window.addEventListener('wheel', preventScroll, { passive: false, capture: true });
     window.addEventListener('touchmove', preventScroll, { passive: false, capture: true });
+    window.addEventListener('keydown', preventScrollKeys, { passive: false, capture: true });
 
     let firstFrame;
     let secondFrame;
@@ -50,11 +51,9 @@ export default function AddToCartFlyClone({ src, from, to, onDone }) {
       if (secondFrame) cancelAnimationFrame(secondFrame);
       window.clearTimeout(fallbackTimerRef.current);
 
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
-      document.body.style.touchAction = prevTouchAction;
       window.removeEventListener('wheel', preventScroll, { capture: true });
       window.removeEventListener('touchmove', preventScroll, { capture: true });
+      window.removeEventListener('keydown', preventScrollKeys, { capture: true });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

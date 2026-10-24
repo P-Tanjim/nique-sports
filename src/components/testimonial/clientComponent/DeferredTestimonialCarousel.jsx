@@ -5,49 +5,64 @@ import { useEffect, useRef, useState } from "react";
 
 const TestimonialCarousel = dynamic(() => import("./cards"), {
   ssr: false,
-  loading: () => <div aria-hidden="true" className="h-[420px]" />,
+  loading: () => <div aria-hidden="true" className="min-h-[420px]" />,
 });
 
 export default function DeferredTestimonialCarousel({
   testimonials,
   autoPlay,
   autoPlayInterval,
+  ...props
 }) {
-  const containerRef = useRef(null);
-  const [shouldLoad, setShouldLoad] = useState(false);
+  const hostRef = useRef(null);
+  const [shouldRender, setShouldRender] = useState(false);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    if (shouldRender) return;
+    const el = hostRef.current;
 
-    if (!("IntersectionObserver" in window)) {
-      const frame = requestAnimationFrame(() => setShouldLoad(true));
-      return () => cancelAnimationFrame(frame);
-    }
-
-    const observer = new IntersectionObserver(
+    // 1. Mount well before the viewport reaches it (900px ahead)
+    const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setShouldLoad(true);
-          observer.disconnect();
+          setShouldRender(true);
+          io.disconnect();
         }
       },
-      { rootMargin: "400px 0px" }
+      { rootMargin: "900px 0px" }
     );
+    if (el) io.observe(el);
 
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
+    // 2. Also pre-mount during browser idle time after LCP finishes (2.5s)
+    // so it NEVER mounts mid-scroll on a low-end phone
+    const idleId =
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback(() => setShouldRender(true), { timeout: 2500 })
+        : setTimeout(() => setShouldRender(true), 2500);
+
+    return () => {
+      io.disconnect();
+      if (typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      } else {
+        clearTimeout(idleId);
+      }
+    };
+  }, [shouldRender]);
 
   return (
-    <div ref={containerRef} className="min-h-[420px]">
-      {shouldLoad && (
+    <div ref={hostRef} className="min-h-[420px] w-full">
+      {shouldRender ? (
         <TestimonialCarousel
           testimonials={testimonials}
           autoPlay={autoPlay}
           autoPlayInterval={autoPlayInterval}
+          {...props}
         />
+      ) : (
+        <div aria-hidden="true" className="min-h-[420px]" />
       )}
     </div>
   );
 }
+

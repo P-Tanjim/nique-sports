@@ -7,7 +7,7 @@ export default function NavSurface({ children }) {
 
   return (
     <nav
-      className={`px-4 md:px-20 py-3 w-full flex flex-col sticky top-0 z-50 `}
+      className={`px-4 md:px-20 py-3 w-full flex flex-col sticky top-0 z-50`}
     >
       {children}
     </nav>

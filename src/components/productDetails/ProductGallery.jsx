@@ -51,14 +51,6 @@ export default function ProductGallery({ images, title }) {
   useEffect(() => {
     if (!flying) return undefined;
 
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevBodyOverflow = document.body.style.overflow;
-    const prevTouchAction = document.body.style.touchAction;
-
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
-
     function preventScroll(e) {
       e.preventDefault();
     }
@@ -69,7 +61,8 @@ export default function ProductGallery({ images, title }) {
       }
     }
 
-    // Intercept wheel, touch gestures, and scroll keys at window capture level
+    // Intercept wheel, touch gestures, and scroll keys at window capture level without
+    // mutating html/body overflow (which breaks sticky navbar positioning)
     window.addEventListener('wheel', preventScroll, { passive: false, capture: true });
     window.addEventListener('touchmove', preventScroll, { passive: false, capture: true });
     window.addEventListener('keydown', preventScrollKeys, { passive: false, capture: true });
@@ -81,10 +74,6 @@ export default function ProductGallery({ images, title }) {
 
     return () => {
       clearTimeout(safetyTimer);
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
-      document.body.style.touchAction = prevTouchAction;
-
       window.removeEventListener('wheel', preventScroll, { capture: true });
       window.removeEventListener('touchmove', preventScroll, { capture: true });
       window.removeEventListener('keydown', preventScrollKeys, { capture: true });

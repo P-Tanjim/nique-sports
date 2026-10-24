@@ -19,36 +19,47 @@ const FeatureCard = dynamic(() => import("./FeatureCard"), {
   loading: FeatureCardPlaceholder,
 });
 
-export default function DeferredFeatureCard({ cards = [] }) {
-  const containerRef = useRef(null);
-  const [shouldLoad, setShouldLoad] = useState(false);
+export default function DeferredFeatureCard({ cards = [], ...props }) {
+  const hostRef = useRef(null);
+  const [shouldRender, setShouldRender] = useState(false);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    if (shouldRender) return;
+    const el = hostRef.current;
 
-    if (!("IntersectionObserver" in window)) {
-      const frame = requestAnimationFrame(() => setShouldLoad(true));
-      return () => cancelAnimationFrame(frame);
-    }
-
-    const observer = new IntersectionObserver(
+    // 1. Mount well before the viewport reaches it (900px ahead)
+    const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setShouldLoad(true);
-          observer.disconnect();
+          setShouldRender(true);
+          io.disconnect();
         }
       },
-      { rootMargin: "400px 0px" }
+      { rootMargin: "900px 0px" }
     );
+    if (el) io.observe(el);
 
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
+    // 2. Also pre-mount during browser idle time after LCP finishes (2.5s)
+    // so it NEVER mounts mid-scroll on a low-end phone
+    const idleId =
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback(() => setShouldRender(true), { timeout: 2500 })
+        : setTimeout(() => setShouldRender(true), 2500);
+
+    return () => {
+      io.disconnect();
+      if (typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      } else {
+        clearTimeout(idleId);
+      }
+    };
+  }, [shouldRender]);
 
   return (
-    <div ref={containerRef} className="w-full">
-      {shouldLoad ? <FeatureCard cards={cards} /> : <FeatureCardPlaceholder />}
+    <div ref={hostRef} className="min-h-80 w-full">
+      {shouldRender ? <FeatureCard cards={cards} {...props} /> : <FeatureCardPlaceholder />}
     </div>
   );
 }
+

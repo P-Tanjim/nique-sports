@@ -80,6 +80,7 @@ function GestureTip({ visible, onFinish }) {
             dotLottieRefCallback={setDotLottie}
             src="/pinchZoom.lottie"
             autoplay
+            renderConfig={{ devicePixelRatio: 1 }}
             className="w-full h-full object-contain"
           />
         </div>
@@ -468,7 +469,7 @@ const ProductCard = ({ product }) => {
   return (
     <>
       {/* Card thumbnail */}
-      <Link href={`/shop/product/${product._id}`} className="w-full rounded-2xl">
+      <Link href={`/shop/product/${product._id}`} className="card-gpu-isolate w-full rounded-2xl">
         <div className="relative w-full h-full rounded-xl overflow-hidden group">
           <div className="flex flex-col gap-1 absolute top-2 right-2 z-30 pointer-events-none">
             <button
@@ -602,7 +603,7 @@ const ProductCard = ({ product }) => {
               </button>
 
               {/* Gesture tip (shows when zoomed) */}
-              {zoomed && <GestureTip visible={showTip} onFinish={() => setShowTip(false)} />}
+              {zoomed && showTip && <GestureTip visible={showTip} onFinish={() => setShowTip(false)} />}
             </div>
 
             {/* ═══ DETAILS COLUMN ═══

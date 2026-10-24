@@ -21,7 +21,7 @@ const MobileBottomNav = () => {
   const safeIndex = activeIndex !== -1 ? activeIndex : 0;
 
   return (
-    <nav className="mobile-nav relative w-[85%] rounded-full border border-white/20 bg-primary/80 p-1.5 overflow-hidden shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,0.9),inset_0_-8px_8px_-8px_rgba(255,255,255,0.9)] backdrop-blur-sm">
+    <nav className="mobile-nav relative w-[85%] rounded-full border border-white/20 bg-primary/80 p-1.5 overflow-hidden shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,0.9),inset_0_-8px_8px_-8px_rgba(255,255,255,0.9)] backdrop-blur-sm transform-gpu backface-hidden">
       <ul className="relative flex flex-row items-center justify-between">
         <div
           aria-hidden="true"

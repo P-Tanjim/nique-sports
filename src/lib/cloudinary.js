@@ -2,7 +2,7 @@
  * Automatically injects Cloudinary transformations (auto format, auto quality, max width)
  * to avoid serving heavy unoptimized camera images on mobile.
  */
-export function optimizeCloudinaryUrl(url, width = 800) {
+export function optimizeCloudinaryUrl(url, width = 600) {
   if (!url || typeof url !== 'string' || !url.includes('cloudinary.com') || !url.includes('/upload/')) {
     return url;
   }
@@ -10,5 +10,5 @@ export function optimizeCloudinaryUrl(url, width = 800) {
   if (url.includes('/f_auto,q_auto')) {
     return url;
   }
-  return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
+  return url.replace('/upload/', `/upload/f_auto,q_auto:good,w_${width}/`);
 }

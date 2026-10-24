@@ -191,8 +191,27 @@ export default function FeatureCard({ cards = [] }) {
 
   const [centerIndex, setCenterIndex] = useState(totalCards >> 1);
 
+  const isUserScrollingRef = useRef(false);
+
+  useEffect(() => {
+    let scrollTimeout;
+    const onScroll = () => {
+      isUserScrollingRef.current = true;
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        isUserScrollingRef.current = false;
+      }, 150);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, []);
+
   const cycle = (direction) => {
-    if (!isInView || isAnimating.current || !needsPagination) return;
+    if (isUserScrollingRef.current || !isInView || isAnimating.current || !needsPagination) return;
     isAnimating.current = true;
     directionRef.current = direction;
     setCenterIndex(prev =>
@@ -267,6 +286,8 @@ export default function FeatureCard({ cards = [] }) {
       const wasVisible = previouslyVisible.has(cardIndex);
 
       if (slot !== undefined) {
+        card.style.visibility = "visible";
+        card.style.willChange = isInView ? "transform, opacity" : "auto";
         visibleEntries.push({ el: card, slot });
         const { x, y, rot, scale, zIndex } = getSlotConfig(visibleSlots, slot);
         const deferredZ = scheduleZIndex(card, zIndex);
@@ -310,12 +331,18 @@ export default function FeatureCard({ cards = [] }) {
           el: card,
           to: { x: exitX, opacity: 0, scale: 0.5, rot: direction === "right" ? -30 : 30 },
           timing: { duration: 0.4, ease: EASE_IN },
-          onDone: deferredZ !== null ? () => { card.style.zIndex = deferredZ; } : undefined,
+          onDone: () => {
+            card.style.visibility = "hidden";
+            card.style.willChange = "auto";
+            if (deferredZ !== null) card.style.zIndex = deferredZ;
+          },
         });
       } else {
         // Preload-only (or first-paint off-screen) card: hide it instantly.
         // It gets a real entrance animation the moment it actually enters a slot.
         card.style.zIndex = 0;
+        card.style.visibility = "hidden";
+        card.style.willChange = "auto";
         setInstant(card, { opacity: 0, scale: 0.5, x: 0, y: 0 });
       }
     });
@@ -428,7 +455,7 @@ export default function FeatureCard({ cards = [] }) {
                 key={card._id ?? idx}
                 data-card-index={idx}
                 href={`/shop/product/${card._id || "#"}`}
-                className="fan-card absolute w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-2xl overflow-hidden cursor-pointer border border-black/10 md:border-transparent shadow-none md:shadow-xl transition-[border-color,box-shadow] duration-300"
+                className="fan-card absolute w-48 h-72 sm:w-56 sm:h-80 md:w-64 md:h-96 rounded-2xl overflow-hidden cursor-pointer border border-black/10 shadow-md md:shadow-2xl transition-[border-color,box-shadow] duration-300"
               >
                 <ImageWithLoader
                   src={card.imageLink}
