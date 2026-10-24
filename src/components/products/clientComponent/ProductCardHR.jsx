@@ -62,16 +62,16 @@ function GestureTip({ visible }) {
   );
 }
 
-/* ─── Scaled image ─── */
-function ScaledImage({ src, alt, pinchScale, pinchActive }) {
+/* ─── Scaled & Panned image ─── */
+function ScaledImage({ src, alt, scale, pan, active }) {
   return (
     <div
       className="absolute inset-0"
       style={{
-        transform: `scale(${pinchScale})`,
+        transform: `translate3d(${pan.x}px, ${pan.y}px, 0px) scale(${scale})`,
         transformOrigin: 'center center',
-        transition: pinchActive ? 'none' : 'transform 280ms ease-out',
-        willChange: pinchActive ? 'transform' : 'auto',
+        transition: active ? 'none' : 'transform 260ms cubic-bezier(0.2, 0, 0, 1)',
+        willChange: active ? 'transform' : 'auto',
       }}
     >
       <ImageWithLoader
@@ -79,7 +79,7 @@ function ScaledImage({ src, alt, pinchScale, pinchActive }) {
         alt={alt}
         fill
         sizes="(max-width: 768px) 100vw, 50vw"
-        className="object-cover"
+        className="object-cover pointer-events-none select-none"
         containerClassName="relative h-full w-full"
       />
     </div>
@@ -96,13 +96,17 @@ const ProductCard = ({ product }) => {
   const imageRef = useRef(null);
 
   const [zoomed, setZoomed] = useState(false);
-  const [pinchScale, setPinchScale] = useState(1);
-  const [pinchActive, setPinchActive] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isInteracting, setIsInteracting] = useState(false);
   const [showTip, setShowTip] = useState(false);
   const isDesktop = useSyncExternalStore(subscribeDesktop, getDesktopSnapshot, getServerSnapshot);
   const imageViewRef = useRef(null);
-  const pinchScaleRef = useRef(1);
-  const pinchStateRef = useRef({ tracking: false, startDist: 0, startScale: 1 });
+  const scaleRef = useRef(1);
+  const panRef = useRef({ x: 0, y: 0 });
+  const touchStateRef = useRef({ mode: null });
+  const mouseStateRef = useRef({ dragging: false });
+  const lastTapRef = useRef(0);
   const tipTimerRef = useRef(null);
 
   function handleAddToCart(event) {
@@ -134,7 +138,10 @@ const ProductCard = ({ product }) => {
   const close = useCallback(() => {
     setVisible(false);
     setZoomed(false);
-    setPinchScale(1);
+    setScale(1);
+    setPan({ x: 0, y: 0 });
+    scaleRef.current = 1;
+    panRef.current = { x: 0, y: 0 };
     setShowTip(false);
     clearTimeout(tipTimerRef.current);
     closeTimerRef.current = setTimeout(() => {
@@ -146,12 +153,18 @@ const ProductCard = ({ product }) => {
   function toggleZoom() {
     if (zoomed) {
       setZoomed(false);
-      setPinchScale(1);
+      setScale(1);
+      setPan({ x: 0, y: 0 });
+      scaleRef.current = 1;
+      panRef.current = { x: 0, y: 0 };
       setShowTip(false);
       clearTimeout(tipTimerRef.current);
     } else {
       setZoomed(true);
-      setPinchScale(1);
+      setScale(1);
+      setPan({ x: 0, y: 0 });
+      scaleRef.current = 1;
+      panRef.current = { x: 0, y: 0 };
       if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('nqs_pinch_tip')) {
         sessionStorage.setItem('nqs_pinch_tip', '1');
         tipTimerRef.current = setTimeout(() => {
@@ -194,43 +207,231 @@ const ProductCard = ({ product }) => {
     clearTimeout(tipTimerRef.current);
   }, []);
 
-  useEffect(() => { pinchScaleRef.current = pinchScale; }, [pinchScale]);
+  useEffect(() => { scaleRef.current = scale; }, [scale]);
+  useEffect(() => { panRef.current = pan; }, [pan]);
+
+  const getBounds = useCallback((s) => {
+    const el = imageViewRef.current;
+    if (!el) return { maxX: 0, maxY: 0 };
+    const w = el.clientWidth;
+    const h = el.clientHeight;
+    const maxX = Math.max(0, (w * s - w) / 2);
+    const maxY = Math.max(0, (h * s - h) / 2);
+    return { maxX, maxY };
+  }, []);
 
   useEffect(() => {
     const el = imageViewRef.current;
     if (!el || !zoomed) return;
+
     function dist(t) {
       return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
     }
-    function onStart(e) {
-      if (e.touches.length !== 2) return;
-      pinchStateRef.current = { tracking: true, startDist: dist(e.touches), startScale: pinchScaleRef.current };
-      setPinchActive(true);
+
+    function onTouchStart(e) {
+      if (e.touches.length === 1) {
+        const now = Date.now();
+        if (now - lastTapRef.current < 280) {
+          lastTapRef.current = 0;
+          if (scaleRef.current > 1.2) {
+            scaleRef.current = 1;
+            panRef.current = { x: 0, y: 0 };
+            setScale(1);
+            setPan({ x: 0, y: 0 });
+          } else {
+            const nextScale = 2.2;
+            scaleRef.current = nextScale;
+            setScale(nextScale);
+          }
+          return;
+        }
+        lastTapRef.current = now;
+
+        if (scaleRef.current > 1.05) {
+          touchStateRef.current = {
+            mode: 'pan',
+            startX: e.touches[0].clientX,
+            startY: e.touches[0].clientY,
+            startPanX: panRef.current.x,
+            startPanY: panRef.current.y,
+          };
+          setIsInteracting(true);
+        }
+      } else if (e.touches.length === 2) {
+        const p1 = e.touches[0];
+        const p2 = e.touches[1];
+        const d = dist(e.touches);
+        const midX = (p1.clientX + p2.clientX) / 2;
+        const midY = (p1.clientY + p2.clientY) / 2;
+        touchStateRef.current = {
+          mode: 'pinch',
+          startDist: d,
+          startScale: scaleRef.current,
+          startMidX: midX,
+          startMidY: midY,
+          startPanX: panRef.current.x,
+          startPanY: panRef.current.y,
+        };
+        setIsInteracting(true);
+      }
     }
-    function onMove(e) {
-      if (!pinchStateRef.current.tracking || e.touches.length !== 2) return;
+
+    function onTouchMove(e) {
+      const st = touchStateRef.current;
+      if (!st.mode) return;
       e.preventDefault();
-      const d = dist(e.touches);
-      const s = pinchStateRef.current.startScale * (d / pinchStateRef.current.startDist);
-      setPinchScale(Math.min(4, Math.max(1, s)));
+
+      if (st.mode === 'pan' && e.touches.length === 1) {
+        const dx = e.touches[0].clientX - st.startX;
+        const dy = e.touches[0].clientY - st.startY;
+        const bounds = getBounds(scaleRef.current);
+        const nextX = Math.min(bounds.maxX, Math.max(-bounds.maxX, st.startPanX + dx));
+        const nextY = Math.min(bounds.maxY, Math.max(-bounds.maxY, st.startPanY + dy));
+        panRef.current = { x: nextX, y: nextY };
+        setPan({ x: nextX, y: nextY });
+      } else if (st.mode === 'pinch' && e.touches.length === 2) {
+        const p1 = e.touches[0];
+        const p2 = e.touches[1];
+        const d = dist(e.touches);
+        const midX = (p1.clientX + p2.clientX) / 2;
+        const midY = (p1.clientY + p2.clientY) / 2;
+        const factor = d / st.startDist;
+        const nextScale = Math.min(4.5, Math.max(0.85, st.startScale * factor));
+        const bounds = getBounds(nextScale);
+        const deltaMidX = midX - st.startMidX;
+        const deltaMidY = midY - st.startMidY;
+        const nextX = Math.min(bounds.maxX, Math.max(-bounds.maxX, st.startPanX + deltaMidX));
+        const nextY = Math.min(bounds.maxY, Math.max(-bounds.maxY, st.startPanY + deltaMidY));
+        scaleRef.current = nextScale;
+        panRef.current = { x: nextX, y: nextY };
+        setScale(nextScale);
+        setPan({ x: nextX, y: nextY });
+      }
     }
-    function onEnd() {
-      if (!pinchStateRef.current.tracking) return;
-      pinchStateRef.current.tracking = false;
-      setPinchActive(false);
-      setPinchScale(s => (s < 1.12 ? 1 : s));
+
+    function onTouchEnd(e) {
+      if (e.touches.length === 1 && touchStateRef.current.mode === 'pinch') {
+        const t = e.touches[0];
+        touchStateRef.current = {
+          mode: 'pan',
+          startX: t.clientX,
+          startY: t.clientY,
+          startPanX: panRef.current.x,
+          startPanY: panRef.current.y,
+        };
+        return;
+      }
+
+      if (e.touches.length === 0) {
+        touchStateRef.current = { mode: null };
+        setIsInteracting(false);
+
+        let finalScale = scaleRef.current;
+        if (finalScale < 1.08) {
+          finalScale = 1;
+          panRef.current = { x: 0, y: 0 };
+          setScale(1);
+          setPan({ x: 0, y: 0 });
+        } else {
+          finalScale = Math.min(4, finalScale);
+          const bounds = getBounds(finalScale);
+          const clampedX = Math.min(bounds.maxX, Math.max(-bounds.maxX, panRef.current.x));
+          const clampedY = Math.min(bounds.maxY, Math.max(-bounds.maxY, panRef.current.y));
+          scaleRef.current = finalScale;
+          panRef.current = { x: clampedX, y: clampedY };
+          setScale(finalScale);
+          setPan({ x: clampedX, y: clampedY });
+        }
+      }
     }
-    el.addEventListener('touchstart', onStart, { passive: true });
-    el.addEventListener('touchmove', onMove, { passive: false });
-    el.addEventListener('touchend', onEnd, { passive: true });
-    el.addEventListener('touchcancel', onEnd, { passive: true });
+
+    function onWheel(e) {
+      e.preventDefault();
+      const zoomFactor = -e.deltaY * 0.003;
+      let nextScale = Math.min(4, Math.max(1, scaleRef.current + zoomFactor));
+      if (nextScale < 1.08) {
+        nextScale = 1;
+        panRef.current = { x: 0, y: 0 };
+        setPan({ x: 0, y: 0 });
+      } else {
+        const bounds = getBounds(nextScale);
+        const clampedX = Math.min(bounds.maxX, Math.max(-bounds.maxX, panRef.current.x));
+        const clampedY = Math.min(bounds.maxY, Math.max(-bounds.maxY, panRef.current.y));
+        panRef.current = { x: clampedX, y: clampedY };
+        setPan({ x: clampedX, y: clampedY });
+      }
+      scaleRef.current = nextScale;
+      setScale(nextScale);
+    }
+
+    function onMouseDown(e) {
+      if (scaleRef.current <= 1.05 || e.button !== 0) return;
+      e.preventDefault();
+      mouseStateRef.current = {
+        dragging: true,
+        startX: e.clientX,
+        startY: e.clientY,
+        startPanX: panRef.current.x,
+        startPanY: panRef.current.y,
+      };
+      setIsInteracting(true);
+    }
+
+    function onMouseMove(e) {
+      const ms = mouseStateRef.current;
+      if (!ms.dragging) return;
+      e.preventDefault();
+      const dx = e.clientX - ms.startX;
+      const dy = e.clientY - ms.startY;
+      const bounds = getBounds(scaleRef.current);
+      const nextX = Math.min(bounds.maxX, Math.max(-bounds.maxX, ms.startPanX + dx));
+      const nextY = Math.min(bounds.maxY, Math.max(-bounds.maxY, ms.startPanY + dy));
+      panRef.current = { x: nextX, y: nextY };
+      setPan({ x: nextX, y: nextY });
+    }
+
+    function onMouseUp() {
+      if (!mouseStateRef.current.dragging) return;
+      mouseStateRef.current = { dragging: false };
+      setIsInteracting(false);
+    }
+
+    function onDblClick(e) {
+      e.preventDefault();
+      if (scaleRef.current > 1.2) {
+        scaleRef.current = 1;
+        panRef.current = { x: 0, y: 0 };
+        setScale(1);
+        setPan({ x: 0, y: 0 });
+      } else {
+        const nextScale = 2.4;
+        scaleRef.current = nextScale;
+        setScale(nextScale);
+      }
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    el.addEventListener('wheel', onWheel, { passive: false });
+    el.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    el.addEventListener('dblclick', onDblClick);
+
     return () => {
-      el.removeEventListener('touchstart', onStart);
-      el.removeEventListener('touchmove', onMove);
-      el.removeEventListener('touchend', onEnd);
-      el.removeEventListener('touchcancel', onEnd);
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+      el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      el.removeEventListener('dblclick', onDblClick);
     };
-  }, [zoomed]);
+  }, [zoomed, getBounds]);
 
 
   /* Zoom pill button (shared style) */
@@ -320,23 +521,34 @@ const ProductCard = ({ product }) => {
                 Mobile:  height animates 16rem ↔ 100% (grows to fill full modal) */}
             <div
               ref={imageViewRef}
-              className="relative shrink-0 overflow-hidden"
+              className={`relative shrink-0 overflow-hidden ${
+                zoomed && scale > 1.05
+                  ? isInteracting
+                    ? 'cursor-grabbing'
+                    : 'cursor-grab'
+                  : zoomed
+                  ? 'cursor-zoom-in'
+                  : ''
+              }`}
               style={isDesktop ? {
                 width: zoomed ? '100%' : '50%',
                 height: '100%',
                 transition: `width ${ZOOM_MS}ms ${EASE}`,
+                touchAction: zoomed ? 'none' : 'auto',
               } : {
                 width: '100%',
                 height: zoomed ? '100%' : '16rem',
                 flexShrink: 0,
                 transition: `height ${ZOOM_MS}ms ${EASE}`,
+                touchAction: zoomed ? 'none' : 'auto',
               }}
             >
               <ScaledImage
                 src={product.imagesLink[0]}
                 alt={product.title}
-                pinchScale={pinchScale}
-                pinchActive={pinchActive}
+                scale={scale}
+                pan={pan}
+                active={isInteracting}
               />
               {/* Image bottom fade */}
               <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-black/55 to-transparent" />
