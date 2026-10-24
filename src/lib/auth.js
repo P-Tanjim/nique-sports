@@ -8,7 +8,19 @@ const PRIVACY_POLICY_VERSION = "2026-09-27";
 const client = new MongoClient(process.env.MONGODB_URL);
 export const db = client.db(process.env.DATABASE_NAME);
 
+const appUrl =
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+
 export const auth = betterAuth({
+    baseURL: appUrl,
+    trustedOrigins: [
+        appUrl,
+        process.env.BETTER_AUTH_URL,
+        process.env.NEXT_PUBLIC_APP_URL,
+        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+    ].filter(Boolean),
     database: mongodbAdapter(db, {
         client
     }),

@@ -96,7 +96,22 @@ function normalizeProduct(product) {
 async function fetchProducts(limit = 1000) {
   const res = await serverFetch(`/products?limit=${limit}`);
   const products = res?.data || res?.products || [];
-  return Array.isArray(products) ? products.map(normalizeProduct) : [];
+  if (Array.isArray(products) && products.length > 0) {
+    return products.map(normalizeProduct);
+  }
+
+  // Fallback to direct MongoDB read if Express server is unreachable
+  try {
+    const { db } = await import('@/lib/auth');
+    const docs = await db.collection('products').find({}).limit(limit).toArray();
+    if (docs?.length) {
+      return docs.map(normalizeProduct);
+    }
+  } catch (err) {
+    console.error('Direct MongoDB products fallback failed:', err);
+  }
+
+  return [];
 }
 
 export async function getProducts(options = 10) {

@@ -20,10 +20,24 @@ export async function loadDashboard(user, rangeParam) {
   const today = todayDhaka();
   const startDay = shiftDate(today, -(days - 1));
 
-  const [data, low] = await Promise.all([
-    readObjects(isAdmin ? ['orders', 'transactions', 'settings'] : ['orders']),
-    isAdmin ? adminFetch('/admin/low-stock?threshold=5&limit=6') : null,
-  ]);
+  let data;
+  try {
+    data = await readObjects(isAdmin ? ['orders', 'transactions', 'settings'] : ['orders']);
+  } catch (sheetError) {
+    console.error('Google Sheets readObjects failed in loadDashboard, falling back to MongoDB:', sheetError);
+    const { readOrders } = await import('@/lib/sheets/orders');
+    const fallbackOrders = await readOrders().catch(() => []);
+    data = { orders: fallbackOrders || [], transactions: [], settings: [] };
+  }
+
+  let low = null;
+  if (isAdmin) {
+    try {
+      low = await adminFetch('/admin/low-stock?threshold=5&limit=6');
+    } catch {
+      low = null;
+    }
+  }
 
   const orders = visibleOrders(user, data.orders);
   const inRange = orders.filter((o) => o.date >= startDay && o.date <= today);

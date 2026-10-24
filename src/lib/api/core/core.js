@@ -6,6 +6,7 @@ export const serverFetch = async (path, other = {}) => {
   try {
     const res = await fetch(`${API}${path}`, {
       next: { revalidate: 60 },
+      signal: AbortSignal.timeout(5000),
       ...other,
     });
     if (!res.ok) {
@@ -24,6 +25,7 @@ async function serverMutation(method, path, body) {
   try {
     const res = await fetch(`${API}${path}`, {
       method,
+      signal: AbortSignal.timeout(5000),
       ...(body === undefined
         ? {}
         : {

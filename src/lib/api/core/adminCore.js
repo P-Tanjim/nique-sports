@@ -19,6 +19,7 @@ export async function adminFetch(path, options = {}) {
     await assertAdmin();
     const res = await fetch(`${API}${path}`, {
       cache: 'no-store',
+      signal: AbortSignal.timeout(5000),
       ...options,
       headers: adminHeaders(options.headers),
     });
@@ -38,6 +39,7 @@ async function adminMutation(method, path, body) {
     const res = await fetch(`${API}${path}`, {
       method,
       cache: 'no-store',
+      signal: AbortSignal.timeout(5000),
       headers: adminHeaders(hasBody ? { 'Content-Type': 'application/json' } : undefined),
       ...(hasBody ? { body: JSON.stringify(body) } : {}),
     });
