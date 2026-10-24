@@ -41,6 +41,69 @@
 import { useState, useEffect, useCallback, memo, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+
+const DotLottieReact = dynamic(
+  () =>
+    import("@lottiefiles/dotlottie-react").then((m) => {
+      m.setWasmUrl?.("/dotlottie-player.wasm");
+      return m.DotLottieReact;
+    }),
+  { ssr: false }
+);
+
+function SwipeGestureHint({ visible }) {
+  const [ready, setReady] = useState(false);
+  const [dotLottie, setDotLottie] = useState(null);
+
+  useEffect(() => {
+    if (!dotLottie) return;
+
+    function handlePlay() {
+      setReady(true);
+    }
+
+    dotLottie.addEventListener("play", handlePlay);
+    const fallback = setTimeout(() => setReady(true), 400);
+
+    return () => {
+      dotLottie.removeEventListener("play", handlePlay);
+      clearTimeout(fallback);
+    };
+  }, [dotLottie]);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-center transition-opacity duration-300"
+      style={{ opacity: ready ? 1 : 0 }}
+    >
+      <div
+        className="flex flex-col items-center justify-center transition-transform duration-300"
+        style={{
+          transform: ready ? "scale(1)" : "scale(0.9)",
+        }}
+      >
+        <div className="relative w-44 h-28  flex items-center justify-center drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)]">
+          <div className="w-45 h-80 shrink-0 scale-140 flex items-center justify-center">
+            <DotLottieReact
+              dotLottieRefCallback={setDotLottie}
+              src="/sideScrollGesture.lottie"
+              autoplay
+              loop
+              className="w-full h-full object-contain"
+            />
+          </div>
+        </div>
+        <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.25em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] -mt-1">
+          Swipe
+        </p>
+      </div>
+    </div>
+  );
+}
 
 const CARD_W = 240;
 const CARD_H = 320;
@@ -135,7 +198,7 @@ const NavButton = memo(function NavButton({ direction, onClick }) {
 });
 
 export default function TestimonialCarousel({
-  testimonials = DEFAULT_TESTIMONIALS,
+  testimonials = [],
   autoPlay = false,
   autoPlayInterval = 3500,
   className = "",
@@ -143,13 +206,29 @@ export default function TestimonialCarousel({
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isInView, setIsInView] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const containerRef = useRef(null);
   const reduceMotion = useReducedMotion();
   const total = testimonials.length;
 
-  const goNext = useCallback(() => setActiveIndex((i) => (i + 1) % total), [total]);
-  const goPrev = useCallback(() => setActiveIndex((i) => (i - 1 + total) % total), [total]);
-  const goTo = useCallback((i) => setActiveIndex(i), []);
+  const dismissHint = useCallback(() => {
+    setHasInteracted(true);
+  }, []);
+
+  const goNext = useCallback(() => {
+    dismissHint();
+    setActiveIndex((i) => (i + 1) % total);
+  }, [total, dismissHint]);
+
+  const goPrev = useCallback(() => {
+    dismissHint();
+    setActiveIndex((i) => (i - 1 + total) % total);
+  }, [total, dismissHint]);
+
+  const goTo = useCallback((i) => {
+    dismissHint();
+    setActiveIndex(i);
+  }, [dismissHint]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -162,12 +241,21 @@ export default function TestimonialCarousel({
     return () => observer.disconnect();
   }, []);
 
-  // autoplay, paused when offscreen, on hover/focus, or when tab is hidden
+  // auto-dismiss the swipe hint after 4s once the carousel enters view
   useEffect(() => {
-    if (!isInView || !autoPlay || isPaused || total <= 1) return;
+    if (!isInView || hasInteracted || total <= 1) return;
+    const timer = setTimeout(() => {
+      setHasInteracted(true);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [isInView, hasInteracted, total]);
+
+  // autoplay, paused when offscreen, on hover/focus, when tab is hidden, or while initial gesture hint is playing
+  useEffect(() => {
+    if (!isInView || !autoPlay || isPaused || total <= 1 || !hasInteracted) return;
     const id = setInterval(goNext, autoPlayInterval);
     return () => clearInterval(id);
-  }, [isInView, autoPlay, isPaused, autoPlayInterval, goNext, total]);
+  }, [isInView, autoPlay, isPaused, autoPlayInterval, goNext, total, hasInteracted]);
 
   useEffect(() => {
     const onVisibility = () => setIsPaused(document.hidden);
@@ -181,7 +269,7 @@ export default function TestimonialCarousel({
     .map((t, i) => ({ t, i, offset: getOffset(i, activeIndex, total) }))
     .filter(({ offset }) => Math.abs(offset) <= PRELOAD_RADIUS);
 
-  const active = testimonials[activeIndex];
+  const showHint = isInView && !hasInteracted && total > 1 && !reduceMotion;
 
   return (
     <div
@@ -192,6 +280,7 @@ export default function TestimonialCarousel({
       onFocus={() => setIsPaused(true)}
       onBlur={() => setIsPaused(false)}
       onKeyDown={(e) => {
+        dismissHint();
         if (e.key === "ArrowRight") goNext();
         if (e.key === "ArrowLeft") goPrev();
       }}
@@ -204,6 +293,7 @@ export default function TestimonialCarousel({
         className="relative mx-auto"
         style={{ width: "100%", maxWidth: 380, height: CARD_H + 40, touchAction: "pan-y" }}
         onPanEnd={(_, info) => {
+          dismissHint();
           const threshold = 40;
           if (info.offset.x < -threshold) goNext();
           else if (info.offset.x > threshold) goPrev();
@@ -218,6 +308,8 @@ export default function TestimonialCarousel({
             onClick={() => goTo(i)}
           />
         ))}
+
+        <SwipeGestureHint visible={showHint} />
       </motion.div>
     </div>
   );

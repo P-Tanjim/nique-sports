@@ -28,29 +28,58 @@ function getServerSnapshot() {
 
 /* ─── Gesture tutorial (Lottie) ─── */
 const DotLottieReact = dynamic(
-  () => import('@lottiefiles/dotlottie-react').then((m) => m.DotLottieReact),
+  () => import('@lottiefiles/dotlottie-react').then((m) => {
+    m.setWasmUrl?.('/dotlottie-player.wasm');
+    return m.DotLottieReact;
+  }),
   { ssr: false }
 );
 
-function GestureTip({ visible }) {
+function GestureTip({ visible, onFinish }) {
+  const [ready, setReady] = useState(false);
+  const [dotLottie, setDotLottie] = useState(null);
+
+  useEffect(() => {
+    if (!dotLottie) return;
+
+    function handlePlay() {
+      setReady(true);
+    }
+    function handleComplete() {
+      setReady(false);
+      setTimeout(() => {
+        onFinish?.();
+      }, 350);
+    }
+
+    dotLottie.addEventListener('play', handlePlay);
+    dotLottie.addEventListener('complete', handleComplete);
+
+    return () => {
+      dotLottie.removeEventListener('play', handlePlay);
+      dotLottie.removeEventListener('complete', handleComplete);
+    };
+  }, [dotLottie, onFinish]);
+
+  if (!visible) return null;
+
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center transition-opacity duration-300"
-      style={{ opacity: visible ? 1 : 0 }}
+      style={{ opacity: ready ? 1 : 0 }}
     >
       <div
         className="flex flex-col items-center justify-center transition-transform duration-300"
         style={{
-          transform: visible ? 'scale(1)' : 'scale(0.9)',
+          transform: ready ? 'scale(1)' : 'scale(0.9)',
         }}
       >
         <div className="w-44 h-44 min-[420px]:w-52 min-[420px]:h-52 sm:w-60 sm:h-60 flex items-center justify-center overflow-hidden drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
           <DotLottieReact
+            dotLottieRefCallback={setDotLottie}
             src="/pinchZoom.lottie"
             autoplay
-            speed={1}
-            segment={[0, 100]}
             className="w-full h-full object-contain"
           />
         </div>
@@ -167,10 +196,9 @@ const ProductCard = ({ product }) => {
       panRef.current = { x: 0, y: 0 };
       if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('nqs_pinch_tip')) {
         sessionStorage.setItem('nqs_pinch_tip', '1');
-        tipTimerRef.current = setTimeout(() => {
-          setShowTip(true);
-          tipTimerRef.current = setTimeout(() => setShowTip(false), 1900);
-        }, 450);
+        setShowTip(true);
+        // Safety timeout so tip doesn't stay indefinitely if an event fails
+        tipTimerRef.current = setTimeout(() => setShowTip(false), 5000);
       }
     }
   }
@@ -574,7 +602,7 @@ const ProductCard = ({ product }) => {
               </button>
 
               {/* Gesture tip (shows when zoomed) */}
-              {zoomed && <GestureTip visible={showTip} />}
+              {zoomed && <GestureTip visible={showTip} onFinish={() => setShowTip(false)} />}
             </div>
 
             {/* ═══ DETAILS COLUMN ═══
