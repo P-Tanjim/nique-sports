@@ -9,7 +9,7 @@ import Image from "next/image";
 import { ChartBarStacked, Store } from "lucide-react";
 import { useNav } from "./NavStateContext";
 import AdminSignOutButton from "./AdminSignOutButton";
-import { ADMIN_LINKS, isActiveAdminLink, isAdminPath } from "@/components/navbar/adminNav";
+import { ADMIN_LINKS, SETTINGS_LINK, isActiveAdminLink, isAdminPath, useIsAdmin } from "@/components/navbar/adminNav";
 
 const defaultNavItems = [
 	{ heading: "Home", href: "/" },
@@ -55,7 +55,7 @@ const AdminNavLink = ({ href, label, icon: Icon, active, setIsActive }) => (
 	</Link>
 );
 
-const SideNavbar = ({ isActive, setIsActive, navItems, inAdmin, pathname }) => (
+const SideNavbar = ({ isActive, setIsActive, navItems, inAdmin, pathname, isAdmin }) => (
 	<div
 		className="pointer-events-none fixed inset-0 z-70 overflow-x-clip"
 	>
@@ -84,6 +84,15 @@ const SideNavbar = ({ isActive, setIsActive, navItems, inAdmin, pathname }) => (
 											setIsActive={setIsActive}
 										/>
 									))}
+									{isAdmin && (
+										<AdminNavLink
+											href={SETTINGS_LINK.href}
+											label="Settings"
+											icon={SETTINGS_LINK.icon}
+											active={isActiveAdminLink(SETTINGS_LINK, pathname)}
+											setIsActive={setIsActive}
+										/>
+									)}
 									<AdminNavLink
 										href="/"
 										label="View store"
@@ -131,6 +140,7 @@ const SideNavbar = ({ isActive, setIsActive, navItems, inAdmin, pathname }) => (
 const MobileNav = ({ navItems = defaultNavItems, where = "sidebar" }) => {
 	const { isActive, setIsActive } = useNav();
 	const pathname = usePathname();
+	const isAdmin = useIsAdmin();
 	// Cosmetic switch only — dashboard access is enforced on the server.
 	const inAdmin = isAdminPath(pathname);
 
@@ -174,6 +184,7 @@ const MobileNav = ({ navItems = defaultNavItems, where = "sidebar" }) => {
 					navItems={navItems}
 					inAdmin={inAdmin}
 					pathname={pathname}
+					isAdmin={isAdmin}
 				/>
 			)}
 		</>

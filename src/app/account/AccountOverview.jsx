@@ -1,5 +1,6 @@
 import { MapPin, Phone, User } from "lucide-react";
 import AvatarUploader from "./clientComponent/AvatarUploader";
+import LogoutButton from "./clientComponent/LogoutButton";
 
 function formatMemberSince(date) {
   if (!date) return null;
@@ -32,10 +33,13 @@ export default function AccountOverview({ name, phone, address, image, memberSin
   return (
     <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
       {/* AVATAR CARD */}
-      <div className="rounded-3xl border border-border bg-white p-8 text-center shadow-[0_1px_2px_rgba(32,36,38,0.04)]">
+      <div className="flex flex-col items-center rounded-3xl border border-border bg-white p-8 text-center shadow-[0_1px_2px_rgba(32,36,38,0.04)]">
         <AvatarUploader initialImage={image} name={name} />
         <h1 className="mt-5 text-lg font-semibold text-text">{name || "Your account"}</h1>
         {since && <p className="mt-1 text-xs text-text-muted">Member since {since}</p>}
+        <div className="mt-6 w-full pt-6 border-t border-border/60">
+          <LogoutButton className="w-full" />
+        </div>
       </div>
 
       {/* DETAILS CARD */}

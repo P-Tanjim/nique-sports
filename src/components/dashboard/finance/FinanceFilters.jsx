@@ -9,8 +9,6 @@ import AnimatedSelect from '@/components/dashboard/products/AnimatedSelect';
 const fieldClass =
   'w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-text outline-none transition-colors focus:border-primary';
 
-// Uncontrolled inputs that write to the URL on submit. The form is keyed on the
-// current values, so clicking a preset link remounts it with fresh defaults.
 export default function FinanceFilters({ from, to, type, q, presets }) {
   const router = useRouter();
 
@@ -18,12 +16,10 @@ export default function FinanceFilters({ from, to, type, q, presets }) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const params = new URLSearchParams();
-
     for (const key of ['from', 'to', 'type', 'q']) {
       const value = String(data.get(key) ?? '').trim();
       if (value) params.set(key, value);
     }
-
     router.replace(`/dashboard/finance?${params.toString()}`, { scroll: false });
   }
 
@@ -44,6 +40,7 @@ export default function FinanceFilters({ from, to, type, q, presets }) {
               { value: 'money_in', label: 'Money in' },
               { value: 'expense', label: 'Expense' },
               { value: 'transfer', label: 'Transfer' },
+              { value: 'moderator_payment', label: 'Moderator pay' },
             ]}
           />
         </div>
@@ -52,10 +49,7 @@ export default function FinanceFilters({ from, to, type, q, presets }) {
           <input name="q" defaultValue={q} maxLength={80} placeholder="Note or reference" className={fieldClass} />
         </label>
         <div className="flex w-full items-end">
-          <button
-            type="submit"
-            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-soft sm:w-auto"
-          >
+          <button type="submit" className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-dark sm:w-auto">
             <Search size={16} />
             Apply
           </button>
@@ -69,8 +63,7 @@ export default function FinanceFilters({ from, to, type, q, presets }) {
             href={preset.href}
             replace
             scroll={false}
-            className={`transition-colors ${preset.active ? 'font-semibold text-primary' : 'text-text-muted hover:text-text'
-              }`}
+            className={`transition-colors ${preset.active ? 'font-semibold text-primary' : 'text-text-muted hover:text-text'}`}
           >
             {preset.label}
           </Link>

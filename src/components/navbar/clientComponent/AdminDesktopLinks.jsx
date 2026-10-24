@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ADMIN_LINKS, isActiveAdminLink } from '@/components/navbar/adminNav';
+import { ADMIN_LINKS, SETTINGS_LINK, isActiveAdminLink, useIsAdmin } from '@/components/navbar/adminNav';
 
 export default function AdminDesktopLinks() {
   const pathname = usePathname();
+  const isAdmin = useIsAdmin();
+  const links = isAdmin ? [...ADMIN_LINKS, SETTINGS_LINK] : ADMIN_LINKS;
 
-  return ADMIN_LINKS.map((link) => {
+  return links.map((link) => {
     const { href, label, icon: Icon } = link;
     const active = isActiveAdminLink(link, pathname);
 

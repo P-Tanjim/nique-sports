@@ -143,7 +143,7 @@ const Navbar = () => {
         </NavSurface>
 
         {/* Mobile Bottom Navigation */}
-        <div className="fixed bottom-5 w-full px-4 md:px-20 z-40 flex items-center justify-center gap-4 sm:gap-5 md:gap-15 lg:gap-20 min-[1050px]:hidden">
+        <div className="fixed bottom-5 w-full px-4 md:px-20 z-50 flex items-center justify-center gap-4 sm:gap-5 md:gap-15 lg:gap-20 min-[1050px]:hidden">
           <AreaSwitch
             store={
               <>

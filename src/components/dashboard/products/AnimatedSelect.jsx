@@ -24,7 +24,7 @@ export default function AnimatedSelect({
   placeholder = 'Select…',
   className = '',
   triggerClassName,
-  listClassName = 'max-h-64 overflow-auto',
+  listClassName = 'max-h-64 overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
   textColor = 'text-primary-dark',
   triggerIcon: TriggerIcon = ChevronDown,
   triggerLabel,
@@ -183,10 +183,14 @@ export default function AnimatedSelect({
               onMouseLeave={() => setHoveredIndex(null)}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
-              style={placement.maxHeight ? { maxHeight: placement.maxHeight } : undefined}
+              style={{
+                ...(placement.maxHeight ? { maxHeight: placement.maxHeight } : {}),
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+              }}
               className={`touch-none absolute ${listAlignment === 'right' ? 'right-0 w-36' : 'left-0 right-0'} z-50 ${
                 placement.up ? 'bottom-full mb-2 origin-bottom' : 'mt-2 origin-top'
-              } rounded-[24px] border border-white/10 bg-primary-dark/20 p-2 shadow-2xl backdrop-blur-sm backdrop-saturate-150 ${listClassName}`}
+              } rounded-[24px] border border-white/10 bg-primary-dark/20 p-2 shadow-2xl backdrop-blur-sm backdrop-saturate-150 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${listClassName}`}
             >
               {options.map((option, index) => (
                 <li key={option.value} role="option" aria-selected={option.value === selectedValue}>

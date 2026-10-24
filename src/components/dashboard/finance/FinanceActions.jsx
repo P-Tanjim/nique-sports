@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Settings2, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Settings2, UserCheck, X } from 'lucide-react';
 import AnimatedHeight from '@/components/common/AnimatedHeight';
 import { ExpenseForm, MoneyInForm, OpeningForm, TransferForm } from './FinanceForms';
+import ModeratorPayForm from './ModeratorPayForm';
 
 const ACTIONS = [
   { mode: 'money_in', label: 'Money in', icon: ArrowDownLeft },
@@ -14,16 +15,17 @@ const ACTIONS = [
 const buttonClass =
   'inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-white px-3.5 py-2 text-sm font-medium text-text transition-colors hover:bg-surface';
 
-const SETTLE_EASE = 'cubic-bezier(0.207,0.473,0.504,0.935)'; // same curve as your checkout sheet
+const SETTLE_EASE = 'cubic-bezier(0.207,0.473,0.504,0.935)';
 const SLIDE_MS = 400;
-const DISMISS_DISTANCE = 110; // px dragged down
-const DISMISS_VELOCITY = 0.6; // px per ms (a flick)
+const DISMISS_DISTANCE = 110;
+const DISMISS_VELOCITY = 0.6;
+const TITLES = { opening: 'Opening balances', pay_moderator: 'Pay moderator' };
 
-export default function FinanceActions({ today, opening }) {
-  const [mounted, setMounted] = useState(false); // in the DOM at all
-  const [visible, setVisible] = useState(false); // slid in
-  const [dragY, setDragY] = useState(null); // px, only set while dragging
-  // `mode` is NOT reset on close, so the sheet keeps its content while sliding away.
+// `moderators` = the moderator bills (earned / paid / remaining) for the "Pay moderator" form
+export default function FinanceActions({ today, opening, moderators = [] }) {
+  const [mounted, setMounted] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [dragY, setDragY] = useState(null);
   const [mode, setMode] = useState('money_in');
 
   const wantOpenRef = useRef(false);
@@ -34,9 +36,7 @@ export default function FinanceActions({ today, opening }) {
     clearTimeout(closeTimerRef.current);
     wantOpenRef.current = true;
     setMode(nextMode);
-    setMounted(true); // forms mount NOW, off-screen...
-    // ...and the slide only starts two frames later, once that heavy work has
-    // finished, so it never competes with the animation.
+    setMounted(true);
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
         if (wantOpenRef.current) setVisible(true);
@@ -53,11 +53,9 @@ export default function FinanceActions({ today, opening }) {
 
   useEffect(() => () => clearTimeout(closeTimerRef.current), []);
 
-  // Scroll lock + Escape, released the moment you close.
   useEffect(() => {
     if (!visible) return undefined;
     function handleKey(event) {
-      // the date calendar handles its own Escape, so don't close the sheet too
       if (event.key === 'Escape' && !event.defaultPrevented) close();
     }
     const previousOverflow = document.body.style.overflow;
@@ -81,7 +79,7 @@ export default function FinanceActions({ today, opening }) {
     if (dt > 0) drag.velocity = (event.clientY - drag.lastY) / dt;
     drag.lastY = event.clientY;
     drag.lastT = event.timeStamp;
-    drag.offset = Math.max(0, event.clientY - drag.startY); // can't be pulled upward
+    drag.offset = Math.max(0, event.clientY - drag.startY);
     setDragY(drag.offset);
   }
 
@@ -90,12 +88,12 @@ export default function FinanceActions({ today, opening }) {
     if (!drag) return;
     dragRef.current = null;
     setDragY(null);
-    const velocity = event.timeStamp - drag.lastT > 80 ? 0 : drag.velocity; // paused before letting go = no flick
+    const velocity = event.timeStamp - drag.lastT > 80 ? 0 : drag.velocity;
     if (drag.offset > DISMISS_DISTANCE || (drag.offset > 20 && velocity > DISMISS_VELOCITY)) close();
   }
 
-  const isEntry = mode !== 'opening';
-  const title = mode === 'opening' ? 'Opening balances' : 'Add an entry';
+  const isEntry = ACTIONS.some((a) => a.mode === mode);
+  const title = TITLES[mode] ?? 'Add an entry';
   const isDragging = dragY !== null;
 
   return (
@@ -107,6 +105,10 @@ export default function FinanceActions({ today, opening }) {
             {label}
           </button>
         ))}
+        <button type="button" onClick={() => openWith('pay_moderator')} className={buttonClass}>
+          <UserCheck size={16} strokeWidth={1.8} />
+          Pay moderator
+        </button>
         <button
           type="button"
           onClick={() => openWith('opening')}
@@ -123,9 +125,7 @@ export default function FinanceActions({ today, opening }) {
           <div
             aria-hidden="true"
             onClick={close}
-            className={`fixed inset-0 z-100 bg-primary/40 backdrop-blur-sm transition-opacity duration-300 ${
-              visible ? 'opacity-100' : 'pointer-events-none opacity-0'
-            }`}
+            className={`fixed inset-0 z-100 bg-primary/40 backdrop-blur-sm transition-opacity duration-300 ${visible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
           />
 
           <div
@@ -138,7 +138,6 @@ export default function FinanceActions({ today, opening }) {
             }}
             className="fixed inset-x-0 bottom-0 z-101 mx-auto flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-b-0 border-border bg-white shadow-[0_-12px_40px_rgba(32,36,38,0.18)] will-change-transform"
           >
-            {/* handle + title: the only part that starts a drag, so the form still scrolls normally */}
             <div
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
@@ -172,9 +171,7 @@ export default function FinanceActions({ today, opening }) {
                         role="tab"
                         aria-selected={mode === value}
                         onClick={() => setMode(value)}
-                        className={`cursor-pointer rounded-[10px] py-2 font-medium transition-colors ${
-                          mode === value ? 'bg-primary text-white' : 'text-text-muted hover:text-text'
-                        }`}
+                        className={`cursor-pointer rounded-[10px] py-2 font-medium transition-colors ${mode === value ? 'bg-primary text-white' : 'text-text-muted hover:text-text'}`}
                       >
                         {label}
                       </button>
@@ -187,6 +184,7 @@ export default function FinanceActions({ today, opening }) {
                   {mode === 'expense' && <ExpenseForm today={today} onDone={close} />}
                   {mode === 'transfer' && <TransferForm today={today} onDone={close} />}
                   {mode === 'opening' && <OpeningForm opening={opening} onDone={close} />}
+                  {mode === 'pay_moderator' && <ModeratorPayForm moderators={moderators} today={today} onDone={close} />}
                 </div>
               </AnimatedHeight>
             </div>

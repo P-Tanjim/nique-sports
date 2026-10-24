@@ -1,8 +1,10 @@
-import { LayoutDashboard, ReceiptText, Shirt, Wallet } from 'lucide-react';
+'use client';
+
+import { LayoutDashboard, ReceiptText, Settings, Shirt, Wallet } from 'lucide-react';
+import { authClient } from '@/lib/auth-client';
 
 // Single source of truth for the admin navigation (top bar, side menu and
-// mobile bottom bar all read this). Imported by client components only,
-// because the icons are components and can't be passed from a server component.
+// mobile bottom bar all read this). Imported by client components only.
 export const ADMIN_LINKS = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard, exact: true },
   { href: '/dashboard/orders', label: 'Orders', icon: ReceiptText },
@@ -10,8 +12,15 @@ export const ADMIN_LINKS = [
   { href: '/dashboard/finance', label: 'Finance', icon: Wallet },
 ];
 
-// Purely cosmetic: decides which navigation to SHOW. Access to the pages is
-// enforced on the server (proxy.js, requireAdmin, assertAdmin).
+// admin only (moderators never see it; the page itself also blocks them on the server)
+export const SETTINGS_LINK = { href: '/dashboard/settings', label: 'Settings', icon: Settings };
+
+// Cosmetic only: decides which links to SHOW. Access is enforced on the server.
+export function useIsAdmin() {
+  const { data } = authClient.useSession();
+  return data?.user?.userRole === 'admin';
+}
+
 export function isAdminPath(pathname) {
   return pathname === '/dashboard' || Boolean(pathname?.startsWith('/dashboard/'));
 }

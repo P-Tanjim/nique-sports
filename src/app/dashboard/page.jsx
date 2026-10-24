@@ -1,6 +1,6 @@
-import { requireAdmin } from '@/lib/admin/guard';
-import { getDashboardOverview } from '@/lib/api/requests/dashboard';
+import { requireStaff } from '@/lib/admin/guard';
 import { formatToday } from '@/lib/admin/dates';
+import { loadDashboard } from '@/lib/views/dashboard';
 import StatsGrid from '@/components/dashboard/StatsGrid';
 import OrdersChart from '@/components/dashboard/OrdersChart';
 import LowStock from '@/components/dashboard/LowStock';
@@ -12,20 +12,20 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-// Admin data changes constantly, and the page depends on who is signed in.
 export const dynamic = 'force-dynamic';
 
-const RANGES = [7, 14, 30];
-
 export default async function DashboardPage({ searchParams }) {
-  await requireAdmin();
-
+  const user = await requireStaff();
   const sp = await searchParams;
-  const requested = Number(sp?.range);
-  const range = RANGES.includes(requested) ? requested : 14;
 
-  const overview = await getDashboardOverview(range);
-  if (!overview) return <DataError />;
+  let data;
+  try {
+    data = await loadDashboard(user, sp?.range);
+  } catch (error) {
+    console.error('Dashboard load failed:', error);
+    return <DataError />;
+  }
+  const isAdmin = data.role === 'admin';
 
   return (
     <div className="space-y-6">
@@ -34,14 +34,15 @@ export default async function DashboardPage({ searchParams }) {
         <p className="mt-1 text-sm text-text-muted">{formatToday()}</p>
       </header>
 
-      <StatsGrid stats={overview.stats} range={range} />
+      <StatsGrid stats={data.stats} range={data.range.days} variant={isAdmin ? 'admin' : 'moderator'} />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <OrdersChart data={overview.chart} range={range} />
-        <LowStock lowStock={overview.lowStock} />
+      {/* Moderators don't see stock */}
+      <div className={isAdmin ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]' : ''}>
+        <OrdersChart data={data.chart} range={data.range.days} />
+        {isAdmin && data.lowStock && <LowStock lowStock={data.lowStock} />}
       </div>
 
-      <RecentOrders orders={overview.recentOrders} />
+      <RecentOrders orders={data.recentOrders} />
     </div>
   );
 }

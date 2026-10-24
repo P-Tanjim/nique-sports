@@ -6,7 +6,7 @@ import { nextCookies } from "better-auth/next-js";
 const PRIVACY_POLICY_VERSION = "2026-09-27";
 
 const client = new MongoClient(process.env.MONGODB_URL);
-const db = client.db(process.env.DATABASE_NAME);
+export const db = client.db(process.env.DATABASE_NAME);
 
 export const auth = betterAuth({
     database: mongodbAdapter(db, {

@@ -1,463 +1,152 @@
 'use client';
 
-import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import { CalendarDays, Check, MapPin, MoreVertical, Package, Phone, X } from 'lucide-react';
-import OrderStatusBadge from './OrderStatusBadge';
-import { formatPrice } from '@/lib/format';
-import { updateOrderStatus } from '@/lib/api/requests/dashboard';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, Loader2, Package, Plus, RefreshCw, Search } from 'lucide-react';
+import toast from 'react-hot-toast';
+import OrderCard from './orders/OrderCard';
+import OrderDetailsModal from './orders/OrderDetailsModal';
+import AnimatedSelect from './products/AnimatedSelect';
+import { fetchAllOrders, setOrderStatus, syncCourier } from '@/lib/api/requests/staffOrders';
+import { ORDER_STATUSES } from '@/lib/orders/constants';
 
-function getOrderItems(order) {
-  return Array.isArray(order?.items) ? order.items : [];
-}
+const PAGE = 24;
+const STATUS_OPTIONS = [{ value: '', label: 'All statuses' }, ...ORDER_STATUSES.map((s) => ({ value: s, label: s }))];
+const withIssue = (o) => ({ ...o, riderIssue: Boolean(o.riderNote) && o.riderResolved !== 'YES' });
 
-function getProduct(item) {
-  return item?.product ?? item?.productDetails ??
-    (typeof item?.productId === 'object' ? item.productId : {}) ?? {};
-}
+export default function OrdersClient({ orders: initial, total, unavailable, isAdmin, userId, canSync, templates }) {
+  const [orders, setOrders] = useState(initial);
+  const [hasAll, setHasAll] = useState(initial.length >= total);
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [savingId, setSavingId] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('');
+  const [who, setWho] = useState('');
+  const [riderOnly, setRiderOnly] = useState(false);
+  const [limit, setLimit] = useState(PAGE);
 
-function imageUrl(image) {
-  if (typeof image === 'string') return image;
-  return image?.url ?? image?.image ?? image?.src ?? image?.secure_url ?? '';
-}
+  // update one order in local state (after an action) without refetching
+  const patchLocal = (id, patch) => setOrders((cur) => cur.map((o) => (o.id === id ? withIssue({ ...o, ...patch }) : o)));
 
-function getProductImages(item) {
-  const product = getProduct(item);
-  const candidates = [
-    ...(Array.isArray(item?.images) ? item.images : []),
-    item?.image,
-    item?.productImage,
-    ...(Array.isArray(product?.imagesLink) ? product.imagesLink : []),
-    ...(Array.isArray(product?.images) ? product.images : []),
-    product?.image,
-    product?.thumbnail,
-  ];
-
-  return [...new Set(candidates.map(imageUrl).filter(Boolean))];
-}
-
-function getCustomer(order) {
-  return typeof order?.customer === 'object' && order.customer !== null
-    ? order.customer
-    : {};
-}
-
-function getCustomerName(order) {
-  const customer = getCustomer(order);
-  return customer.name ?? order?.customerName ?? order?.name ??
-    (typeof order?.customer === 'string' ? order.customer : '') ?? 'Customer';
-}
-
-function getPhone(order) {
-  const customer = getCustomer(order);
-  return customer.phone ?? customer.number ?? order?.phone ?? order?.phoneNumber ?? order?.number ?? '';
-}
-
-function getAddress(order) {
-  const customer = getCustomer(order);
-  const address = customer.address ?? order?.address ?? order?.shippingAddress ?? order?.deliveryAddress;
-  if (typeof address === 'string') return address;
-  if (address && typeof address === 'object') {
-    return [address.line1, address.line2, address.area, address.city, address.district, address.postalCode]
-      .filter(Boolean)
-      .join(', ');
-  }
-  return '';
-}
-
-function getOrderId(order, index = 0) {
-  return order?._id ?? order?.id ?? order?.orderId ?? `order-${index + 1}`;
-}
-
-function getItemName(item) {
-  const product = getProduct(item);
-  return item?.title ?? item?.productName ?? item?.name ?? product?.title ?? product?.name ??
-    (typeof item?.productId === 'string' ? item.productId : 'Product');
-}
-
-function getOrderImages(order) {
-  return getOrderItems(order).flatMap(getProductImages);
-}
-
-function getSizeSummary(order) {
-  const sizes = getOrderItems(order).map((item) => item?.size).filter(Boolean);
-  return sizes.length ? sizes.join(', ') : 'Not provided';
-}
-
-function getOrderDate(order) {
-  const date = order?.createdAt ?? order?.date ?? order?.created_at;
-  if (!date) return '';
-  const parsed = new Date(date);
-  return Number.isNaN(parsed.getTime())
-    ? String(date)
-    : new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
-}
-
-function ImageGrid({ images, className = '' }) {
-  const visibleImages = images.slice(0, 4);
-  const gridShape = visibleImages.length === 1
-    ? 'grid-cols-1 grid-rows-1'
-    : visibleImages.length === 2
-      ? 'grid-cols-2 grid-rows-1'
-      : visibleImages.length === 3
-        ? 'grid-cols-2 grid-rows-2'
-        : 'grid-cols-2 grid-rows-2';
-
-  if (!visibleImages.length) {
-    return (
-      <div className={`flex aspect-square items-center justify-center bg-[#e8eee8] text-[#64786a] ${className}`}>
-        <Package size={34} strokeWidth={1.5} />
-      </div>
-    );
+  async function runSync(force) {
+    setSyncing(true);
+    const res = await syncCourier({ force });
+    setSyncing(false);
+    if (!res.success) { if (force) toast.error(res.error); return; }
+    if (res.orders.length) {
+      const map = new Map(res.orders.map((o) => [o.id, o]));
+      setOrders((cur) => cur.map((o) => (map.has(o.id) ? withIssue({ ...o, ...map.get(o.id) }) : o)));
+      if (force) toast.success(`${res.orders.length} order(s) updated from Steadfast.`);
+    } else if (force) toast.success('Everything is up to date.');
   }
 
-  return (
-    <div className={`grid aspect-square overflow-hidden bg-[#e8eee8] ${gridShape} ${className}`}>
-      {visibleImages.map((src, index) => {
-        const isSingle = visibleImages.length === 1;
-        const isThird = visibleImages.length === 3 && index === 0;
-        const hasOverflow = index === 3 && images.length > 4;
+  // the server throttles this, so opening the page often is cheap
+  useEffect(() => { if (canSync) runSync(false); }, [canSync]); // eslint-disable-line react-hooks/exhaustive-deps
 
-        return (
-          <div
-            key={`${src}-${index}`}
-            className={`relative min-h-0 min-w-0 overflow-hidden ${isSingle ? 'row-span-2' : ''} ${isThird ? 'row-span-2' : ''}`}
-          >
-            <Image src={src} alt="Ordered product" fill unoptimized sizes="(max-width: 640px) 100vw, 360px" className="object-cover" />
-            {hasOverflow && (
-              <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-2xl font-semibold text-white">
-                +{images.length - 4}
-              </span>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function DetailImages({ images, label }) {
-  if (!images.length) return <span className="text-xs text-[#737c76]">None selected</span>;
-
-  return (
-    <div className="mt-2 flex flex-wrap gap-2">
-      {images.map((src, index) => (
-        <div key={`${src}-${index}`} className="relative h-14 w-14 overflow-hidden rounded-md border border-[#dfe5df] bg-white">
-          <Image src={src} alt={label} fill unoptimized sizes="56px" className="object-contain p-1" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function getFontImage(customization) {
-  const font = customization?.font;
-  return imageUrl(customization?.fontImage ?? font?.image ?? font?.url ?? font);
-}
-
-function getPatches(item) {
-  const patches = item?.patches ?? item?.patch ?? [];
-  return (Array.isArray(patches) ? patches : [patches]).map(imageUrl).filter(Boolean);
-}
-
-function OrderDetailsModal({ order, onClose }) {
-  const customer = getCustomer(order);
-  const items = getOrderItems(order);
-  const status = String(order?.status ?? 'pending').toLowerCase();
-  const secondaryPhone = customer.phone2 ?? order?.phone2;
-
-  useEffect(() => {
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') onClose();
-    }
-
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#17221d]/55 p-3 backdrop-blur-[2px] sm:p-6"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="order-detail-title"
-        className="max-h-[calc(100dvh-24px)] w-full max-w-3xl overflow-y-auto rounded-xl border border-[#dfe5df] bg-[#fbfcfa] shadow-2xl sm:max-h-[calc(100dvh-48px)]"
-      >
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-[#e4e9e3] bg-[#fbfcfa]/95 px-5 py-4 backdrop-blur sm:px-7">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 id="order-detail-title" className="text-lg font-semibold text-[#1b2921]">Order details</h2>
-              <OrderStatusBadge status={status} />
-            </div>
-            <p className="mt-1 truncate text-xs text-[#737c76]">Order {getOrderId(order)}</p>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Close order details" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#59645d] transition-colors hover:bg-[#edf1ec]">
-            <X size={19} />
-          </button>
-        </header>
-
-        <div className="space-y-6 px-5 py-5 sm:px-7 sm:py-6">
-          <section>
-            <h3 className="text-sm font-semibold text-[#1b2921]">Customer</h3>
-            <div className="mt-3 grid gap-3 rounded-lg border border-[#e3e8e2] bg-white p-4 sm:grid-cols-2">
-              <div>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-[#737c76]">Name</p>
-                <p className="mt-1 text-sm font-medium text-[#1b2921]">{getCustomerName(order)}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-[#737c76]">Phone</p>
-                <p className="mt-1 flex items-center gap-1.5 text-sm text-[#1b2921]"><Phone size={14} />{getPhone(order) || 'Not provided'}</p>
-                {secondaryPhone && <p className="mt-1 text-xs text-[#737c76]">Alternate: {secondaryPhone}</p>}
-              </div>
-              <div className="sm:col-span-2">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-[#737c76]">Address</p>
-                <p className="mt-1 flex items-start gap-1.5 text-sm text-[#1b2921]"><MapPin className="mt-0.5 shrink-0" size={14} />{getAddress(order) || 'Not provided'}</p>
-                {(order?.deliveryArea || customer.deliveryArea) && <p className="mt-1 pl-5 text-xs text-[#737c76]">Delivery: {order?.deliveryArea ?? customer.deliveryArea}</p>}
-              </div>
-              {(order?.note || customer.note) && (
-                <div className="sm:col-span-2">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-[#737c76]">Order note</p>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-[#1b2921]">{order?.note ?? customer.note}</p>
-                </div>
-              )}
-            </div>
-          </section>
-
-          <section>
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-[#1b2921]">Products</h3>
-              <span className="text-xs text-[#737c76]">{items.length} {items.length === 1 ? 'item' : 'items'}</span>
-            </div>
-            {items.length ? (
-              <div className="mt-3 space-y-3">
-                {items.map((item, index) => {
-                  const customization = item?.customization ?? {};
-                  const font = item?.font ?? customization?.font;
-                  const fontName = typeof font === 'object' ? font?.name : '';
-                  const fontImage = getFontImage({ ...customization, font });
-                  const patches = getPatches(item);
-
-                  return (
-                    <article key={`${getOrderId(order)}-${index}`} className="rounded-lg border border-[#e3e8e2] bg-white p-4">
-                      <div className="flex flex-col gap-4 sm:flex-row">
-                        <div className="w-full shrink-0 sm:w-44">
-                          <ImageGrid images={getProductImages(item)} className="rounded-md" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h4 className="text-sm font-semibold text-[#1b2921]">{getItemName(item)}</h4>
-                          <p className="mt-1 text-xs text-[#737c76]">
-                            Qty: {item?.quantity ?? 1} <span className="px-1">·</span> Size: {item?.size ?? 'Not provided'}
-                          </p>
-                          {(item?.price != null || item?.unitPrice != null) && (
-                            <p className="mt-1 text-xs text-[#737c76]">Unit price: {formatPrice(Number(item.price ?? item.unitPrice) || 0)}৳</p>
-                          )}
-                          {item?.lineTotal != null && (
-                            <p className="mt-1 text-xs text-[#737c76]">Line total: {formatPrice(Number(item.lineTotal) || 0)}৳</p>
-                          )}
-                          <div className="mt-4 grid gap-4 border-t border-[#edf0ec] pt-3 sm:grid-cols-2">
-                            <div>
-                              <p className="text-xs font-semibold text-[#37433b]">Font</p>
-                              <DetailImages images={fontImage ? [fontImage] : []} label="Selected font" />
-                              {fontName && <p className="mt-1 text-xs text-[#737c76]">{fontName}</p>}
-                            </div>
-                            <div>
-                              <p className="text-xs font-semibold text-[#37433b]">Customization</p>
-                              <p className="mt-2 text-xs text-[#59645d]">Name: {customization.name || 'None'}</p>
-                              <p className="mt-1 text-xs text-[#59645d]">Number: {customization.number || 'None'}</p>
-                            </div>
-                            <div className="sm:col-span-2">
-                              <p className="text-xs font-semibold text-[#37433b]">Patches</p>
-                              <DetailImages images={patches} label="Selected patch" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="mt-3 rounded-lg border border-dashed border-[#dfe5df] p-5 text-center text-sm text-[#737c76]">No product details were returned for this order.</p>
-            )}
-          </section>
-
-          <section className="space-y-2 border-t border-[#e3e8e2] pt-4 text-sm">
-            <p className="flex items-center gap-2 text-[#59645d]"><CalendarDays size={15} />{getOrderDate(order) || 'Date not provided'}</p>
-            {order?.paymentMethod && <p className="text-[#59645d]">Payment: {order.paymentMethod}</p>}
-            {order?.subtotal != null && (
-              <p className="flex justify-between gap-4 text-[#59645d]"><span>Subtotal</span><span>{formatPrice(Number(order.subtotal) || 0)}৳</span></p>
-            )}
-            {order?.deliveryFee != null && (
-              <p className="flex justify-between gap-4 text-[#59645d]"><span>Delivery fee</span><span>{formatPrice(Number(order.deliveryFee) || 0)}৳</span></p>
-            )}
-            {order?.total != null || order?.amount != null ? (
-              <p className="flex justify-between gap-4 border-t border-[#edf0ec] pt-2 font-semibold text-[#1b2921]"><span>Total</span><span>{formatPrice(Number(order.total ?? order.amount) || 0)}৳</span></p>
-            ) : null}
-          </section>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function OrderCard({ order, index, onSelect, onStatusChange, statusSaving }) {
-  const images = getOrderImages(order);
-  const status = String(order?.status ?? 'pending').toLowerCase();
-  const orderId = getOrderId(order, index);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [customStatus, setCustomStatus] = useState('');
-  const [statusError, setStatusError] = useState('');
-
-  async function changeStatus(nextStatus) {
-    setStatusError('');
-    const result = await onStatusChange(orderId, nextStatus);
-    if (!result?.success) {
-      setStatusError(result?.error ?? 'Could not update this order.');
-      return;
-    }
-    setMenuOpen(false);
-    setCustomStatus('');
+  async function loadAll() {
+    setLoadingAll(true);
+    const res = await fetchAllOrders();
+    setLoadingAll(false);
+    if (!res.success) return toast.error(res.error);
+    setOrders(res.orders);
+    setHasAll(true);
   }
 
-  return (
-    <article className="relative flex min-w-0 flex-col rounded-xl border border-[#dfe5df] bg-white shadow-[0_2px_8px_rgba(29,47,35,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-[#b9c8bb] hover:shadow-[0_8px_24px_rgba(29,47,35,0.12)]">
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-        <OrderStatusBadge status={status} />
-        <div className="relative" onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false);
-        }}>
-          <button
-            type="button"
-            aria-label={`Update status for order ${orderId}`}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((open) => !open)}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#59645d] transition-colors hover:bg-[#edf1ec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34865b]"
-          >
-            <MoreVertical size={19} />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-10 z-20 w-56 rounded-lg border border-[#dfe5df] bg-white p-2 shadow-xl">
-              <div className="space-y-1">
-                <button type="button" disabled={statusSaving} onClick={() => changeStatus('shipped')} className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-sm text-[#37433b] hover:bg-[#edf1ec] disabled:cursor-not-allowed disabled:opacity-50">Mark On the way</button>
-                <button type="button" disabled={statusSaving} onClick={() => changeStatus('delivered')} className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-sm text-[#37433b] hover:bg-[#edf1ec] disabled:cursor-not-allowed disabled:opacity-50">Mark Delivered</button>
-                <button type="button" disabled={statusSaving} onClick={() => changeStatus('cancelled')} className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-sm text-[#a44242] hover:bg-[#fbefef] disabled:cursor-not-allowed disabled:opacity-50">Canceled</button>
-              </div>
-              <form
-                className="mt-2 flex gap-1.5 border-t border-[#edf0ec] pt-2"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (customStatus.trim()) changeStatus(customStatus.trim());
-                }}
-              >
-                <input
-                  aria-label="Custom order status"
-                  maxLength={40}
-                  value={customStatus}
-                  onChange={(event) => setCustomStatus(event.target.value)}
-                  placeholder="Custom status"
-                  className="min-w-0 flex-1 cursor-text rounded-md border border-[#dfe5df] px-2 py-1.5 text-sm text-[#1b2921] outline-none focus:border-[#34865b]"
-                />
-                <button type="submit" disabled={statusSaving || !customStatus.trim()} aria-label="Apply custom status" className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md bg-[#34865b] text-white hover:bg-[#286b47] disabled:cursor-not-allowed disabled:opacity-50">
-                  <Check size={16} />
-                </button>
-              </form>
-              {statusError && <p role="alert" className="px-2 pt-2 text-xs text-[#a44242]">{statusError}</p>}
-            </div>
-          )}
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={onSelect}
-        className="flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-b-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#34865b]"
-      >
-        <ImageGrid images={images} className="w-full" />
-        <div className="space-y-2.5 p-4">
-          <p className="truncate text-base font-semibold text-[#1b2921]">{getCustomerName(order)}</p>
-          <p className="flex items-center gap-2 text-sm text-[#435149]"><Phone size={14} className="shrink-0 text-[#76827a]" />{getPhone(order) || 'Phone not provided'}</p>
-          <p className="flex items-start gap-2 text-sm leading-5 text-[#59645d]">
-            <MapPin size={14} className="mt-0.5 shrink-0 text-[#76827a]" />
-            <span className="line-clamp-2">{getAddress(order) || 'Address not provided'}</span>
-          </p>
-          <div className="flex items-center justify-between gap-3 border-t border-[#edf0ec] pt-2.5 text-xs text-[#737c76]">
-            <span className="truncate">Size: {getSizeSummary(order)}</span>
-            <span className="shrink-0">{getOrderItems(order).length} {getOrderItems(order).length === 1 ? 'item' : 'items'}</span>
-          </div>
-        </div>
-      </button>
-    </article>
-  );
-}
-
-export default function OrdersClient({ orders, unavailable }) {
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [currentOrders, setCurrentOrders] = useState(orders);
-  const [savingOrderId, setSavingOrderId] = useState(null);
-
-  async function handleStatusChange(orderId, status) {
-    setSavingOrderId(String(orderId));
-    const result = await updateOrderStatus(orderId, status);
-    setSavingOrderId(null);
-
-    if (!result?.success) return result;
-
-    const updatedStatus = result.data?.status ?? status;
-    setCurrentOrders((current) => current.map((order) => (
-      String(getOrderId(order)) === String(orderId) ? { ...order, status: updatedStatus } : order
-    )));
-    setSelectedOrder((current) => (
-      current && String(getOrderId(current)) === String(orderId)
-        ? { ...current, status: updatedStatus }
-        : current
-    ));
-    return result;
+  async function changeStatus(order, next) {
+    setSavingId(order.id);
+    const res = await setOrderStatus(order.id, next);
+    setSavingId(null);
+    if (!res.success) return toast.error(res.error);
+    patchLocal(order.id, res.patch);
+    toast.success(`Marked ${next}.`);
   }
 
+  const whoOptions = useMemo(() => {
+    const names = [...new Set(orders.map((o) => o.addedBy || 'website'))].sort();
+    return [{ value: '', label: 'Everyone' }, ...names.map((n) => ({ value: n, label: n }))];
+  }, [orders]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return orders.filter((o) => {
+      if (status && o.status !== status) return false;
+      if (who && (o.addedBy || 'website') !== who) return false;
+      if (riderOnly && !o.riderIssue) return false;
+      if (!q) return true;
+      return [o.customerName, o.phone, o.phone2, o.orderNo, o.courierId, o.trackingCode, o.items.map((i) => i.title).join(' '), o.address]
+        .some((v) => String(v ?? '').toLowerCase().includes(q));
+    });
+  }, [orders, query, status, who, riderOnly]);
+
+  const issueCount = orders.filter((o) => o.riderIssue).length;
+  const selected = orders.find((o) => o.id === selectedId) ?? null;
+  const shown = filtered.slice(0, limit);
+
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 px-1 py-2 sm:px-3">
+    <main className="mx-auto w-full max-w-7xl space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#64806c]">Order management</p>
-          <h1 className="mt-1 text-2xl font-semibold text-[#1b2921] sm:text-3xl">All orders</h1>
+          <h1 className="text-2xl font-semibold text-text sm:text-3xl">{isAdmin ? 'All orders' : 'My orders'}</h1>
+          <p className="mt-1 text-sm text-text-muted">{total} {total === 1 ? 'order' : 'orders'}</p>
         </div>
-        <p className="text-sm text-[#737c76]">{currentOrders.length} {currentOrders.length === 1 ? 'order' : 'orders'}</p>
+        <div className="flex items-center gap-2">
+          {canSync && (
+            <button type="button" onClick={() => runSync(true)} disabled={syncing} className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm font-medium text-text transition-colors hover:bg-surface disabled:opacity-60">
+              {syncing ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+              <span className="hidden sm:inline">{syncing ? 'Syncing…' : 'Sync courier'}</span>
+            </button>
+          )}
+          <Link href="/dashboard/orders/add" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark">
+            <Plus size={16} />Add order
+          </Link>
+        </div>
       </header>
 
-        {currentOrders.length ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {currentOrders.map((order, index) => (
-            <OrderCard
-              key={getOrderId(order, index)}
-              order={order}
-              index={index}
-              onSelect={() => setSelectedOrder(order)}
-                onStatusChange={handleStatusChange}
-                statusSaving={savingOrderId === String(getOrderId(order, index))}
-            />
-          ))}
-        </div>
+      <section className="grid gap-3 rounded-2xl border border-border bg-white p-4 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_auto]">
+        <label className="relative block">
+          <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+          <input value={query} onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }} placeholder="Search name, phone, order no, courier id…" className="w-full rounded-2xl border border-border bg-surface py-3 pl-10 pr-4 text-sm text-text outline-none focus:border-primary" />
+        </label>
+        <AnimatedSelect id="f-status" options={STATUS_OPTIONS} value={status} onChange={(v) => { setStatus(v); setLimit(PAGE); }} triggerLabel="Status filter" className="w-full" triggerClassName="flex w-full cursor-pointer items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3 text-left text-sm text-text outline-none" />
+        {isAdmin ? (
+          <AnimatedSelect id="f-who" options={whoOptions} value={who} onChange={(v) => { setWho(v); setLimit(PAGE); }} triggerLabel="By whom filter" className="w-full" triggerClassName="flex w-full cursor-pointer items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3 text-left text-sm text-text outline-none" />
+        ) : <div className="hidden lg:block" />}
+        <button type="button" onClick={() => { setRiderOnly((v) => !v); setLimit(PAGE); }} className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition-colors ${riderOnly ? 'border-danger bg-danger/10 text-danger' : 'border-border bg-surface text-text-muted hover:text-text'}`}>
+          <AlertTriangle size={15} />Rider issues{issueCount ? ` (${issueCount})` : ''}
+        </button>
+      </section>
+
+      {shown.length ? (
+        <>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {shown.map((order) => (
+              <OrderCard key={order.id} order={order} isAdmin={isAdmin} saving={savingId === order.id} onSelect={() => setSelectedId(order.id)} onStatus={changeStatus} />
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {filtered.length > limit && (
+              <button type="button" onClick={() => setLimit((l) => l + PAGE)} className="cursor-pointer rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-medium text-text hover:bg-surface">Show more ({filtered.length - limit})</button>
+            )}
+            {!hasAll && (
+              <button type="button" onClick={loadAll} disabled={loadingAll} className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-medium text-text-muted hover:bg-surface disabled:opacity-60">
+                {loadingAll && <Loader2 size={14} className="animate-spin" />}Load older orders
+              </button>
+            )}
+          </div>
+        </>
       ) : (
-        <div className="rounded-xl border border-dashed border-[#cfd9d0] bg-white px-6 py-16 text-center">
-          <Package className="mx-auto text-[#819187]" size={30} strokeWidth={1.5} />
-          <h2 className="mt-3 text-base font-semibold text-[#1b2921]">
-            {unavailable ? 'Orders could not be loaded' : 'No orders yet'}
-          </h2>
-          <p className="mt-1 text-sm text-[#737c76]">
-            {unavailable ? 'Check that the admin orders endpoint is available, then reload this page.' : 'New customer orders will appear here.'}
-          </p>
+        <div className="rounded-2xl border border-dashed border-border bg-white px-6 py-16 text-center">
+          <Package className="mx-auto text-text-muted" size={30} strokeWidth={1.5} />
+          <h2 className="mt-3 text-base font-semibold text-text">{unavailable ? 'Orders could not be loaded' : orders.length ? 'No orders match these filters' : 'No orders yet'}</h2>
+          <p className="mt-1 text-sm text-text-muted">{unavailable ? 'Check the Google Sheet env vars and that the sheet is shared with the service account.' : orders.length ? 'Try clearing the search or filters.' : 'New orders will appear here.'}</p>
         </div>
       )}
 
-      {selectedOrder && <OrderDetailsModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />}
+      {selected && (
+        <OrderDetailsModal order={selected} isAdmin={isAdmin} userId={userId} templates={templates} onPatch={patchLocal} onClose={() => setSelectedId(null)} />
+      )}
     </main>
   );
 }
