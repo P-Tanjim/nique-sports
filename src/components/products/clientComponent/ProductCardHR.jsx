@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import ImageWithLoader from '@/components/common/ImageWithLoader'
 import { createPortal } from 'react-dom'
 import React, { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
@@ -25,66 +26,38 @@ function getServerSnapshot() {
   return false;
 }
 
-/* ─── Gesture tutorial ─── */
-const GESTURE_CSS = `
-  @keyframes qv-finger-l {
-    0%,8%    { transform:translate(0,0); opacity:0; }
-    18%      { opacity:1; }
-    52%      { transform:translate(-22px,-22px); opacity:1; }
-    72%      { transform:translate(-22px,-22px); opacity:1; }
-    88%      { transform:translate(0,0); opacity:1; }
-    98%,100% { transform:translate(0,0); opacity:0; }
-  }
-  @keyframes qv-finger-r {
-    0%,8%    { transform:translate(0,0); opacity:0; }
-    18%      { opacity:1; }
-    52%      { transform:translate(22px,22px); opacity:1; }
-    72%      { transform:translate(22px,22px); opacity:1; }
-    88%      { transform:translate(0,0); opacity:1; }
-    98%,100% { transform:translate(0,0); opacity:0; }
-  }
-  .qv-fl { animation: qv-finger-l 2.4s ease-in-out infinite; }
-  .qv-fr { animation: qv-finger-r 2.4s ease-in-out infinite; }
-`;
-
-function Finger() {
-  return (
-    <svg width="26" height="44" viewBox="0 0 26 44" fill="none">
-      <rect x="2" y="12" width="22" height="30" rx="11" fill="white" fillOpacity="0.96" />
-      <ellipse cx="13" cy="12" rx="11" ry="11" fill="white" fillOpacity="0.96" />
-      <rect x="6" y="3" width="14" height="10" rx="5" fill="#c8d0d0" fillOpacity="0.7" />
-      <line x1="5" y1="32" x2="21" y2="32" stroke="#d8e0e0" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="5" y1="36" x2="21" y2="36" stroke="#d8e0e0" strokeWidth="0.8" strokeLinecap="round" />
-    </svg>
-  );
-}
+/* ─── Gesture tutorial (Lottie) ─── */
+const DotLottieReact = dynamic(
+  () => import('@lottiefiles/dotlottie-react').then((m) => m.DotLottieReact),
+  { ssr: false }
+);
 
 function GestureTip({ visible }) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center z-30"
-      style={{ opacity: visible ? 1 : 0, transition: 'opacity 500ms ease' }}
+      className="pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center transition-opacity duration-300"
+      style={{ opacity: visible ? 1 : 0 }}
     >
-      <style>{GESTURE_CSS}</style>
-      {visible && (
-        <div
-          className="flex flex-col items-center gap-5 rounded-2xl px-10 py-7"
-          style={{ background: 'rgba(0,0,0,0.52)', backdropFilter: 'blur(6px)' }}
-        >
-          <div className="relative flex h-20 w-20 items-center justify-center">
-            <div className="qv-fl absolute" style={{ top: '50%', left: '50%', marginTop: -22, marginLeft: -13 }}>
-              <Finger />
-            </div>
-            <div className="qv-fr absolute" style={{ top: '50%', left: '50%', marginTop: -22, marginLeft: -13 }}>
-              <Finger />
-            </div>
-          </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/85">
-            Pinch to zoom
-          </p>
+      <div
+        className="flex flex-col items-center justify-center transition-transform duration-300"
+        style={{
+          transform: visible ? 'scale(1)' : 'scale(0.9)',
+        }}
+      >
+        <div className="w-44 h-44 min-[420px]:w-52 min-[420px]:h-52 sm:w-60 sm:h-60 flex items-center justify-center overflow-hidden drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+          <DotLottieReact
+            src="/pinchZoom.lottie"
+            autoplay
+            speed={1}
+            segment={[0, 100]}
+            className="w-full h-full object-contain"
+          />
         </div>
-      )}
+        <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.25em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
+          zoom
+        </p>
+      </div>
     </div>
   );
 }
@@ -123,7 +96,6 @@ const ProductCard = ({ product }) => {
   const imageRef = useRef(null);
 
   const [zoomed, setZoomed] = useState(false);
-  const [zoomOverlayVisible, setZoomOverlayVisible] = useState(false);
   const [pinchScale, setPinchScale] = useState(1);
   const [pinchActive, setPinchActive] = useState(false);
   const [showTip, setShowTip] = useState(false);
@@ -162,7 +134,6 @@ const ProductCard = ({ product }) => {
   const close = useCallback(() => {
     setVisible(false);
     setZoomed(false);
-    setZoomOverlayVisible(false);
     setPinchScale(1);
     setShowTip(false);
     clearTimeout(tipTimerRef.current);
@@ -174,19 +145,18 @@ const ProductCard = ({ product }) => {
 
   function toggleZoom() {
     if (zoomed) {
-      setZoomOverlayVisible(false);
-      setTimeout(() => setZoomed(false), ZOOM_MS);
+      setZoomed(false);
+      setPinchScale(1);
       setShowTip(false);
       clearTimeout(tipTimerRef.current);
     } else {
       setZoomed(true);
       setPinchScale(1);
-      requestAnimationFrame(() => requestAnimationFrame(() => setZoomOverlayVisible(true)));
       if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('nqs_pinch_tip')) {
         sessionStorage.setItem('nqs_pinch_tip', '1');
         tipTimerRef.current = setTimeout(() => {
           setShowTip(true);
-          tipTimerRef.current = setTimeout(() => setShowTip(false), 2800);
+          tipTimerRef.current = setTimeout(() => setShowTip(false), 1900);
         }, 450);
       }
     }
@@ -347,9 +317,9 @@ const ProductCard = ({ product }) => {
 
             {/* ═══ IMAGE COLUMN ═══
                 Desktop: width animates 50% ↔ 100%
-                Mobile:  fixed 16rem height; overlay covers it when zoomed */}
+                Mobile:  height animates 16rem ↔ 100% (grows to fill full modal) */}
             <div
-              ref={isDesktop ? imageViewRef : undefined}
+              ref={imageViewRef}
               className="relative shrink-0 overflow-hidden"
               style={isDesktop ? {
                 width: zoomed ? '100%' : '50%',
@@ -357,8 +327,9 @@ const ProductCard = ({ product }) => {
                 transition: `width ${ZOOM_MS}ms ${EASE}`,
               } : {
                 width: '100%',
-                height: '16rem',
+                height: zoomed ? '100%' : '16rem',
                 flexShrink: 0,
+                transition: `height ${ZOOM_MS}ms ${EASE}`,
               }}
             >
               <ScaledImage
@@ -368,24 +339,35 @@ const ProductCard = ({ product }) => {
                 pinchActive={pinchActive}
               />
               {/* Image bottom fade */}
-              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/55 to-transparent" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-black/55 to-transparent" />
 
-              {/* Zoom button (desktop) */}
-              {isDesktop && (
-                <button type="button" onClick={toggleZoom} aria-label={zoomed ? 'Minimize image' : 'Expand image'} className={zoomBtnCls}>
-                  {zoomed
-                    ? <><Minimize2 size={11} strokeWidth={2.5} /><span>Minimize</span></>
-                    : <><Maximize2 size={11} strokeWidth={2.5} /><span>Expand</span></>
-                  }
-                </button>
-              )}
-              {/* Gesture tip (desktop) */}
-              {isDesktop && <GestureTip visible={showTip} />}
+              {/* Zoom button (desktop & mobile) */}
+              <button
+                type="button"
+                onClick={toggleZoom}
+                aria-label={zoomed ? 'Minimize image' : 'Expand image'}
+                className={zoomBtnCls}
+              >
+                {zoomed ? (
+                  <>
+                    <Minimize2 size={11} strokeWidth={2.5} />
+                    <span>Minimize</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 size={11} strokeWidth={2.5} />
+                    <span>Expand</span>
+                  </>
+                )}
+              </button>
+
+              {/* Gesture tip (shows when zoomed) */}
+              {zoomed && <GestureTip visible={showTip} />}
             </div>
 
             {/* ═══ DETAILS COLUMN ═══
-                Desktop: collapses (max-width 50% → 0) as image expands
-                Mobile:  stays visible; overlay covers it when zoomed */}
+                Desktop: collapses width (max-width 50% → 0) as image expands
+                Mobile:  collapses height (max-height 100% → 0) as image grows down */}
             <div
               style={isDesktop ? {
                 flex: '1 1 auto',
@@ -395,12 +377,17 @@ const ProductCard = ({ product }) => {
                 overflow: 'hidden',
                 transition: `max-width ${ZOOM_MS}ms ${EASE}, opacity ${Math.round(ZOOM_MS * 0.6)}ms ease`,
               } : {
-                flex: '1 1 0',
-                overflowY: 'auto',
+                flex: zoomed ? '0 0 0px' : '1 1 0px',
+                maxHeight: zoomed ? '0px' : '1000px',
+                opacity: zoomed ? 0 : 1,
+                pointerEvents: zoomed ? 'none' : 'auto',
+                overflow: 'hidden',
+                overflowY: zoomed ? 'hidden' : 'auto',
                 overscrollBehavior: 'contain',
+                transition: `max-height ${ZOOM_MS}ms ${EASE}, opacity ${Math.round(ZOOM_MS * 0.6)}ms ease, flex ${ZOOM_MS}ms ${EASE}`,
               }}
             >
-              <div className="p-6 sm:p-8 h-full flex flex-col justify-between min-w-[260px]">
+              <div className="p-6 sm:p-8 h-full flex flex-col justify-between min-w-65">
                 <div>
                   <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 leading-tight">{product.title}</h3>
                   <div className="flex items-baseline gap-2 mb-4">
@@ -415,46 +402,6 @@ const ProductCard = ({ product }) => {
                 </div>
               </div>
             </div>
-
-            {/* ═══ MOBILE ZOOM OVERLAY ═══
-                position:absolute inside the panel so no layout shift occurs.
-                Fade + scale in on top of the details column. */}
-            {!isDesktop && zoomed && (
-              <div
-                ref={imageViewRef}
-                className="absolute inset-0 z-20 overflow-hidden bg-black"
-                style={{
-                  opacity: zoomOverlayVisible ? 1 : 0,
-                  transform: zoomOverlayVisible ? 'scale(1)' : 'scale(1.04)',
-                  transition: `opacity ${ZOOM_MS}ms ${EASE}, transform ${ZOOM_MS}ms ${EASE}`,
-                }}
-              >
-                <ScaledImage
-                  src={product.imagesLink[0]}
-                  alt={product.title}
-                  pinchScale={pinchScale}
-                  pinchActive={pinchActive}
-                />
-                <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/65 to-transparent" />
-                <button type="button" onClick={toggleZoom} aria-label="Minimize image" className={zoomBtnCls}>
-                  <Minimize2 size={11} strokeWidth={2.5} /><span>Minimize</span>
-                </button>
-                <GestureTip visible={showTip} />
-              </div>
-            )}
-
-            {/* Expand button on mobile (sits at bottom of the image strip) */}
-            {!isDesktop && !zoomed && (
-              <button
-                type="button"
-                onClick={toggleZoom}
-                aria-label="Expand image"
-                className={zoomBtnCls}
-                style={{ bottom: 'calc(80svh - 16rem + 1.25rem)' }}
-              >
-                <Maximize2 size={11} strokeWidth={2.5} /><span>Expand</span>
-              </button>
-            )}
           </div>
         </div>,
         document.body

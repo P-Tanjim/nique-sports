@@ -15,6 +15,7 @@
     "@hugeicons/core-free-icons": "^4.3.0",
     "@hugeicons/react": "^1.1.10",
     "@internationalized/date": "^3.12.4",
+    "@lottiefiles/dotlottie-react": "^0.20.0",
     "better-auth": "^1.7.5",
     "cloudinary": "^2.11.0",
     "framer-motion": "^13.1.0",
