@@ -9,7 +9,7 @@ import Image from "next/image";
 import { ChartBarStacked, Store } from "lucide-react";
 import { useNav } from "./NavStateContext";
 import AdminSignOutButton from "./AdminSignOutButton";
-import { ADMIN_LINKS, SETTINGS_LINK, isActiveAdminLink, isAdminPath, useIsAdmin } from "@/components/navbar/adminNav";
+import { ADMIN_LINKS, SETTINGS_LINK, BANNERS_LINK, isActiveAdminLink, isAdminPath, useIsAdmin } from "@/components/navbar/adminNav";
 
 const defaultNavItems = [
 	{ heading: "Home", href: "/" },
@@ -85,13 +85,22 @@ const SideNavbar = ({ isActive, setIsActive, navItems, inAdmin, pathname, isAdmi
 										/>
 									))}
 									{isAdmin && (
-										<AdminNavLink
-											href={SETTINGS_LINK.href}
-											label="Settings"
-											icon={SETTINGS_LINK.icon}
-											active={isActiveAdminLink(SETTINGS_LINK, pathname)}
-											setIsActive={setIsActive}
-										/>
+										<>
+											<AdminNavLink
+												href={BANNERS_LINK.href}
+												label={BANNERS_LINK.label}
+												icon={BANNERS_LINK.icon}
+												active={isActiveAdminLink(BANNERS_LINK, pathname)}
+												setIsActive={setIsActive}
+											/>
+											<AdminNavLink
+												href={SETTINGS_LINK.href}
+												label="Settings"
+												icon={SETTINGS_LINK.icon}
+												active={isActiveAdminLink(SETTINGS_LINK, pathname)}
+												setIsActive={setIsActive}
+											/>
+										</>
 									)}
 									<AdminNavLink
 										href="/"

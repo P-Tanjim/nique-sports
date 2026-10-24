@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, ReceiptText, Settings, Shirt, Wallet } from 'lucide-react';
+import { Images, LayoutDashboard, ReceiptText, Settings, Shirt, Wallet } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 
 // Single source of truth for the admin navigation (top bar, side menu and
@@ -13,6 +13,7 @@ export const ADMIN_LINKS = [
 ];
 
 // admin only (moderators never see it; the page itself also blocks them on the server)
+export const BANNERS_LINK = { href: '/dashboard/banners', label: 'Banners', icon: Images };
 export const SETTINGS_LINK = { href: '/dashboard/settings', label: 'Settings', icon: Settings };
 
 // Cosmetic only: decides which links to SHOW. Access is enforced on the server.
