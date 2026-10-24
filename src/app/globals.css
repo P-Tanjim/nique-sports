@@ -89,10 +89,32 @@ body {
     transform: translateX(5px);
   }
 }
-.cart-badge-pop{
-  animation: cart-badge-pop 0.4s ease-in-out;
-  animation-delay: calc(var(--i, 0) * 0.12s);
+
+@keyframes product-card-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
+
+.product-card-enter {
+  animation: product-card-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--card-i, 0) * 0.035s);
+  will-change: opacity, transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-card-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 @keyframes cart-badge-pop {
   0% {
     transform: scale(0.4);

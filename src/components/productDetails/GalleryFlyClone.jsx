@@ -30,9 +30,14 @@ export default function GalleryFlyClone({ src, from, to, onGrown, onDone }) {
   const scaleY = from.height / to.height;
 
   // Covers the case where the browser already had this image cached and it
-  // finishes loading before the onLoad handler below even attaches.
+  // finishes loading before the onLoad handler below even attaches, plus a fallback timer.
   useEffect(() => {
-    if (imgElRef.current?.complete) setImgLoaded(true);
+    if (imgElRef.current?.complete) {
+      setImgLoaded(true);
+      return;
+    }
+    const timer = setTimeout(() => setImgLoaded(true), 350);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -111,6 +116,7 @@ export default function GalleryFlyClone({ src, from, to, onGrown, onDone }) {
           sizes="(max-width: 1024px) 100vw, 50vw"
           unoptimized={src?.startsWith('data:')}
           onLoad={() => setImgLoaded(true)}
+          onError={() => setImgLoaded(true)}
           className="object-cover"
         />
       </div>

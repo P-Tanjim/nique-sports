@@ -28,7 +28,10 @@ export default async function ProductGrid({ category, minPrice, maxPrice, sort, 
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-5 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-7">
+      <div
+        key={`${category}-${minPrice ?? 'min'}-${maxPrice ?? 'max'}-${sort}-${safePage}`}
+        className="grid grid-cols-2 gap-5 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-7"
+      >
         {items.map((product, index) => (
           <ProductCard key={product._id} product={product} eager={index === 0} index={index} />
         ))}

@@ -213,15 +213,16 @@ export function canEditOrder(user, order) {
   return order.moderatorId === user.id && order.status === 'Pending';
 }
 
-// status change side effects: delivery date + moderator commission (same rule as the old app)
+// status change side effects: delivery date (moderator commission is earned on order creation, whatever happens with the parcel)
 export function statusPatch(order, next) {
   const patch = { status: next };
   if (next === 'Delivered' && order.status !== 'Delivered') {
     patch.deliveryDate = todayDhaka();
-    patch.deliveryCommission = Number(order.commissionRate) || 0;
+    if (!order.deliveryCommission && order.commissionRate) {
+      patch.deliveryCommission = Number(order.commissionRate) || 0;
+    }
   } else if (next !== 'Delivered' && order.status === 'Delivered') {
     patch.deliveryDate = '';
-    patch.deliveryCommission = 0;
   }
   return patch;
 }

@@ -46,17 +46,48 @@ export default function ProductGallery({ images, title }) {
 
   const activeImage = gallery[activeIndex];
 
-  // A fixed-position clone is anchored to the viewport, not the page — if
-  // the user scrolls mid-flight, the from/to rects captured at click time
-  // go stale and it visibly lands in the wrong spot. Locking scroll for the
-  // brief flight avoids that entirely, and matches how this app's other
-  // overlays (drawers, modals) already behave while open.
+  // Lock scrolling completely while the clone is in flight to prevent the image from
+  // drifting away from its landing target if the user scrolls, trackpad-wheels, or touch-swipes.
   useEffect(() => {
     if (!flying) return undefined;
-    const previous = document.body.style.overflow;
+
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevTouchAction = document.body.style.touchAction;
+
+    document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+
+    function preventScroll(e) {
+      e.preventDefault();
+    }
+
+    function preventScrollKeys(e) {
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+    }
+
+    // Intercept wheel, touch gestures, and scroll keys at window capture level
+    window.addEventListener('wheel', preventScroll, { passive: false, capture: true });
+    window.addEventListener('touchmove', preventScroll, { passive: false, capture: true });
+    window.addEventListener('keydown', preventScrollKeys, { passive: false, capture: true });
+
+    // Failsafe timer: ensure scroll is always restored even if an animation frame cancels
+    const safetyTimer = setTimeout(() => {
+      setFlying(null);
+    }, 1200);
+
     return () => {
-      document.body.style.overflow = previous;
+      clearTimeout(safetyTimer);
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+      document.body.style.touchAction = prevTouchAction;
+
+      window.removeEventListener('wheel', preventScroll, { capture: true });
+      window.removeEventListener('touchmove', preventScroll, { capture: true });
+      window.removeEventListener('keydown', preventScrollKeys, { capture: true });
     };
   }, [flying]);
 
@@ -125,10 +156,15 @@ export default function ProductGallery({ images, title }) {
   }
 
   function handleSwipeStart(e) {
+    if (flying) return;
     swipeRef.current = { x: e.clientX, y: e.clientY };
   }
 
   function handleSwipeEnd(e) {
+    if (flying) {
+      swipeRef.current = null;
+      return;
+    }
     const start = swipeRef.current;
     swipeRef.current = null;
     if (!start) return;

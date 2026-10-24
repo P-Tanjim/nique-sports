@@ -60,6 +60,8 @@ export default function ProductCard({
       return;
     }
 
+    // Provide instant visual confirmation on the button while flying thumbnail
+    markAdded();
     setFlight({
       src: sourceImage.currentSrc || image,
       from: imageEl.getBoundingClientRect(),
@@ -70,113 +72,127 @@ export default function ProductCard({
   function handleFlightDone() {
     setFlight(null);
     addToCart(product, 1);
-    markAdded();
   }
 
   return (
     <>
       <div
-        className="group relative overflow-hidden rounded-xl border border-border/70 bg-white shadow-[0_2px_8px_rgba(32,36,38,0.05)] transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_18px_45px_rgba(32,36,38,0.12)] cart-badge-pop"
-        style={{ '--i': index }}
+        className="product-card-enter h-full"
+        style={{ '--card-i': Math.min(index, 11) }}
       >
-        {/* BADGES */}
-        <div className="pointer-events-none absolute left-3 top-3 z-20 flex flex-col gap-1.5">
-          {discountPercent > 0 && (
-            <span className="rounded-full bg-danger px-1.5 py-0.5 text-[8px] font-semibold tracking-wide text-white md:px-2.5 md:py-1 md:text-[10px]">
-              -{discountPercent}%
-            </span>
-          )}
-
-          {isNew && (
-            <span className="rounded-full bg-primary-soft px-1.5 py-0.5 text-[8px] font-semibold tracking-wide text-primary-dark md:px-2.5 md:py-1 md:text-[10px]">
-              NEW
-            </span>
-          )}
-        </div>
-
-        {/* QR MODAL TRIGGER */}
-        <button
-          type="button"
-          onClick={() => setQrOpen(true)}
-          aria-label={`View QR code for ${name}`}
-          className="absolute right-3 top-3 cursor-pointer z-20 flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white shadow-sm bg-linear-to-t from-black/70 via-black/65 to-black/40 md:bg-black/45 md:backdrop-blur-sm transition-[transform,box-shadow,border-color] duration-300 hover:scale-110 hover:bg-black/70 md:h-9 md:w-9"
+        <div
+          className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/70 bg-white shadow-[0_2px_8px_rgba(32,36,38,0.05)] transition-all duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02] hover:border-primary/30 hover:shadow-[0_20px_45px_rgba(32,36,38,0.12)]"
         >
-          <QrCode size={14} strokeWidth={1.8} />
-        </button>
-
-        {/* PRODUCT IMAGE */}
-        <div className="relative">
-          <Link href={`/shop/product/${slug}`} className="block">
-            <div ref={imageBoxRef} className="relative aspect-square overflow-hidden bg-white">
-              <ImageWithLoader
-                src={image}
-                alt={name || 'Product Image'}
-                fill
-                sizes="(max-width: 640px) 48vw, (max-width: 1024px) 32vw, 24vw"
-                loading={eager ? 'eager' : 'lazy'}
-                unoptimized={image?.startsWith('data:')}
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.035]"
-                containerClassName="absolute inset-0"
-              />
-            </div>
-          </Link>
-
-          {/* STAMP */}
-          {stamp && (
-            <span className="pointer-events-none absolute bottom-3 left-3 z-20 flex h-14 w-14 -rotate-12 items-center justify-center rounded-full border-2 border-danger/70 bg-white/85 text-center text-[9px] font-bold uppercase leading-tight text-danger shadow-sm">
-              {stamp}
-            </span>
-          )}
-
-          {/* ACTION BUTTONS */}
-          <div className="absolute bottom-1.5 w-full z-20 flex justify-center items-center flex-col gap-2 opacity-100 transition-opacity duration-300 lg:opacity-0 lg:group-hover:opacity-100">
-
-            {/* Cart - Shopping Basket */}
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              disabled={Boolean(flight)}
-              aria-label={justAdded ? 'Added to cart' : 'Add to cart'}
-              className={`flex h-7 w-[85%] cursor-pointer items-center justify-center rounded-md border shadow-sm backdrop-blur-sm backdrop:saturate-150 transition-[transform,box-shadow,border-color] duration-300 hover:scale-110 disabled:pointer-events-none disabled:opacity-70 md:h-9 ${justAdded
-                  ? 'border-success/40 bg-success text-white'
-                  : 'border-white/20 bg-black/25 text-white hover:bg-black/50'
-                }`}
-            >
-              <span
-                key={justAdded ? 'check' : 'basket'}
-                className="flex animate-[cart-badge-pop_0.3s_cubic-bezier(0.34,1.56,0.64,1)_both]"
-              >
-                {justAdded ? (
-                  <Check size={15} strokeWidth={2.2} />
-                ) : (
-                  <p className="flex justify-center items-center gap-2 text-[10px] font-medium">Add to Cart <ShoppingBasket size={14} strokeWidth={1.8} /></p>
-                )}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* PRODUCT INFORMATION */}
-        <Link
-          href={`/shop/product/${slug}`}
-          className="block border-t border-border/60 bg-white px-4 py-3 transition-colors duration-300 group-hover:bg-surface"
-        >
-          <h3 className="line-clamp-2 text-sm font-medium leading-relaxed tracking-[-0.01em] text-text">
-            {name}
-          </h3>
-
-          <div className="mt-2 flex items-baseline gap-2">
-            {originalPrice && (
-              <span className="text-xs text-text-muted line-through">
-                {formatPrice(originalPrice)}৳
+          {/* BADGES */}
+          <div className="pointer-events-none absolute left-3 top-3 z-20 flex flex-col gap-1.5">
+            {discountPercent > 0 && (
+              <span className="rounded-full bg-danger px-1.5 py-0.5 text-[8px] font-semibold tracking-wide text-white md:px-2.5 md:py-1 md:text-[10px]">
+                -{discountPercent}%
               </span>
             )}
 
-            <span className="text-base font-semibold text-text">
-              {formatPrice(price)}৳
-            </span>
+            {isNew && (
+              <span className="rounded-full bg-primary-soft px-1.5 py-0.5 text-[8px] font-semibold tracking-wide text-primary-dark md:px-2.5 md:py-1 md:text-[10px]">
+                NEW
+              </span>
+            )}
           </div>
-        </Link>
+
+          {/* QR MODAL TRIGGER */}
+          <button
+            type="button"
+            onClick={() => setQrOpen(true)}
+            aria-label={`View QR code for ${name}`}
+            className="absolute right-3 top-3 cursor-pointer z-20 flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white shadow-sm bg-linear-to-t from-black/70 via-black/65 to-black/40 md:bg-black/45 md:backdrop-blur-sm transition-all duration-300 ease-out hover:scale-110 active:scale-95 hover:bg-black/70 md:h-9 md:w-9"
+          >
+            <QrCode size={14} strokeWidth={1.8} />
+          </button>
+
+          {/* PRODUCT IMAGE */}
+          <div className="relative">
+            <Link href={`/shop/product/${slug}`} className="block">
+              <div ref={imageBoxRef} className="relative aspect-square overflow-hidden bg-white">
+                <ImageWithLoader
+                  src={image}
+                  alt={name || 'Product Image'}
+                  fill
+                  sizes="(max-width: 640px) 48vw, (max-width: 1024px) 32vw, 24vw"
+                  loading={eager ? 'eager' : 'lazy'}
+                  unoptimized={image?.startsWith('data:')}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.035]"
+                  containerClassName="absolute inset-0"
+                />
+              </div>
+            </Link>
+
+            {/* STAMP */}
+            {stamp && (
+              <span className="pointer-events-none absolute bottom-3 left-3 z-20 flex h-14 w-14 -rotate-12 items-center justify-center rounded-full border-2 border-danger/70 bg-white/85 text-center text-[9px] font-bold uppercase leading-tight text-danger shadow-sm">
+                {stamp}
+              </span>
+            )}
+
+            {/* ACTION BUTTONS */}
+            <div className="absolute bottom-2 w-full z-20 flex justify-center items-center flex-col gap-2 opacity-100 transition-all duration-300 ease-out lg:opacity-0 lg:translate-y-2 lg:group-hover:opacity-100 lg:group-hover:translate-y-0">
+
+              {/* Cart - Shopping Basket */}
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={Boolean(flight) || justAdded}
+                aria-label={justAdded ? 'Added to cart' : 'Add to cart'}
+                className={`group/btn relative flex h-7 w-[85%] cursor-pointer items-center justify-center overflow-hidden rounded-md border shadow-sm backdrop-blur-sm transition-all duration-200 ease-out hover:scale-105 active:scale-95 disabled:pointer-events-none md:h-9 ${
+                  justAdded
+                    ? 'border-success/50 bg-success text-white shadow-md shadow-success/20'
+                    : 'border-white/20 bg-black/35 text-white hover:bg-black/60 hover:border-white/40 hover:shadow-md'
+                }`}
+              >
+                <span
+                  key={justAdded ? 'check' : 'basket'}
+                  className="flex items-center justify-center gap-1.5 transition-transform duration-200 animate-[cart-badge-pop_0.25s_cubic-bezier(0.34,1.56,0.64,1)_both]"
+                >
+                  {justAdded ? (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold tracking-wide md:text-xs">
+                      <Check size={14} strokeWidth={2.5} className="shrink-0" />
+                      <span>Added</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-1.5 text-[10px] font-medium tracking-wide md:text-xs">
+                      <span>Add to Cart</span>
+                      <ShoppingBasket
+                        size={14}
+                        strokeWidth={1.8}
+                        className="shrink-0 transition-transform duration-200 group-hover/btn:translate-x-0.5 group-hover/btn:-rotate-6"
+                      />
+                    </span>
+                  )}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* PRODUCT INFORMATION */}
+          <Link
+            href={`/shop/product/${slug}`}
+            className="block flex-1 border-t border-border/60 bg-white px-4 py-3 transition-colors duration-300 group-hover:bg-surface"
+          >
+            <h3 className="line-clamp-2 text-sm font-medium leading-relaxed tracking-[-0.01em] text-text">
+              {name}
+            </h3>
+
+            <div className="mt-2 flex items-baseline gap-2">
+              {originalPrice && (
+                <span className="text-xs text-text-muted line-through">
+                  {formatPrice(originalPrice)}৳
+                </span>
+              )}
+
+              <span className="text-base font-semibold text-text">
+                {formatPrice(price)}৳
+              </span>
+            </div>
+          </Link>
+        </div>
       </div>
 
       {qrOpen && (
