@@ -66,7 +66,7 @@ export async function loadDashboard(user, rangeParam) {
       }
     : {
         orders: inRange.length, pending, delivered: delivered.length,
-        earned: round2(orders.filter((o) => o.status === 'Delivered' && o.deliveryDate >= startDay && o.deliveryDate <= today).reduce((s, o) => s + o.deliveryCommission, 0)),
+        earned: round2(inRange.reduce((s, o) => s + ((Number(o.deliveryCommission) > 0 ? Number(o.deliveryCommission) : Number(o.commissionRate)) || 0), 0)),
       };
 
   const recentOrders = [...orders]

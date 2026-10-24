@@ -39,14 +39,23 @@ export async function loadModeratorFinance(user, { from, to }) {
   const mine = all.filter((o) => o.moderatorId === user.id);
   const paidTx = transactions.filter((t) => t.type === TX_LABEL.moderator_payment && t.reference === user.id);
 
-  const earnedAll = round2(mine.filter((o) => o.status === 'Delivered').reduce((s, o) => s + o.deliveryCommission, 0));
-  const paidAll = round2(paidTx.reduce((s, t) => s + t.amount, 0));
+  const getCommission = (o) => (Number(o.deliveryCommission) > 0 ? Number(o.deliveryCommission) : Number(o.commissionRate)) || 0;
+
+  const earnedAll = round2(mine.reduce((s, o) => s + getCommission(o), 0));
+  const paidAll = round2(paidTx.reduce((s, t) => s + (Number(t.amount) || 0), 0));
 
   const rangeOrders = mine.filter((o) => inRange(o.date, from, to));
-  const deliveredRows = mine
-    .filter((o) => o.status === 'Delivered' && inRange(o.deliveryDate, from, to))
-    .sort((a, b) => (a.deliveryDate < b.deliveryDate ? 1 : -1))
-    .map((o) => ({ id: o.id, orderNo: o.orderNo, customerName: o.customerName, deliveryDate: o.deliveryDate, commission: o.deliveryCommission }));
+  const deliveredRows = rangeOrders
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
+    .map((o) => ({
+      id: o.id,
+      orderNo: o.orderNo,
+      customerName: o.customerName,
+      date: o.date,
+      deliveryDate: o.deliveryDate,
+      status: o.status,
+      commission: getCommission(o),
+    }));
 
   return {
     summary: {

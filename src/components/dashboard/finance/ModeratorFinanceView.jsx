@@ -27,7 +27,7 @@ export default function ModeratorFinanceView({ data, from, to, presets }) {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold text-text sm:text-3xl">My earnings</h1>
-        <p className="mt-1 text-sm text-text-muted">You earn on every delivered order.</p>
+        <p className="mt-1 text-sm text-text-muted">You earn commission on every order you add.</p>
       </header>
 
       <section className="grid grid-cols-3 overflow-hidden rounded-2xl border border-border bg-white">
@@ -63,16 +63,18 @@ export default function ModeratorFinanceView({ data, from, to, presets }) {
       </section>
 
       <section className="rounded-2xl border border-border bg-white">
-        <header className="px-5 py-4"><h2 className="text-sm font-semibold text-text">Delivered orders</h2></header>
+        <header className="px-5 py-4"><h2 className="text-sm font-semibold text-text">Orders & commission</h2></header>
         {deliveredRows.length === 0 ? (
-          <p className="border-t border-border px-5 py-10 text-center text-sm text-text-muted">No delivered orders in this range.</p>
+          <p className="border-t border-border px-5 py-10 text-center text-sm text-text-muted">No orders in this range.</p>
         ) : (
           <ul className="divide-y divide-border border-t border-border">
             {deliveredRows.map((r) => (
               <li key={r.id} className="flex items-center gap-3 px-5 py-3.5">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-text">{r.customerName}</p>
-                  <p className="truncate text-xs text-text-muted">{r.orderNo} · delivered {formatLedgerDate(r.deliveryDate)}</p>
+                  <p className="truncate text-xs text-text-muted">
+                    {r.orderNo} · {formatLedgerDate(r.date || r.deliveryDate)} · <span className="capitalize">{r.status || 'Pending'}</span>
+                  </p>
                 </div>
                 <span className="text-sm font-semibold tabular-nums text-primary">+{formatPrice(r.commission)}৳</span>
               </li>
