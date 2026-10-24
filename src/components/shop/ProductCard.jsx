@@ -33,19 +33,6 @@ export default function ProductCard({
 
   const { name, price, originalPrice, discountPercent, isNew, stamp, image, slug } = product || {};
 
-  // Belt-and-braces: locks the page while the clone is mid-flight. The
-  // real reason it can't drift is that the target is a `sticky top-0`
-  // nav icon (see SideCartButton), so its viewport position never moves
-  // under scroll the way GalleryFlyClone's in-flow target did.
-  useEffect(() => {
-    if (!flight) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [flight]);
-
   useEffect(() => () => {
     if (addedTimerRef.current) clearTimeout(addedTimerRef.current);
   }, []);

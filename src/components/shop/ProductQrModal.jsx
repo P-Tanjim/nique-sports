@@ -80,6 +80,10 @@ const MODAL_CSS = `
     animation: qr-skel-sweep 1.4s linear infinite;
   }
 
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .qr-card-enter, .qr-card-exit { transition: opacity 150ms linear; }
     .qr-sheen, .qr-shine, .qr-skel-sweep { display: none; }
@@ -421,10 +425,11 @@ export default function ProductQrModal({ product, open, onClose }) {
     if (open) {
       clearTimeout(closeTimerRef.current);
       if (phaseRef.current === 'closed') {
-        go('mounting');
-        cancelFramesRef.current = afterNextFrames(() => go('shell'));
+        // Jump straight to 'loading': PassDialog mounts immediately and
+        // the spinner shows. handlePainted (below) drives the 'in' entrance.
+        go('loading');
       } else if (phaseRef.current === 'leaving') {
-        // re-opened mid-exit: the card is still mounted and painted
+        // Re-opened mid-exit: card is still painted, go straight back.
         cancelFramesRef.current = afterNextFrames(() => go('in'));
       }
       return () => cancelFramesRef.current?.();
@@ -437,14 +442,15 @@ export default function ProductQrModal({ product, open, onClose }) {
     return () => clearTimeout(closeTimerRef.current);
   }, [open, go]);
 
-  // The card calls this right after its first (heavy) canvas paint. Only then
-  // does the entrance start — two frames later, so the browser has committed
-  // the hidden starting state.
+  // PassDialog's useLayoutEffect calls this immediately after the first
+  // synchronous canvas draw. Two frames later we flip to 'in' so the browser
+  // commits the ENTER_FROM starting state before the transition begins.
+  // This is Strict-Mode-safe: useLayoutEffect re-runs idempotently.
   const handlePainted = useCallback(() => {
-    if (phaseRef.current !== 'shell') return;
+    if (phaseRef.current !== 'loading') return;
     cancelFramesRef.current?.();
     cancelFramesRef.current = afterNextFrames(() => {
-      if (phaseRef.current === 'shell') go('in');
+      if (phaseRef.current === 'loading') go('in');
     });
   }, [go]);
 
@@ -454,18 +460,30 @@ export default function ProductQrModal({ product, open, onClose }) {
       if (e.key === 'Escape') onClose();
     }
     document.addEventListener('keydown', handleKey);
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
     const previousOverflow = document.body.style.overflow;
+    const previousPadding = document.body.style.paddingRight;
+    document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
     return () => {
       document.removeEventListener('keydown', handleKey);
+      document.documentElement.style.overflow = prevHtmlOverflow;
       document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPadding;
     };
   }, [open, onClose]);
 
   if (!mounted || phase === 'closed') return null;
 
-  const backdropIn = phase === 'shell' || phase === 'in';
-  const cardMounted = phase === 'shell' || phase === 'in' || phase === 'leaving';
+  // Show backdrop + spinner as soon as the portal is live (phase === 'loading').
+  // The card itself is also mounted in 'loading' so the canvas can start
+  // painting — it will call handlePainted() which fires the entrance.
+  const isLoading = phase === 'loading';
+
+  const backdropIn = phase === 'in' || phase === 'loading';
+  const cardMounted = phase === 'loading' || phase === 'in' || phase === 'leaving';
   const cardIn = phase === 'in';
 
   return createPortal(
@@ -477,13 +495,25 @@ export default function ProductQrModal({ product, open, onClose }) {
     >
       <style>{MODAL_CSS}</style>
 
-      {/* backdrop: blur + dim live on the same element as its fade */}
+      {/* backdrop: blur + dim */}
       <div
         onClick={onClose}
         className={`absolute inset-0 bg-ink/75 backdrop-blur-sm transition-opacity duration-300 ${
           backdropIn ? 'opacity-100' : 'opacity-0'
         }`}
       />
+
+      {/* Spinner — shown while the canvas is doing its first synchronous draw */}
+      {isLoading && (
+        <div className="relative z-10 flex flex-col items-center gap-3">
+          <div
+            aria-label="Loading QR card"
+            className="h-12 w-12 rounded-full border-4 border-white/20 border-t-white"
+            style={{ animation: 'spin 0.75s linear infinite' }}
+          />
+          <p className="text-sm font-medium text-white/70">Generating card…</p>
+        </div>
+      )}
 
       <div
         aria-hidden="true"
