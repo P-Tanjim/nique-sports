@@ -81,12 +81,9 @@ export default function ProductCard({
   return (
     <>
       <div
-        className="product-card-enter card-gpu-isolate h-full"
         style={{ '--card-i': Math.min(index, 11) }}
+        className="group product-card-enter relative flex h-full flex-col rounded-xl border border-border/70 bg-white shadow-[0_2px_8px_rgba(32,36,38,0.05)] transition-all duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02] hover:border-primary/30 hover:shadow-[0_20px_45px_rgba(32,36,38,0.12)]"
       >
-        <div
-          className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/70 bg-white shadow-[0_2px_8px_rgba(32,36,38,0.05)] transition-all duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02] hover:border-primary/30 hover:shadow-[0_20px_45px_rgba(32,36,38,0.12)]"
-        >
           {/* BADGES */}
           <div className="pointer-events-none absolute left-3 top-3 z-20 flex flex-col gap-1.5">
             {discountPercent > 0 && (
@@ -115,7 +112,7 @@ export default function ProductCard({
           {/* PRODUCT IMAGE */}
           <div className="relative">
             <Link href={`/shop/product/${slug}`} className="block">
-              <div ref={imageBoxRef} className="relative aspect-square overflow-hidden bg-white">
+              <div ref={imageBoxRef} className="relative aspect-square overflow-hidden rounded-t-xl bg-white">
                 <ImageWithLoader
                   src={imageSrc}
                   alt={name || 'Product Image'}
@@ -181,7 +178,7 @@ export default function ProductCard({
           {/* PRODUCT INFORMATION */}
           <Link
             href={`/shop/product/${slug}`}
-            className="block flex-1 border-t border-border/60 bg-white px-4 py-3 transition-colors duration-300 group-hover:bg-surface"
+            className="block flex-1 border-t border-border/60 bg-white px-4 py-3 rounded-b-xl transition-colors duration-300 group-hover:bg-surface"
           >
             <h3 className="line-clamp-2 text-sm font-medium leading-relaxed tracking-[-0.01em] text-text">
               {name}
@@ -200,7 +197,6 @@ export default function ProductCard({
             </div>
           </Link>
         </div>
-      </div>
 
       {qrOpen && (
         <ProductQrModal

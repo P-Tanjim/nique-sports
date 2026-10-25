@@ -316,7 +316,7 @@ body {
    Isolates layout and paint calculations without clipping.
    ======================================================== */
 .card-gpu-isolate {
-  contain: layout style paint;
+  transform: translateZ(0);
 }
 
 .cv-auto-card {

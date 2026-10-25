@@ -63,11 +63,9 @@ const ImageWithLoader = forwardRef(function ImageWithLoader(
     }
   }, [src]);
 
-  const hasFill = Boolean(imageProps.fill);
-
   return (
     <span
-      className={`relative block overflow-hidden ${hasFill ? "h-full w-full" : ""} ${containerClassName}`}
+      className={`relative block ${containerClassName}`}
     >
       <Image
         {...imageProps}

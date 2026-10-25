@@ -11,7 +11,7 @@ const ProductCardVR = ({ product }) => {
         : 0;
 
     return (
-        <Link href={`/shop/product/${product._id}`} className='card-gpu-isolate w-full relative h-auto rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.2)] p-2 flex gap-2'>
+        <Link href={`/shop/product/${product._id}`} className='w-full relative h-auto rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.2)] p-2 flex gap-2'>
             {hasDiscount && <div className="absolute -left-1.25 -top-2.5 z-50 transform -rotate-20 h-10 w-10 bg-red-500 flex justify-center items-center text-sm font-medium text-white"
                 style={{
                     clipPath: `polygon(
@@ -35,7 +35,7 @@ const ProductCardVR = ({ product }) => {
                 sizes="(max-width: 640px) 95vw, 48vw"
                 quality={85}
                 className="object-cover bg-white rounded-2xl"
-                containerClassName="relative h-35 w-35 shrink-0 min-[430px]:h-45 min-[430px]:w-45 sm:h-35 sm:w-35 md:h-55 md:w-55"
+                containerClassName="relative h-35 w-35 shrink-0 min-[430px]:h-45 min-[430px]:w-45 sm:h-35 sm:w-35 md:h-55 md:w-55 rounded-2xl overflow-hidden"
             />
             <div className="flex flex-col w-full gap-2 justify-between items-start p-2">
                 <div>
