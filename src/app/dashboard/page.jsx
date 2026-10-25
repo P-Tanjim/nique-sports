@@ -2,7 +2,7 @@ import { requireStaff } from '@/lib/admin/guard';
 import { formatToday } from '@/lib/admin/dates';
 import { loadDashboard } from '@/lib/views/dashboard';
 import StatsGrid from '@/components/dashboard/StatsGrid';
-import OrdersChart from '@/components/dashboard/OrdersChart';
+import OrdersChartHost from '@/components/dashboard/OrdersChartHost';
 import LowStock from '@/components/dashboard/LowStock';
 import RecentOrders from '@/components/dashboard/RecentOrders';
 import DataError from '@/components/dashboard/DataError';
@@ -38,7 +38,7 @@ export default async function DashboardPage({ searchParams }) {
 
       {/* Moderators don't see stock */}
       <div className={isAdmin ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]' : ''}>
-        <OrdersChart data={data.chart} range={data.range.days} />
+        <OrdersChartHost data={data.chart} range={data.range.days} />
         {isAdmin && data.lowStock && <LowStock lowStock={data.lowStock} />}
       </div>
 

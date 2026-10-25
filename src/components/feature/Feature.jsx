@@ -7,8 +7,14 @@ const Feature = async () => {
     // const checkProducts = [];
 
 
-    // Use checkProducts if available, otherwise fallback to static images
-    const productsToDisplay = checkProducts?.length>0 ? checkProducts : [];
+    // Use checkProducts if available, otherwise fallback to lightweight string paths
+    const FALLBACK_PRODUCTS = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((id) => ({
+        _id: `fallback-${id}`,
+        title: `Featured Jersey #${id}`,
+        price: 1200,
+        imagesLink: [`/products/${id}.webp`],
+    }));
+    const productsToDisplay = checkProducts?.length > 0 ? checkProducts : FALLBACK_PRODUCTS;
 
     return (
         <div className='mb-10 mt-10'>

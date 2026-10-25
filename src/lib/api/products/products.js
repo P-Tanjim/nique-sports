@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { serverFetch } from '../core/core';
 import { adminDelete, adminFetch, adminPost, adminPut } from '../core/adminCore';
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary';
@@ -16,6 +16,7 @@ export async function createProduct(product) {
   const result = await adminPost('/admin/products', product);
 
   if (result?.success) {
+    revalidateTag('storefront');
     revalidatePath('/', 'page');
     revalidatePath('/shop');
     revalidatePath('/dashboard/products');
@@ -34,6 +35,7 @@ export async function updateProduct(id, product) {
   const result = await adminPut(`/admin/products/${encodeURIComponent(id)}`, product);
 
   if (result?.success) {
+    revalidateTag('storefront');
     revalidatePath('/', 'page');
     revalidatePath('/shop');
     revalidatePath('/dashboard/products');
@@ -48,6 +50,7 @@ export async function deleteProduct(id) {
   const result = await adminDelete(`/admin/products/${encodeURIComponent(id)}`);
 
   if (result?.success) {
+    revalidateTag('storefront');
     revalidatePath('/', 'page');
     revalidatePath('/shop');
     revalidatePath('/dashboard/products');
@@ -76,9 +79,9 @@ function normalizeProduct(product) {
   const beforePrice = Number(product.beforePrice) || 0;
   const hasDiscount = Boolean(product.discount) && beforePrice > price;
   const rawImage = product.imagesLink?.[0] ?? product.image ?? null;
-  const optimizedImage = optimizeCloudinaryUrl(rawImage);
+  const optimizedImage = optimizeCloudinaryUrl(rawImage, 1200);
   const optimizedLinks = Array.isArray(product.imagesLink)
-    ? product.imagesLink.map((u) => optimizeCloudinaryUrl(u))
+    ? product.imagesLink.map((u) => optimizeCloudinaryUrl(u, 1400))
     : (product.imagesLink || []);
 
   const { _id, ...rest } = product;

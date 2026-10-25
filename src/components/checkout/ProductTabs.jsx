@@ -1,11 +1,11 @@
-// →  src/components/checkout/ProductTabs.jsx
 'use client';
 
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 
 // Hidden for a single-item cart — nothing to switch between. The sliding
 // pill uses the same layoutId trick as the desktop Shop menu (ShopMenu.jsx).
-export default function ProductTabs({ items, activeIndex, onSelect }) {
+function ProductTabs({ items, activeIndex, onSelect }) {
   if (items.length <= 1) return null;
 
   return (
@@ -45,4 +45,6 @@ export default function ProductTabs({ items, activeIndex, onSelect }) {
       })}
     </div>
   );
-}   
+}
+
+export default memo(ProductTabs);

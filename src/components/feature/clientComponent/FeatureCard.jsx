@@ -445,9 +445,9 @@ export default function FeatureCard({ cards = [] }) {
   if (!totalCards) return null;
 
   return (
-    <section ref={sectionRef} className="flex flex-col items-center w-full py-4 lg:py-8 px-4 md:px-8 relative z-20">
-      <div className="flex items-center justify-center w-full max-w-360">
-        <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full h-96 sm:h-112 md:h-136 max-w-7xl">
+    <section ref={sectionRef} className="flex flex-col items-center w-full py-4 lg:py-8 px-4 md:px-8 relative z-20 touch-pan-y">
+      <div className="flex items-center justify-center w-full max-w-360 touch-pan-y">
+        <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full h-96 sm:h-112 md:h-136 max-w-7xl touch-pan-y">
           {mountedIndices.map((idx) => {
             const card = cards[idx];
             return (
@@ -461,8 +461,8 @@ export default function FeatureCard({ cards = [] }) {
                   src={card.imageLink}
                   alt={card.alt || `Card ${idx}`}
                   fill
-                  sizes="(max-width: 640px) 192px, (max-width: 768px) 224px, 256px"
-                  quality={45}
+                  sizes="(max-width: 640px) 384px, (max-width: 768px) 448px, 512px"
+                  quality={85}
                   className="object-cover z-10"
                   containerClassName="relative h-full w-full"
                 />

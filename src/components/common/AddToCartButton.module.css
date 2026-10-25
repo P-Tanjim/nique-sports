@@ -156,6 +156,7 @@
 .loading .cart {
   visibility: visible;
   animation: cartRun 3.4s linear forwards 0.2s;
+  will-change: transform;
 }
 
 @keyframes cartRun {

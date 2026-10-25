@@ -132,6 +132,10 @@
   height: 28px;
   margin-top: -14px;
   opacity: 0;
+}
+
+.stage[data-phase="animating"] .truck,
+.stage[data-phase="animating"] .button {
   will-change: transform;
 }
 

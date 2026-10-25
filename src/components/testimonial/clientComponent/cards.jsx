@@ -53,8 +53,20 @@ const DotLottieReact = dynamic(
 );
 
 function SwipeGestureHint({ visible }) {
+  const [shouldMount, setShouldMount] = useState(false);
   const [ready, setReady] = useState(false);
   const [dotLottie, setDotLottie] = useState(null);
+
+  useEffect(() => {
+    if (!visible) {
+      setShouldMount(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setShouldMount(true);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [visible]);
 
   useEffect(() => {
     if (!dotLottie) return;
@@ -72,7 +84,7 @@ function SwipeGestureHint({ visible }) {
     };
   }, [dotLottie]);
 
-  if (!visible) return null;
+  if (!visible || !shouldMount) return null;
 
   return (
     <div
@@ -304,7 +316,7 @@ export default function TestimonialCarousel({
   return (
     <div
       ref={containerRef}
-      className={`w-full select-none outline-none ${className}`}
+      className={`w-full select-none outline-none touch-pan-y ${className}`}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
@@ -320,7 +332,7 @@ export default function TestimonialCarousel({
       aria-label="Customer testimonials"
     >
       <motion.div
-        className="relative mx-auto"
+        className="relative mx-auto touch-pan-y"
         style={{ width: "100%", maxWidth: 380, height: CARD_H + 40, touchAction: "pan-y" }}
         onPanEnd={(_, info) => {
           dismissHint();

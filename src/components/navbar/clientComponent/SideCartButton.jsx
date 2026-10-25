@@ -1,6 +1,6 @@
 'use client'
 import { useCartUI } from "@/components/sideCart/CartUIContext";
-import { useCartCount } from "@/components/sideCart/SideCart";
+import { useCartCount } from "@/lib/cartStore";
 import { ShoppingBasket } from "lucide-react";
 
 export default function SideCartButton() {

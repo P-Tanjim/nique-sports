@@ -4,10 +4,11 @@ const API = process.env.API;
 
 export const serverFetch = async (path, other = {}) => {
   try {
+    const { next, ...restOther } = other;
     const res = await fetch(`${API}${path}`, {
-      next: { revalidate: 60 },
+      next: { revalidate: 60, tags: ['storefront'], ...next },
       signal: AbortSignal.timeout(5000),
-      ...other,
+      ...restOther,
     });
     if (!res.ok) {
       return null;

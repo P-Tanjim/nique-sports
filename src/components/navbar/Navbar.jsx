@@ -6,7 +6,7 @@ import usFlag from '../../../public/en-flag.webp'
 import { Tabs } from '@heroui/react'
 import NavSearchbar from '@/components/navbar/clientComponent/NavSearchbar'
 import Link from 'next/link'
-import MobileSideNav from './clientComponent/MobileSideNav'
+import MobileSideNavHost from './clientComponent/MobileSideNavHost'
 import { NavProvider } from './clientComponent/NavStateContext'
 import MobileBottomNav from './clientComponent/MobileBottomNav'
 import SideCartButton from './clientComponent/SideCartButton'
@@ -51,7 +51,7 @@ const Navbar = () => {
       <NavProvider>
         <NavSurface>
           <div className="desktop-navbar flex justify-between items-center">
-            <MobileSideNav />
+            <MobileSideNavHost />
 
 
             {/* Desktop Navigation */}

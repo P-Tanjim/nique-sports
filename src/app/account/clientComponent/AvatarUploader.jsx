@@ -4,7 +4,9 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { Camera, Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import AvatarCropper from "./AvatarCropper";
+import dynamic from "next/dynamic";
+
+const AvatarCropper = dynamic(() => import("./AvatarCropper"), { ssr: false });
 
 const MAX_SOURCE_SIZE = 8 * 1024 * 1024; // 8MB, before cropping
 

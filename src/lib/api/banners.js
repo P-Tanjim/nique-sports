@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { db } from '@/lib/auth';
 import { assertAdmin } from '@/lib/admin/guard';
 import { v2 as cloudinary } from 'cloudinary';
@@ -127,8 +127,10 @@ export async function updateBannerImage(formData) {
       { upsert: true }
     );
 
-    // 8. Revalidate paths
+    // 8. Revalidate paths and tags
+    revalidateTag('storefront');
     revalidatePath('/', 'page');
+    revalidatePath('/shop', 'page');
     revalidatePath('/dashboard/banners', 'page');
 
     return {

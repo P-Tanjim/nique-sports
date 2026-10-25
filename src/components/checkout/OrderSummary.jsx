@@ -1,4 +1,4 @@
-// →  src/components/checkout/OrderSummary.jsx
+import { memo } from 'react';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/format';
 import { getItemLineTotal } from '@/lib/checkout/pricing';
@@ -10,7 +10,7 @@ const optionPrice = (option) => {
 
 // Pure presentation, no state or effects — the same markup is used in the
 // desktop side column and inside the mobile bottom sheet.
-export default function OrderSummary({ items, deliveryLabel, deliveryFee, subtotal, total }) {
+function OrderSummary({ items, deliveryLabel, deliveryFee, subtotal, total }) {
   return (
     <div className="space-y-4">
       <div className="space-y-3">
@@ -77,3 +77,5 @@ export default function OrderSummary({ items, deliveryLabel, deliveryFee, subtot
     </div>
   );
 }
+
+export default memo(OrderSummary);

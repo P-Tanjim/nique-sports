@@ -19,19 +19,37 @@ const MobileBottomNav = () => {
 
   const activeIndex = NAV_ITEMS.findIndex((item) => item.href === pathname);
   const safeIndex = activeIndex !== -1 ? activeIndex : 0;
+  const [isSquishing, setIsSquishing] = React.useState(false);
+  const prevIndexRef = React.useRef(safeIndex);
+
+  React.useEffect(() => {
+    if (prevIndexRef.current !== safeIndex) {
+      prevIndexRef.current = safeIndex;
+      setIsSquishing(true);
+      const timer = setTimeout(() => setIsSquishing(false), 380);
+      return () => clearTimeout(timer);
+    }
+  }, [safeIndex]);
 
   return (
     <nav className="mobile-nav relative w-[85%] rounded-full border border-white/20 bg-primary/80 p-1.5 overflow-hidden shadow-[inset_0_8px_8px_-8px_rgba(255,255,255,0.9),inset_0_-8px_8px_-8px_rgba(255,255,255,0.9)] backdrop-blur-sm transform-gpu backface-hidden">
       <ul className="relative flex flex-row items-center justify-between">
         <div
           aria-hidden="true"
-          className="absolute bottom-0 top-0 z-10 my-auto h-[calc(100%-2px)] rounded-3xl bg-accent shadow-md transition-all duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)]"
+          className="absolute bottom-0 top-0 z-10 my-auto h-[calc(100%-2px)] pointer-events-none"
           style={{
             width: `${100 / NAV_ITEMS.length}%`,
-            transform: `translateX(${safeIndex * 100}%)`,
+            transform: `translate3d(${safeIndex * 100}%, 0, 0)`,
+            transition: 'transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1)',
             willChange: 'transform',
           }}
-        />
+        >
+          <div
+            className={`h-full w-full rounded-3xl bg-accent shadow-md transition-transform duration-300 ease-out ${
+              isSquishing ? 'scale-x-[1.12] scale-y-[0.92]' : 'scale-100'
+            }`}
+          />
+        </div>
 
         {NAV_ITEMS.map((item, index) => {
           const Icon = item.icon;

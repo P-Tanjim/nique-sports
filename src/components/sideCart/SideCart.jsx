@@ -34,147 +34,47 @@ import Link from 'next/link';
 import { ArrowRight, ShoppingBag, X } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
 import SideCartProducts from './SideCartProducts';
+import {
+  CART_STORAGE_KEY,
+  CART_UPDATED_EVENT,
+  optionImage,
+  cartKey,
+  cartVariantKey,
+  mergeCartItems,
+  readCart,
+  writeCart,
+  addToCart,
+  useCartCount,
+} from '@/lib/cartStore';
 
-export const CART_STORAGE_KEY = 'nique-sports:cart';
-// Fired whenever the cart changes from OUTSIDE a mounted SideCart (i.e. via
-// addToCart below). The browser's native "storage" event only fires in
-// OTHER tabs, never in the tab that made the change, so same-tab updates
-// need this instead — that's what was missing before.
-export const CART_UPDATED_EVENT = 'nique-sports:cart-updated';
-
-const optionImage = (option) => {
-  if (Array.isArray(option)) return option.map(optionImage).filter(Boolean).sort();
-  return typeof option === 'string' ? option : option?.image ?? '';
+export {
+  CART_STORAGE_KEY,
+  CART_UPDATED_EVENT,
+  optionImage,
+  cartKey,
+  cartVariantKey,
+  mergeCartItems,
+  readCart,
+  writeCart,
+  addToCart,
+  useCartCount,
 };
-const cartKey = (item) => JSON.stringify([
-  item.id ?? item._id,
-  item.size ?? 'default',
-  optionImage(item.customization?.font),
-  optionImage(item.patch),
-  item.customization?.name ?? '',
-  item.customization?.number ?? '',
-]);
-const cartVariantKey = (item) => JSON.stringify([
-  item.id ?? item._id,
-  optionImage(item.customization?.font),
-  optionImage(item.patch),
-  item.customization?.name ?? '',
-  item.customization?.number ?? '',
-]);
-
-export function mergeCartItems(items, preferredItem) {
-  const merged = [];
-  const indexes = new Map();
-
-  for (const item of items) {
-    const key = cartKey(item);
-    const existingIndex = indexes.get(key);
-    if (existingIndex === undefined) {
-      indexes.set(key, merged.length);
-      merged.push(item);
-      continue;
-    }
-
-    const existing = merged[existingIndex];
-    const quantity = (Number(existing.quantity) || 1) + (Number(item.quantity) || 1);
-    merged[existingIndex] = {
-      ...(item === preferredItem ? item : existing),
-      quantity,
-    };
-  }
-
-  return merged;
-}
-
-export function readCart() {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(CART_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-// Persist cart updates before broadcasting them so listeners always read
-// the latest cart state.
-function writeCart(items) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-  } catch {
-    // storage unavailable (private mode / quota) — fail silently
-  }
-}
-
-/**
- * Add a product to the cart from anywhere in the app (product card,
- * product page, quick-add button, ...). Merges quantities when the same
- * product + size is already in the cart. Persists to localStorage and
- * notifies every mounted SideCart to update immediately.
- */
-export function addToCart(product, quantity = 1, size) {
-  const cartProduct = {
-    ...product,
-    id: product.id ?? product._id,
-    name: product.name ?? product.title,
-    image: product.image ?? product.imagesLink?.[0],
-    availableSizes: product.availableSizes ?? product.size ?? [],
-    originalPrice: product.originalPrice ?? (product.discount ? product.beforePrice : undefined),
-  };
-  const cart = readCart();
-  const nextItem = { ...cartProduct, size, quantity };
-  const key = cartKey(nextItem);
-  const variantKey = cartVariantKey(nextItem);
-  const matchingItems = cart.filter((item) =>
-    cartKey(item) === key || (size && !item.size && cartVariantKey(item) === variantKey)
-  );
-  const matchingQuantity = matchingItems.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
-  const existingSizedItem = matchingItems.find((item) => cartKey(item) === key);
-  const next = mergeCartItems([
-    ...cart.filter((item) => !matchingItems.includes(item)),
-    {
-      ...(existingSizedItem ?? matchingItems[0] ?? {}),
-      ...nextItem,
-      quantity: matchingQuantity + quantity,
-    },
-  ]);
-
-  writeCart(next);
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event(CART_UPDATED_EVENT));
-  }
-  return next;
-}
-
-/**
- * Live item count for anywhere that just needs a badge/number (e.g. the
- * navbar cart button) without mounting the whole drawer. Same event +
- * storage subscription SideCart itself uses to stay in sync.
- */
-export function useCartCount() {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    function refresh() {
-      setCount(readCart().reduce((sum, item) => sum + item.quantity, 0));
-    }
-    refresh();
-    window.addEventListener(CART_UPDATED_EVENT, refresh);
-    window.addEventListener('storage', refresh);
-    return () => {
-      window.removeEventListener(CART_UPDATED_EVENT, refresh);
-      window.removeEventListener('storage', refresh);
-    };
-  }, []);
-
-  return count;
-}
 
 export default function SideCart({ open, onClose }) {
   const [items, setItems] = useState([]);
   const [hydrated, setHydrated] = useState(false);
+  const [slideIn, setSlideIn] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      const raf = requestAnimationFrame(() => {
+        setSlideIn(true);
+      });
+      return () => cancelAnimationFrame(raf);
+    } else {
+      setSlideIn(false);
+    }
+  }, [open]);
 
   // Read the cart once on mount — localStorage doesn't exist on the server,
   // so this can only happen client-side after hydration.
@@ -244,7 +144,7 @@ export default function SideCart({ open, onClose }) {
       <div
         onClick={onClose}
         className={`fixed inset-0 z-9998 bg-ink/50 backdrop-blur-sm transition-opacity duration-500 ease-in-out ${
-          open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+          open && slideIn ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
         }`}
       />
 
@@ -253,8 +153,8 @@ export default function SideCart({ open, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-label="Shopping cart"
-        className={`fixed inset-y-0 right-0 z-9999 flex h-dvh w-full flex-col bg-white transition-transform duration-500 ease-[cubic-bezier(0.207,0.473,0.504,0.935)] sm:w-105 ${
-          open ? 'translate-x-0' : 'translate-x-full'
+        className={`fixed inset-y-0 right-0 z-9999 flex h-dvh w-full flex-col bg-white shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.207,0.473,0.504,0.935)] sm:w-105 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
+          open && slideIn ? 'translate-x-0' : 'translate-x-full pointer-events-none'
         }`}
       >
         {/* HEADER */}
@@ -293,7 +193,7 @@ export default function SideCart({ open, onClose }) {
         </div>
 
         {/* ITEMS */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-60 sm:px-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-60 sm:px-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {!hydrated ? (
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (

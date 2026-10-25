@@ -29,11 +29,11 @@ const ProductCardVR = ({ product }) => {
                 -{discountPercent}%
             </div>}
             <ImageWithLoader
-                src={product.imagesLink?.[0]}
+                src={product.imagesLink?.[0] || product.image}
                 alt={product.title || 'Product Image'}
                 fill
                 sizes="(max-width: 640px) 95vw, 48vw"
-                quality={45}
+                quality={85}
                 className="object-cover bg-white rounded-2xl"
                 containerClassName="relative h-35 w-35 shrink-0 min-[430px]:h-45 min-[430px]:w-45 sm:h-35 sm:w-35 md:h-55 md:w-55"
             />

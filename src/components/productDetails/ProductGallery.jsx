@@ -5,8 +5,9 @@ import { createPortal } from 'react-dom';
 import { getImageProps } from 'next/image';
 import Image from 'next/image';
 import GalleryFlyClone from './GalleryFlyClone';
+import { optimizeCloudinaryUrl } from '@/lib/cloudinary';
 
-const MAIN_SIZES = '(max-width: 1024px) 100vw, 50vw';
+const MAIN_SIZES = '(max-width: 768px) 100vw, 50vw';
 
 // Renders nothing visible — just <link rel="preload"> tags. React 19 hoists
 // these straight into <head> no matter where in the tree they're rendered.
@@ -183,10 +184,12 @@ export default function ProductGallery({ images, title }) {
           alt={title || 'Product image'}
           fill
           sizes={MAIN_SIZES}
+          quality={85}
           priority
+          fetchPriority="high"
           draggable={false}
           unoptimized={activeImage?.startsWith('data:')}
-          className="object-cover"
+          className="object-cover opacity-100"
         />
       </div>
 
@@ -207,10 +210,11 @@ export default function ProductGallery({ images, title }) {
             >
               <Image
                 loading="eager"
-                src={src}
+                src={optimizeCloudinaryUrl(src, 300)}
                 alt=""
                 fill
                 sizes="80px"
+                quality={80}
                 unoptimized={src?.startsWith('data:')}
                 className="object-cover"
               />

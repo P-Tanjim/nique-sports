@@ -1,10 +1,10 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, memo } from 'react';
 import { useAnimate } from 'framer-motion';
 import styles from './CheckoutOrderButton.module.css';
 
-export default function CheckoutOrderButton({ onSubmit, onSuccess, onFlowStart, onFlowEnd, disabled = false }) {
+function CheckoutOrderButton({ onSubmit, onSuccess, onFlowStart, onFlowEnd, disabled = false }) {
   const [scope, animate] = useAnimate();
   const [phase, setPhase] = useState('idle');
   const runningRef = useRef(false);
@@ -113,7 +113,7 @@ export default function CheckoutOrderButton({ onSubmit, onSuccess, onFlowStart, 
   }
 
   return (
-    <div className={styles.stage}>
+    <div className={styles.stage} data-phase={phase}>
       <button
         ref={scope}
         type="button"
@@ -145,3 +145,5 @@ export default function CheckoutOrderButton({ onSubmit, onSuccess, onFlowStart, 
     </div>
   );
 }
+
+export default memo(CheckoutOrderButton);

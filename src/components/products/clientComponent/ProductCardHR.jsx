@@ -5,7 +5,7 @@ import ImageWithLoader from '@/components/common/ImageWithLoader'
 import { createPortal } from 'react-dom'
 import React, { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
 import { Maximize2, Minimize2, Scan, ShoppingBasket, X } from 'lucide-react'
-import { addToCart } from '@/components/sideCart/SideCart';
+import { addToCart } from '@/lib/cartStore';
 import AddToCartFlyClone from '@/components/shop/AddToCartFlyClone';
 import AddToCartButton from '@/components/common/AddToCartButton'
 
@@ -492,12 +492,12 @@ const ProductCard = ({ product }) => {
           </div>
           <ImageWithLoader
             ref={imageRef}
-            src={product.imagesLink[0]}
+            src={product.imagesLink?.[0] || product.image}
             alt={product.title}
-            width={150}
-            height={150}
+            width={300}
+            height={300}
             sizes="(max-width: 640px) 48vw, (max-width: 1024px) 32vw, 24vw"
-            quality={45}
+            quality={85}
             className="object-cover z-20 h-full w-full"
             containerClassName="relative w-full"
           />

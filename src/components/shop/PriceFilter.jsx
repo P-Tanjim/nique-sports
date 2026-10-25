@@ -60,18 +60,28 @@ export default function PriceFilter({ min, max, step = 10 }) {
 
   useEffect(() => () => timeoutRef.current && clearTimeout(timeoutRef.current), []);
 
+  const rangeRef = useRef(range);
+  useEffect(() => {
+    rangeRef.current = range;
+  }, [range]);
+
+  const handlePointerUp = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    commit(rangeRef.current);
+  };
+
   const handleMinChange = (e) => {
     const value = Math.min(Number(e.target.value), range[1] - step);
     const next = [value, range[1]];
+    rangeRef.current = next;
     setRange(next);
-    scheduleCommit(next);
   };
 
   const handleMaxChange = (e) => {
     const value = Math.max(Number(e.target.value), range[0] + step);
     const next = [range[0], value];
+    rangeRef.current = next;
     setRange(next);
-    scheduleCommit(next);
   };
 
   const percent = (value) => ((value - min) / (max - min || 1)) * 100;
@@ -90,6 +100,9 @@ export default function PriceFilter({ min, max, step = 10 }) {
           step={step}
           value={range[0]}
           onChange={handleMinChange}
+          onPointerUp={handlePointerUp}
+          onTouchEnd={handlePointerUp}
+          onKeyUp={handlePointerUp}
           aria-label="Minimum price"
           className={THUMB_CLASSES}
         />
@@ -100,6 +113,9 @@ export default function PriceFilter({ min, max, step = 10 }) {
           step={step}
           value={range[1]}
           onChange={handleMaxChange}
+          onPointerUp={handlePointerUp}
+          onTouchEnd={handlePointerUp}
+          onKeyUp={handlePointerUp}
           aria-label="Maximum price"
           className={THUMB_CLASSES}
         />

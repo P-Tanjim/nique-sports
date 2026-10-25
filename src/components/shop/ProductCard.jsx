@@ -6,11 +6,13 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Check, Heart, QrCode, ShoppingBasket } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
-import ProductQrModal from './ProductQrModal';
+import dynamic from 'next/dynamic';
+
+const ProductQrModal = dynamic(() => import('./ProductQrModal'), { ssr: false });
 import AddToCartFlyClone from './AddToCartFlyClone';
 import ImageWithLoader from '@/components/common/ImageWithLoader';
 // import ProductImage from '../../../public/products/1.jpg';
-import { addToCart } from '../sideCart/SideCart';
+import { addToCart } from '@/lib/cartStore';
 
 // SideCartButton.jsx carries this as a data attribute. Looked up fresh at
 // click time rather than via a ref/context, since this card can render far
@@ -21,6 +23,7 @@ const ADDED_FEEDBACK_MS = 1400;
 export default function ProductCard({
   product,
   eager = false,
+  priority = false,
   index = 0,
 }) {
   const [wishlisted, setWishlisted] = useState(false);
@@ -32,6 +35,7 @@ export default function ProductCard({
   const addedTimerRef = useRef(null);
 
   const { name, price, originalPrice, discountPercent, isNew, stamp, image, slug } = product || {};
+  const imageSrc = image || product?.imagesLink?.[0] || product?.image;
 
   useEffect(() => () => {
     if (addedTimerRef.current) clearTimeout(addedTimerRef.current);
@@ -113,14 +117,17 @@ export default function ProductCard({
             <Link href={`/shop/product/${slug}`} className="block">
               <div ref={imageBoxRef} className="relative aspect-square overflow-hidden bg-white">
                 <ImageWithLoader
-                  src={image}
+                  src={imageSrc}
                   alt={name || 'Product Image'}
                   fill
                   sizes="(max-width: 640px) 48vw, (max-width: 1024px) 32vw, 24vw"
-                  loading={eager ? 'eager' : 'lazy'}
-                  unoptimized={image?.startsWith('data:')}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.035]"
-                  containerClassName="absolute inset-0"
+                  quality={85}
+                  priority={priority || eager}
+                  fetchPriority={priority || eager ? 'high' : 'auto'}
+                  loading={priority || eager ? 'eager' : 'lazy'}
+                  unoptimized={typeof imageSrc === 'string' && imageSrc.startsWith('data:')}
+                  className="h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.035]"
+                  containerClassName="relative h-full w-full"
                 />
               </div>
             </Link>

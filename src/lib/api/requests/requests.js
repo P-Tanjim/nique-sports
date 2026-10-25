@@ -103,7 +103,7 @@ export const getFeaturedProducts = async () => {
   const items = Array.isArray(data?.data) ? data.data : [];
   return items.map((item) => ({
     ...item,
-    imageLink: optimizeCloudinaryUrl(item.imageLink || item.image || item.imagesLink?.[0]),
+    imageLink: optimizeCloudinaryUrl(item.imageLink || item.image || item.imagesLink?.[0], 1200),
   }));
 }
 

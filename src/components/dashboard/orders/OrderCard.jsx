@@ -37,7 +37,7 @@ export default function OrderCard({ order, isAdmin, saving, onSelect, onStatus }
   const images = order.items.map((i) => i.image).filter(Boolean);
 
   return (
-    <article className="relative flex min-w-0 flex-col rounded-2xl border border-border bg-white shadow-[0_2px_8px_rgba(32,36,38,0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_8px_24px_rgba(32,36,38,0.12)]">
+    <article className="cv-auto-row relative flex min-w-0 flex-col rounded-2xl border border-border bg-white shadow-[0_2px_8px_rgba(32,36,38,0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_8px_24px_rgba(32,36,38,0.12)]">
       <div className="flex items-center justify-between gap-2 px-4 py-2.5">
         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <OrderStatusBadge status={order.status} showLabel />

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { forwardRef, useState, startTransition } from "react";
+import { forwardRef, startTransition, useCallback, useEffect, useRef, useState } from "react";
 
 const ImageWithLoader = forwardRef(function ImageWithLoader(
   {
@@ -10,51 +10,85 @@ const ImageWithLoader = forwardRef(function ImageWithLoader(
     alt,
     loading = "lazy",
     preload = false,
+    priority = false,
     sizes,
     onLoad,
     onError,
+    src,
     ...imageProps
   },
-  ref
+  forwardedRef
 ) {
-  const [loaded, setLoaded] = useState(false);
+  const internalRef = useRef(null);
+  const isEager = Boolean(priority || preload || loading === "eager");
+  const [loaded, setLoaded] = useState(isEager);
 
-  function handleLoad(event) {
-    startTransition(() => {
-      setLoaded(true);
-    });
-    onLoad?.(event);
-  }
+  const setRefs = useCallback(
+    (element) => {
+      internalRef.current = element;
+      if (typeof forwardedRef === "function") {
+        forwardedRef(element);
+      } else if (forwardedRef) {
+        forwardedRef.current = element;
+      }
+    },
+    [forwardedRef]
+  );
 
-  function handleError(event) {
-    startTransition(() => {
+  const handleImgLoad = useCallback(
+    (e) => {
+      startTransition(() => {
+        setLoaded(true);
+      });
+      onLoad?.(e);
+    },
+    [onLoad]
+  );
+
+  const handleImgError = useCallback(
+    (e) => {
+      startTransition(() => {
+        setLoaded(true);
+      });
+      onError?.(e);
+    },
+    [onError]
+  );
+
+  // If the browser already cached the image, it's complete on mount
+  useEffect(() => {
+    const img = internalRef.current;
+    if (img?.complete && img.naturalWidth > 0) {
       setLoaded(true);
-    });
-    onError?.(event);
-  }
+    }
+  }, [src]);
+
+  const hasFill = Boolean(imageProps.fill);
 
   return (
-    <span className={`block overflow-hidden ${containerClassName}`}>
+    <span
+      className={`relative block overflow-hidden ${hasFill ? "h-full w-full" : ""} ${containerClassName}`}
+    >
       <Image
         {...imageProps}
-        ref={ref}
-        alt={alt}
+        ref={setRefs}
+        src={src}
+        alt={alt || "Image"}
         sizes={sizes}
         decoding="async"
-        {...(preload ? { preload: true } : { loading })}
-        onLoad={handleLoad}
-        onError={handleError}
-        className={`${className} transition-opacity duration-300 ${
-          loaded ? "opacity-100" : "opacity-0"
-        }`}
+        priority={priority}
+        {...(preload ? { preload: true } : { loading: isEager ? "eager" : loading })}
+        onLoad={handleImgLoad}
+        onError={handleImgError}
+        className={`${className} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
       />
       {!loaded && (
         <span
+          data-img-skeleton
           role="status"
           aria-label={alt ? `Loading ${alt}` : "Loading image"}
-          className="image-loading-overlay pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-hidden"
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-hidden bg-neutral-200/60"
         >
-          <span className="image-loading-shimmer" aria-hidden="true" />
           <span className="image-loading-brand" aria-hidden="true">
             <svg
               viewBox="0 0 48 48"
@@ -85,9 +119,6 @@ const ImageWithLoader = forwardRef(function ImageWithLoader(
               />
             </svg>
             <span className="image-loading-wordmark">NIQUE SPORTS</span>
-            <span className="image-loading-progress">
-              <span />
-            </span>
           </span>
         </span>
       )}

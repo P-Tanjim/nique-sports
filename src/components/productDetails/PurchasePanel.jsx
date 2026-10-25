@@ -3,10 +3,11 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { addToCart } from '@/components/sideCart/SideCart';
+import { addToCart } from '@/lib/cartStore';
 import { formatPrice } from '@/lib/format';
+import dynamic from 'next/dynamic';
 import SizeSelector from './SizeSelector';
-import SizeChartModal from './SizeChartModal';
+const SizeChartModal = dynamic(() => import('./SizeChartModal'), { ssr: false });
 import CustomizationOptions from './CustomizationOptions';
 import { Minus, Plus, Zap } from 'lucide-react';
 import AddToCartButton from '@/components/common/AddToCartButton';
@@ -206,7 +207,9 @@ export default function PurchasePanel({ product, slug }) {
         </button>
       </div>
 
-      <SizeChartModal open={sizeChartOpen} onClose={() => setSizeChartOpen(false)} />
+      {sizeChartOpen && (
+        <SizeChartModal open={sizeChartOpen} onClose={() => setSizeChartOpen(false)} />
+      )}
     </div>
   );
 }

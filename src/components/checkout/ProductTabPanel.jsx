@@ -1,7 +1,6 @@
-// →  src/components/checkout/ProductTabPanel.jsx
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import Image from 'next/image';
 import { Check, Save, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
@@ -26,7 +25,7 @@ function FieldLabel({ children }) {
   );
 }
 
-export default function ProductTabPanel({ item, onSizeChange, onCustomizationChange, onPatchChange, onRemove }) {
+function ProductTabPanel({ item, onSizeChange, onCustomizationChange, onPatchChange, onRemove }) {
   const [patchModalOpen, setPatchModalOpen] = useState(false);
   const [fontEditorOpen, setFontEditorOpen] = useState(false);
   const [draftName, setDraftName] = useState('');
@@ -359,3 +358,5 @@ export default function ProductTabPanel({ item, onSizeChange, onCustomizationCha
     </div>
   );
 }
+
+export default memo(ProductTabPanel);
