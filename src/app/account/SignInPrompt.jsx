@@ -15,7 +15,7 @@ export default function SignInPrompt() {
 
       <Link
         href="/sign-in"
-        className="mt-7 inline-flex w-full items-center justify-center rounded-2xl bg-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+        className="mt-7 inline-flex w-full items-center justify-center rounded-2xl bg-primary py-3 text-sm font-semibold text-white transition-all duration-200 ease-out hover:bg-primary-dark active:scale-95 cursor-pointer"
       >
         Sign In
       </Link>

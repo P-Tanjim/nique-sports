@@ -63,9 +63,12 @@ export async function createManualOrder(input, opts = {}) {
 
     let reserved = null;
     if (demand.length > 0) {
-      const stock = await reserveStock(demand);
-      if (!stock.ok) return { success: false, error: stock.error };
-      reserved = demand;
+      const stock = await reserveStock(demand, { strict: false });
+      if (stock.ok) {
+        reserved = demand;
+      } else {
+        console.warn('Manual order stock reservation warning:', stock.error);
+      }
     }
 
     const now = new Date().toISOString();

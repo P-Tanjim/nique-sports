@@ -7,7 +7,7 @@ import { assertAdmin } from '@/lib/admin/guard';
 // then adds the shared secret that the Express server requires. The secret
 // (ADMIN_API_KEY) is a plain server env var, never NEXT_PUBLIC_, so it can't
 // reach the browser.
-const API = process.env.API;
+const API = (process.env.API || 'http://127.0.0.1:5000').replace('localhost', '127.0.0.1');
 
 function adminHeaders(extra) {
   return { 'x-admin-key': process.env.ADMIN_API_KEY ?? '', ...extra };

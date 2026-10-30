@@ -108,7 +108,7 @@ export async function submitOrder(payload) {
 
     // atomic stock check + decrement (Express/Mongo)
     const demand = orderItems.map((i) => ({ productId: i.productId, quantity: i.quantity }));
-    const stock = await reserveStock(demand);
+    const stock = await reserveStock(demand, { strict: true });
     if (!stock.ok) return bad(stock.error);
     reserved = demand;
 

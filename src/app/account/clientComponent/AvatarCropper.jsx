@@ -137,7 +137,7 @@ export default function AvatarCropper({ src, onCancel, onConfirm }) {
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 rounded-2xl border border-border py-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface"
+            className="flex-1 rounded-2xl border border-border py-2.5 text-sm font-medium text-text-muted transition-all duration-200 ease-out hover:bg-surface active:scale-95 cursor-pointer"
           >
             Cancel
           </button>
@@ -145,7 +145,7 @@ export default function AvatarCropper({ src, onCancel, onConfirm }) {
             type="button"
             onClick={handleConfirm}
             disabled={!naturalSize}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary py-2.5 text-sm font-semibold text-white transition-all duration-200 ease-out hover:bg-primary-dark active:scale-95 cursor-pointer disabled:opacity-50"
           >
             <Check size={16} />
             Use photo

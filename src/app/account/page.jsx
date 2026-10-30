@@ -28,7 +28,8 @@ export default async function AccountPage() {
 
   // Pick only what the page needs — never spread the whole session/user
   // object down into a Client Component prop.
-  const { name, phone, address, image, createdAt } = session.user;
+  const { name, phone, address, image, createdAt, userRole } = session.user;
+  const isStaff = userRole === "admin" || userRole === "moderator";
 
   return (
     <main className="min-h-screen bg-surface text-text">
@@ -39,6 +40,7 @@ export default async function AccountPage() {
           address={address}
           image={image}
           memberSince={createdAt}
+          isStaff={isStaff}
         />
       </div>
     </main>

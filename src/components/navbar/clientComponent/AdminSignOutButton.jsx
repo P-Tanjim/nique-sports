@@ -28,7 +28,7 @@ export default function AdminSignOutButton({ onDone }) {
       type="button"
       onClick={handleSignOut}
       disabled={busy}
-      className="flex w-full cursor-pointer items-center gap-4 border-b border-black/30 py-4 text-left text-black disabled:opacity-60"
+      className="flex w-full cursor-pointer items-center gap-4 border-b border-black/30 py-4 text-left text-black disabled:opacity-60 pointer-events-auto"
     >
       <LogOut size={22} strokeWidth={1.5} />
       <span className="text-2xl font-light">Sign out</span>

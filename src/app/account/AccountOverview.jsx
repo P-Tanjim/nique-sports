@@ -1,4 +1,5 @@
-import { MapPin, Phone, User } from "lucide-react";
+import Link from "next/link";
+import { LayoutDashboard, MapPin, Phone, User } from "lucide-react";
 import AvatarUploader from "./clientComponent/AvatarUploader";
 import LogoutButton from "./clientComponent/LogoutButton";
 
@@ -27,7 +28,7 @@ function DetailRow({ icon: Icon, label, value }) {
   );
 }
 
-export default function AccountOverview({ name, phone, address, image, memberSince }) {
+export default function AccountOverview({ name, phone, address, image, memberSince, isStaff }) {
   const since = formatMemberSince(memberSince);
 
   return (
@@ -38,6 +39,15 @@ export default function AccountOverview({ name, phone, address, image, memberSin
         <h1 className="mt-5 text-lg font-semibold text-text">{name || "Your account"}</h1>
         {since && <p className="mt-1 text-xs text-text-muted">Member since {since}</p>}
         <div className="mt-6 w-full pt-6 border-t border-border/60">
+          {isStaff && (
+            <Link
+              href="/dashboard"
+              className="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition-all duration-200 ease-out hover:bg-primary-dark active:scale-95 cursor-pointer"
+            >
+              <LayoutDashboard size={16} strokeWidth={2} />
+              <span>Dashboard</span>
+            </Link>
+          )}
           <LogoutButton className="w-full" />
         </div>
       </div>

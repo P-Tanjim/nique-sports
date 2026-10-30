@@ -1,6 +1,6 @@
 'use server'
 
-const API = process.env.API;
+const API = (process.env.API || 'http://127.0.0.1:5000').replace('localhost', '127.0.0.1');
 
 export const serverFetch = async (path, other = {}) => {
   try {

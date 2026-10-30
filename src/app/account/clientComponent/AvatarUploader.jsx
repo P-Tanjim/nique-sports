@@ -69,7 +69,7 @@ export default function AvatarUploader({ initialImage, name }) {
         type="button"
         onClick={() => inputRef.current?.click()}
         aria-label={image ? "Change profile photo" : "Add profile photo"}
-        className="group cursor-pointer relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-border bg-surface text-2xl font-semibold text-text-muted transition-colors hover:border-primary/40"
+        className="group cursor-pointer relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-border bg-surface text-2xl font-semibold text-text-muted transition-all duration-200 ease-out hover:border-primary/40 active:scale-95"
       >
         {image ? (
           <Image
@@ -103,7 +103,7 @@ export default function AvatarUploader({ initialImage, name }) {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="mt-3 cursor-pointer text-xs font-medium text-primary hover:underline"
+        className="mt-3 inline-block cursor-pointer text-xs font-medium text-primary hover:underline transition-transform duration-200 ease-out active:scale-95"
       >
         {image ? "Change photo" : "Add photo"}
       </button>
