@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -44,6 +45,7 @@ function getOptionPrice(option) {
 }
 
 export default function CheckoutClient() {
+  const router = useRouter();
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState([]);
   const [emptyCartReady, setEmptyCartReady] = useState(false);
@@ -206,6 +208,8 @@ export default function CheckoutClient() {
     writeCart([]);
     setItems([]);
     setPlacedOrder({ orderId: result.orderId });
+    try { sessionStorage.setItem("nique-sports:last-order", String(result.orderId)); } catch {}
+    router.replace(`/receipt/${encodeURIComponent(result.orderId)}`);
   }
 
   if (!hydrated) return null;

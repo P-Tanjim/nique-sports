@@ -328,3 +328,11 @@ body {
   content-visibility: auto;
   contain-intrinsic-size: auto 110px;
 }
+
+
+@theme static {
+  --color-grayscale-1: #fcfcfc; --color-grayscale-2: #f9f9f9; --color-grayscale-3: #f0f0f0; --color-grayscale-4: #e8e8e8;
+  --color-grayscale-5: #e0e0e0; --color-grayscale-6: #d9d9d9; --color-grayscale-7: #cecece; --color-grayscale-8: #bbbbbb;
+  --color-grayscale-9: #8d8d8d; --color-grayscale-10: #838383; --color-grayscale-11: #646464; --color-grayscale-12: #202020;
+  --color-green-9: #30a46c;
+}
