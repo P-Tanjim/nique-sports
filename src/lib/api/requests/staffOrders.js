@@ -85,7 +85,7 @@ export async function createManualOrder(input, opts = {}) {
       status: 'Pending', note: v.note,
       courierId: '', trackingCode: '', courierStatus: '', courierSyncedAt: '', courierError: '',
       riderName: '', riderPhone: '', riderNote: '', riderResolved: 'NO',
-      deliveryDate: '', commissionRate: assignee.commissionRate, deliveryCommission: Number(assignee.commissionRate) || 0,
+      deliveryDate: '', commissionRate: assignee.commissionRate, deliveryCommission: 0,
       reviewSent: 'NO', updatedAt: now,
     };
 
@@ -133,7 +133,7 @@ export async function updateOrder(id, input) {
 
     if (isAdminUser(user) && v.assigneeId && v.assigneeId !== order.moderatorId && order.status !== 'Delivered') {
       const a = await resolveAssignee(user, v.assigneeId);
-      Object.assign(patch, { addedBy: a.name, moderatorId: a.id, commissionRate: a.commissionRate, deliveryCommission: Number(a.commissionRate) || 0 });
+      Object.assign(patch, { addedBy: a.name, moderatorId: a.id, commissionRate: a.commissionRate, deliveryCommission: 0 });
     }
 
     if (patch.advance !== order.advance || patch.advanceAccount !== order.advanceAccount) {

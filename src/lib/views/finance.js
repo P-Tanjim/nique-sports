@@ -39,9 +39,10 @@ export async function loadModeratorFinance(user, { from, to }) {
   const mine = all.filter((o) => o.moderatorId === user.id);
   const paidTx = transactions.filter((t) => t.type === TX_LABEL.moderator_payment && t.reference === user.id);
 
-  const getCommission = (o) => (Number(o.deliveryCommission) > 0 ? Number(o.deliveryCommission) : Number(o.commissionRate)) || 0;
+  const getCommission = (o) => (o.status === 'Delivered' ? (Number(o.deliveryCommission) > 0 ? Number(o.deliveryCommission) : Number(o.commissionRate)) || 0 : 0);
 
-  const earnedAll = round2(mine.reduce((s, o) => s + getCommission(o), 0));
+  const deliveredMine = mine.filter((o) => o.status === 'Delivered');
+  const earnedAll = round2(deliveredMine.reduce((s, o) => s + getCommission(o), 0));
   const paidAll = round2(paidTx.reduce((s, t) => s + (Number(t.amount) || 0), 0));
 
   const rangeOrders = mine.filter((o) => inRange(o.date, from, to));

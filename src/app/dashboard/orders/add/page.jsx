@@ -20,7 +20,6 @@ export default async function AddOrderPage() {
           Back to orders
         </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-text sm:text-4xl">Add an order</h1>
-        <p className="mt-1 text-sm text-text-muted">For orders that come from Facebook, Instagram, WhatsApp or phone calls.</p>
       </div>
 
       <OrderForm

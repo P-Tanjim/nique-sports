@@ -62,11 +62,11 @@ export async function syncAdvanceTx(txs, order, { advance, account, date }) {
   await patchCells([{ tabKey: 'transactions', row: existing._row, patch: { amount: round2(advance), to: account, date } }]);
 }
 
-// earned (all orders added by moderator) - paid (Moderator Payment rows) per moderator id
+// earned (delivered orders only) - paid (Moderator Payment rows) per moderator id
 export function moderatorBills(orders, txs, moderators) {
   const earned = new Map();
   for (const o of orders) {
-    if (o.moderatorId) {
+    if (o.moderatorId && o.status === 'Delivered') {
       const comm = (Number(o.deliveryCommission) > 0 ? Number(o.deliveryCommission) : Number(o.commissionRate)) || 0;
       earned.set(o.moderatorId, (earned.get(o.moderatorId) ?? 0) + comm);
     }

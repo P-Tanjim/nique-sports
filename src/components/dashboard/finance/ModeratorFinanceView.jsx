@@ -27,7 +27,7 @@ export default function ModeratorFinanceView({ data, from, to, presets }) {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold text-text sm:text-3xl">My earnings</h1>
-        <p className="mt-1 text-sm text-text-muted">You earn commission on every order you add.</p>
+        <p className="mt-1 text-sm text-text-muted">You earn commission on orders once they are delivered.</p>
       </header>
 
       <section className="grid grid-cols-3 overflow-hidden rounded-2xl border border-border bg-white">
@@ -76,7 +76,13 @@ export default function ModeratorFinanceView({ data, from, to, presets }) {
                     {r.orderNo} · {formatLedgerDate(r.date || r.deliveryDate)} · <span className="capitalize">{r.status || 'Pending'}</span>
                   </p>
                 </div>
-                <span className="text-sm font-semibold tabular-nums text-primary">+{formatPrice(r.commission)}৳</span>
+                {r.status === 'Delivered' ? (
+                  <span className="text-sm font-semibold tabular-nums text-primary">+{formatPrice(r.commission)}৳</span>
+                ) : (
+                  <span className="text-xs font-medium text-text-muted">
+                    {r.status === 'Cancelled' || r.status === 'Returned' ? 'No commission' : 'Pending delivery'}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

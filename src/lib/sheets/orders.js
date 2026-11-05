@@ -213,16 +213,17 @@ export function canEditOrder(user, order) {
   return order.moderatorId === user.id && order.status === 'Pending';
 }
 
-// status change side effects: delivery date (moderator commission is earned on order creation, whatever happens with the parcel)
+// status change side effects: delivery date & commission (moderator commission is earned only when the order is Delivered)
 export function statusPatch(order, next) {
   const patch = { status: next };
-  if (next === 'Delivered' && order.status !== 'Delivered') {
-    patch.deliveryDate = todayDhaka();
-    if (!order.deliveryCommission && order.commissionRate) {
-      patch.deliveryCommission = Number(order.commissionRate) || 0;
+  if (next === 'Delivered') {
+    if (order.status !== 'Delivered') {
+      patch.deliveryDate = todayDhaka();
     }
-  } else if (next !== 'Delivered' && order.status === 'Delivered') {
+    patch.deliveryCommission = Number(order.commissionRate) || 0;
+  } else {
     patch.deliveryDate = '';
+    patch.deliveryCommission = 0;
   }
   return patch;
 }
