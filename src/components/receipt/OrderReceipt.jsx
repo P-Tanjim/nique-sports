@@ -45,6 +45,15 @@ export function OrderReceipt({ orderNo }) {
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   const [showInAppNote, setShowInAppNote] = useState(false);
 
+  // Ensure page is at top on mount so the user sees the printer clearly
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, []);
+
   // Cooldown countdown timer
   useEffect(() => {
     if (retryCooldown <= 0) return;
@@ -95,6 +104,13 @@ export function OrderReceipt({ orderNo }) {
             await new Promise((r) => setTimeout(r, 900 - elapsed));
           }
           if (cancelled) return;
+
+          // Ensure viewport is scrolled to top before printer animation starts
+          if (typeof window !== 'undefined') {
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+          }
 
           // Render real receipt data and switch to printing in the same update
           setReceipt(res.data);

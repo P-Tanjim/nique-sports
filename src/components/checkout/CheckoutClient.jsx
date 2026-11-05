@@ -16,6 +16,7 @@ import OrderSummary from './OrderSummary';
 import dynamic from 'next/dynamic';
 const CheckoutBottomSheet = dynamic(() => import('./CheckoutBottomSheet'), { ssr: false });
 import CheckoutOrderButton from './CheckoutOrderButton';
+import CheckoutSkeleton from './CheckoutSkeleton';
 
 const INITIAL_CUSTOMER = {
   name: '',
@@ -209,10 +210,15 @@ export default function CheckoutClient() {
     setItems([]);
     setPlacedOrder({ orderId: result.orderId });
     try { sessionStorage.setItem("nique-sports:last-order", String(result.orderId)); } catch {}
-    router.replace(`/receipt/${encodeURIComponent(result.orderId)}`);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+    router.replace(`/receipt/${encodeURIComponent(result.orderId)}`, { scroll: true });
   }
 
-  if (!hydrated) return null;
+  if (!hydrated) return <CheckoutSkeleton />;
 
   if (placedOrder) {
     return (
