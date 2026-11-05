@@ -1,6 +1,7 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { LayoutDashboard, MapPin, Phone, User } from "lucide-react";
-import AvatarUploader from "./clientComponent/AvatarUploader";
+const AvatarUploader = dynamic(() => import("./clientComponent/AvatarUploader"));
 import LogoutButton from "./clientComponent/LogoutButton";
 
 function formatMemberSince(date) {

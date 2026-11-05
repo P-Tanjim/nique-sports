@@ -55,6 +55,8 @@ export const DEFAULT_SETTINGS = {
   'AI Parser Enabled': 'YES',
   'Gemini API Key': '',
   'Gemini Model': 'gemini-2.5-flash',
+  'Meta Pixel ID': '',
+  'Google Analytics ID': '',
   'Default Commission': 25,
   'Review Template': 'Assalamu Alaikum {customer_name}! ❤️ আপনার order delivered হয়েছে। আমাদের jersey ও service নিয়ে review দিলে পরবর্তী অর্ডারে পাবেন {discount}% ছাড়! রিভিউ দিন: {group_link}',
   'Review Group Link': '',

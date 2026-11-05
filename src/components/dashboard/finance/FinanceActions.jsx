@@ -1,10 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Settings2, UserCheck, X } from 'lucide-react';
 import AnimatedHeight from '@/components/common/AnimatedHeight';
-import { ExpenseForm, MoneyInForm, OpeningForm, TransferForm } from './FinanceForms';
-import ModeratorPayForm from './ModeratorPayForm';
+
+const MoneyInForm = dynamic(() => import('./FinanceForms').then((m) => m.MoneyInForm), { ssr: false });
+const ExpenseForm = dynamic(() => import('./FinanceForms').then((m) => m.ExpenseForm), { ssr: false });
+const TransferForm = dynamic(() => import('./FinanceForms').then((m) => m.TransferForm), { ssr: false });
+const OpeningForm = dynamic(() => import('./FinanceForms').then((m) => m.OpeningForm), { ssr: false });
+const ModeratorPayForm = dynamic(() => import('./ModeratorPayForm'), { ssr: false });
 
 const ACTIONS = [
   { mode: 'money_in', label: 'Money in', icon: ArrowDownLeft },

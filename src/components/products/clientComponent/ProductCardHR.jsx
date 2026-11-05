@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom'
 import React, { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
 import { Maximize2, Minimize2, Scan, ShoppingBasket, X } from 'lucide-react'
 import { addToCart } from '@/lib/cartStore';
-import AddToCartFlyClone from '@/components/shop/AddToCartFlyClone';
+const AddToCartFlyClone = dynamic(() => import('@/components/shop/AddToCartFlyClone'), { ssr: false });
 import AddToCartButton from '@/components/common/AddToCartButton'
 
 const TRANSITION_MS = 300;

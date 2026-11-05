@@ -7,7 +7,8 @@ import { Loader2, Save } from 'lucide-react';
 import IOSSwitch from './IOSSwitch';
 import AnimatedSelect from './AnimatedSelect';
 import SizeSelector from './SizeSelector';
-import ImageUploader from './ImageUploader';
+import dynamic from 'next/dynamic';
+const ImageUploader = dynamic(() => import('./ImageUploader'), { ssr: false });
 import { createProduct, getFeaturedProductCount, updateProduct } from '@/lib/api/products/products';
 import { motion, AnimatePresence } from 'framer-motion';
 

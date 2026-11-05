@@ -13,11 +13,13 @@ import SideCartButton from './clientComponent/SideCartButton'
 import ShopMenu from './clientComponent/ShopMenu'
 import CartDrawer from '../sideCart/CartDrawer'
 import { CartUIProvider } from '../sideCart/CartUIContext'
+import dynamic from 'next/dynamic'
 import AreaSwitch from './clientComponent/AreaSwitch'
 import NavSurface from './clientComponent/NavSurface'
-import AdminDesktopLinks from './clientComponent/AdminDesktopLinks'
-import AdminHeaderActions from './clientComponent/AdminHeaderActions'
-import AdminBottomNav from './clientComponent/AdminBottomNav'
+
+const AdminDesktopLinks = dynamic(() => import('./clientComponent/AdminDesktopLinks'))
+const AdminHeaderActions = dynamic(() => import('./clientComponent/AdminHeaderActions'))
+const AdminBottomNav = dynamic(() => import('./clientComponent/AdminBottomNav'))
 
 const shopItems = [
   {

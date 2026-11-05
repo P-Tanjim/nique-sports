@@ -1,10 +1,11 @@
 import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import ShopBreadcrumb from '@/components/shop/ShopBreadcrumb';
 import ShopSidebar from '@/components/shop/ShopSidebar';
 import ShopToolbar from '@/components/shop/ShopToolbar';
 import ProductGrid from '@/components/shop/ProductGrid';
 import ProductGridSkeleton from '@/components/shop/ProductGridSkeleton';
-import MobileFilterDrawer from '@/components/shop/MobileFilterDrawer';
+const MobileFilterDrawer = dynamic(() => import('@/components/shop/MobileFilterDrawer'));
 import CategoryList from '@/components/shop/CategoryList';
 import PriceFilter from '@/components/shop/PriceFilter';
 import { getShopCategories, getShopPriceBounds } from '@/lib/api/products/products';

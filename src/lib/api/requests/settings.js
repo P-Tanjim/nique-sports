@@ -46,6 +46,9 @@ export async function saveSettings(input) {
         const v = clean(raw);
         if (v && !/^https?:\/\/\S{3,490}$/.test(v)) throw new UserError('Group link must start with http(s)://');
         patch[key] = v;
+      } else if (key === 'Meta Pixel ID' || key === 'Google Analytics ID') {
+        const v = String(raw ?? '').trim();
+        patch[key] = v;
       } else if (key === 'Default Commission' || key === 'Discount Percent') {
         const n = Number(raw);
         const max = key === 'Discount Percent' ? 100 : 10_000;
@@ -57,6 +60,7 @@ export async function saveSettings(input) {
     if (Object.keys(patch).length) await writeSettings(patch);
     revalidatePath('/dashboard/settings');
     revalidatePath('/dashboard/orders');
+    revalidatePath('/', 'layout');
     return { success: true };
   });
 }

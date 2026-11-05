@@ -12,7 +12,8 @@ import { submitOrder } from '@/lib/api/requests/orders';
 import CheckoutForm from './CheckoutForm';
 import ProductTabPanel from './ProductTabPanel';
 import OrderSummary from './OrderSummary';
-import CheckoutBottomSheet from './CheckoutBottomSheet';
+import dynamic from 'next/dynamic';
+const CheckoutBottomSheet = dynamic(() => import('./CheckoutBottomSheet'), { ssr: false });
 import CheckoutOrderButton from './CheckoutOrderButton';
 
 const INITIAL_CUSTOMER = {

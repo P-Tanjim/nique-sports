@@ -1,6 +1,7 @@
+import dynamic from 'next/dynamic';
 import { requireAdmin } from '@/lib/admin/guard';
 import { getCategories } from '@/lib/products';
-import ProductForm from '@/components/dashboard/products/ProductForm';
+const ProductForm = dynamic(() => import('@/components/dashboard/products/ProductForm'));
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 

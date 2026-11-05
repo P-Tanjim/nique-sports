@@ -4,7 +4,8 @@ import { useState, memo } from 'react';
 import Image from 'next/image';
 import { Check, Save, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/format';
-import MiniModal from './MiniModal';
+import dynamic from 'next/dynamic';
+const MiniModal = dynamic(() => import('./MiniModal'), { ssr: false });
 
 // Cart items don't store the full list of sizes a product is sold in, so
 // this standard set is offered by default. If you later add

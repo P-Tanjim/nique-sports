@@ -35,6 +35,8 @@ export default async function SettingsPage() {
     geminiModel: gem.model,
     defaultCommission: Number(s['Default Commission']) || 0,
     discountPercent: Number(s['Discount Percent']) || 0,
+    metaPixelId: s['Meta Pixel ID'] ?? '',
+    googleAnalyticsId: s['Google Analytics ID'] ?? '',
     groupLink: s['Review Group Link'] ?? '',
     templates: {
       review: s['Review Template'] ?? '',

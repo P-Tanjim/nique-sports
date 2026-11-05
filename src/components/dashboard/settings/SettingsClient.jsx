@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Copy, Loader2, LogOut, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -12,10 +12,58 @@ const inputClass = 'w-full rounded-2xl border border-border bg-surface px-4 py-3
 const btn = 'inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60';
 
 function Card({ title, hint, children }) {
+  const [show, setShow] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!show) return;
+    function handleOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setShow(false);
+      }
+    }
+    function handleKey(e) {
+      if (e.key === 'Escape') setShow(false);
+    }
+    document.addEventListener('pointerdown', handleOutside);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutside);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [show]);
+
   return (
     <section className="rounded-3xl border border-border bg-white p-6 shadow-[0_1px_2px_rgba(32,36,38,0.04)] sm:p-8">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">{title}</h2>
-      {hint && <p className="mt-1 text-xs text-text-muted">{hint}</p>}
+      <div ref={containerRef} className="relative">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">{title}</h2>
+          {hint && (
+            <button
+              type="button"
+              title={hint}
+              aria-label="Hint"
+              onClick={() => setShow((s) => !s)}
+              className={`inline-flex items-center justify-center cursor-pointer rounded-full border px-1.5 py-0 text-[11px] font-serif italic transition-colors select-none ${
+                show
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-border text-text-muted hover:border-text hover:text-text'
+              }`}
+            >
+              i
+            </button>
+          )}
+        </div>
+
+        {show && hint && (
+          <div
+            role="tooltip"
+            className="absolute left-0 top-full z-30 mt-2 w-fit max-w-full sm:max-w-md rounded-xl bg-ink p-3 text-xs leading-relaxed text-white shadow-none"
+          >
+            {hint}
+          </div>
+        )}
+      </div>
       <div className="mt-5 space-y-5">{children}</div>
     </section>
   );
@@ -95,6 +143,50 @@ export default function SettingsClient({ initial, masked, moderators, webhookUrl
 
   const saveGeneral = () => act('gen', () => saveSettings({ 'Default Commission': s.defaultCommission }));
 
+  const saveAnalytics = () => act('analytics', () => saveSettings({
+    'Meta Pixel ID': s.metaPixelId,
+    'Google Analytics ID': s.googleAnalyticsId,
+  }), { refresh: true });
+
+  async function toggleModeratorActive(id, nextActive) {
+    const prev = mods[id];
+    setMods((p) => ({ ...p, [id]: { ...p[id], active: nextActive } }));
+    setBusy(`m_active_${id}`);
+    try {
+      const res = await saveModeratorConfig(id, { ...prev, active: nextActive });
+      if (!res?.success) {
+        toast.error(res?.error || 'Failed to update moderator status.');
+        setMods((p) => ({ ...p, [id]: prev }));
+        return;
+      }
+      toast.success(nextActive ? 'Moderator activated.' : 'Moderator deactivated.');
+      router.refresh();
+    } catch {
+      toast.error('Network or server error occurred.');
+      setMods((p) => ({ ...p, [id]: prev }));
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function handleCommissionBlur(id) {
+    const current = mods[id];
+    setBusy(`m_comm_${id}`);
+    try {
+      const res = await saveModeratorConfig(id, current);
+      if (!res?.success) {
+        toast.error(res?.error || 'Failed to save commission.');
+        return;
+      }
+      toast.success('Commission updated.');
+      router.refresh();
+    } catch {
+      toast.error('Network or server error occurred.');
+    } finally {
+      setBusy('');
+    }
+  }
+
   const genToken = () => setKeys((k) => ({ ...k, webhookToken: crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '').slice(0, 8) }));
 
   async function copyUrl() {
@@ -103,10 +195,9 @@ export default function SettingsClient({ initial, masked, moderators, webhookUrl
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex gap-4 flex-row items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text sm:text-3xl">Settings</h1>
-          <p className="mt-1 text-sm text-text-muted">Integrations, moderators and message templates. Only admins can see this page.</p>
         </div>
         <button
           type="button"
@@ -149,20 +240,67 @@ export default function SettingsClient({ initial, masked, moderators, webhookUrl
         </div>
       </Card>
 
-      <Card title="Moderators" hint="To add one: the person signs up on the site, then set userRole to &quot;moderator&quot; on their user in MongoDB.">
+      <Card title="Moderators" >
         {moderators.length === 0 && <p className="text-sm text-text-muted">No moderators yet.</p>}
         {moderators.map((m) => (
           <div key={m.id} className="grid gap-3 rounded-2xl border border-border p-4 sm:grid-cols-[1fr_130px_auto] sm:items-center">
-            <div className="min-w-0"><p className="truncate text-sm font-semibold text-text">{m.name}</p><p className="truncate text-xs text-text-muted">{m.email}</p></div>
-            <Field label="৳ per delivered order"><input type="number" min="0" value={mods[m.id].commission} onChange={(e) => setMods((p) => ({ ...p, [m.id]: { ...p[m.id], commission: e.target.value } }))} className={inputClass} /></Field>
-            <div className="flex items-center gap-3">
-              <IOSSwitch label="Active" checked={mods[m.id].active} onChange={(v) => setMods((p) => ({ ...p, [m.id]: { ...p[m.id], active: v } }))} />
-              <button type="button" onClick={() => act(`m${m.id}`, () => saveModeratorConfig(m.id, mods[m.id]), { refresh: true })} disabled={busy === `m${m.id}`} className={`${btn} bg-primary text-white hover:bg-primary-dark`}>{busy === `m${m.id}` ? <Loader2 size={15} className="animate-spin" /> : 'Save'}</button>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-text">{m.name}</p>
+              <p className="truncate text-xs text-text-muted">{m.email}</p>
+            </div>
+            <Field label="৳ per delivered order">
+              <input
+                type="number"
+                min="0"
+                value={mods[m.id].commission}
+                onChange={(e) => setMods((p) => ({ ...p, [m.id]: { ...p[m.id], commission: e.target.value } }))}
+                onBlur={() => handleCommissionBlur(m.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.target.blur();
+                }}
+                className={inputClass}
+              />
+            </Field>
+            <div className="flex items-center justify-end gap-2">
+              <IOSSwitch
+                label="Active"
+                checked={mods[m.id].active}
+                disabled={busy === `m_active_${m.id}`}
+                onChange={(v) => toggleModeratorActive(m.id, v)}
+              />
+              {busy === `m_active_${m.id}` && <Loader2 size={15} className="animate-spin text-text-muted shrink-0" />}
             </div>
           </div>
         ))}
         <Field label="Default commission for new moderators (৳ per delivered order)"><input type="number" min="0" value={s.defaultCommission} onChange={(e) => set('defaultCommission', e.target.value)} className={inputClass} /></Field>
         <button type="button" onClick={saveGeneral} disabled={busy === 'gen'} className={`${btn} bg-primary text-white hover:bg-primary-dark`}>{busy === 'gen' && <Loader2 size={15} className="animate-spin" />}Save default</button>
+      </Card>
+
+      <Card title="Meta Pixel & Google Analytics" hint="Connect your tracking IDs to track storefront visits, conversions, and ad performance.">
+        <Field label="Meta Pixel ID" note="Paste your Meta (Facebook) Pixel ID (e.g. 1234567890123456) or tracking link.">
+          <input
+            value={s.metaPixelId}
+            onChange={(e) => set('metaPixelId', e.target.value)}
+            placeholder="e.g. 1234567890123456"
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Google Analytics ID" note="Paste your Google Analytics 4 Measurement ID (e.g. G-XXXXXXXXXX) or tracking link.">
+          <input
+            value={s.googleAnalyticsId}
+            onChange={(e) => set('googleAnalyticsId', e.target.value)}
+            placeholder="e.g. G-XXXXXXXXXX"
+            className={inputClass}
+          />
+        </Field>
+        <button
+          type="button"
+          onClick={saveAnalytics}
+          disabled={busy === 'analytics'}
+          className={`${btn} bg-primary text-white hover:bg-primary-dark`}
+        >
+          {busy === 'analytics' && <Loader2 size={15} className="animate-spin" />}Save tracking
+        </button>
       </Card>
 
       <Card title="Message templates" hint="Placeholders: {customer_name} {order_no} {cod} {rider_name} {rider_phone} {rider_note} {discount} {group_link}">
@@ -180,17 +318,6 @@ export default function SettingsClient({ initial, masked, moderators, webhookUrl
         <button type="button" onClick={() => act('sheet', prepareSheet)} disabled={busy === 'sheet'} className={`${btn} border border-border bg-white text-text hover:bg-surface`}>{busy === 'sheet' ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}Prepare sheet</button>
       </Card>
 
-      <Card title="Account session" hint="Sign out of your administrator account session on this browser.">
-        <button
-          type="button"
-          onClick={handleSignOut}
-          disabled={signingOut}
-          className={`${btn} border border-red-200 bg-red-50/70 text-red-600 hover:bg-red-100`}
-        >
-          {signingOut ? <Loader2 size={15} className="animate-spin" /> : <LogOut size={15} />}
-          <span>{signingOut ? 'Signing out...' : 'Log out'}</span>
-        </button>
-      </Card>
     </div>
   );
 }

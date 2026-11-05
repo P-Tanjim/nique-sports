@@ -9,7 +9,7 @@ import { formatPrice } from '@/lib/format';
 import dynamic from 'next/dynamic';
 
 const ProductQrModal = dynamic(() => import('./ProductQrModal'), { ssr: false });
-import AddToCartFlyClone from './AddToCartFlyClone';
+const AddToCartFlyClone = dynamic(() => import('./AddToCartFlyClone'), { ssr: false });
 import ImageWithLoader from '@/components/common/ImageWithLoader';
 // import ProductImage from '../../../public/products/1.jpg';
 import { addToCart } from '@/lib/cartStore';

@@ -3,11 +3,11 @@
 import { useId } from "react";
 import { Switch } from "@heroui/react";
 
-export default function IOSSwitch({ checked, onChange, label, description }) {
+export default function IOSSwitch({ checked, onChange, label, description, disabled = false }) {
   const switchId = useId();
 
   return (
-    <div className="flex items-center justify-between gap-4 py-1">
+    <div className={`flex items-center justify-between gap-4 py-1 ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
       
       {/* 1. Clickable Text Area (Controls the switch natively via htmlFor) */}
       <label 
@@ -24,6 +24,7 @@ export default function IOSSwitch({ checked, onChange, label, description }) {
       <Switch
         id={switchId}
         isSelected={checked}
+        isDisabled={disabled}
         onChange={onChange} // FIX: HeroUI uses onChange, not onValueChange
         aria-label={label}
         size="lg"

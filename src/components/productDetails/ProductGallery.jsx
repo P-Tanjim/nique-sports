@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getImageProps } from 'next/image';
 import Image from 'next/image';
-import GalleryFlyClone from './GalleryFlyClone';
+import dynamic from 'next/dynamic';
+const GalleryFlyClone = dynamic(() => import('./GalleryFlyClone'), { ssr: false });
 import { optimizeCloudinaryUrl } from '@/lib/cloudinary';
 
 const MAIN_SIZES = '(max-width: 768px) 100vw, 50vw';
